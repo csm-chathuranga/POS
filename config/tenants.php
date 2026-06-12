@@ -5,24 +5,19 @@
 | Domain → Database Mapping
 |--------------------------------------------------------------------------
 |
-| Add one entry per shop. The key is the domain (or subdomain) the shop
-| is accessed from; the value is the MySQL database name for that shop.
+| SQLite: value must be an absolute file path.
+| MySQL:  value is the database name.
 |
-| Example:
-|   'shop1.lmucpos.lk' => 'lmuc_pos_shop1',
-|   'shop2.lmucpos.lk' => 'lmuc_pos_shop2',
-|
-| The DB_DATABASE value in .env is used as the fallback when the domain
-| is not found in this list (useful for local/dev access).
+| Domains not listed here use DB_DATABASE from .env as-is.
 |
 */
 
 return [
 
     'domains' => [
-        // 'shop1.lmucpos.lk' => 'lmuc_pos_shop1',
-        // 'shop2.lmucpos.lk' => 'lmuc_pos_shop2',
-        'localhost'         => 'lmuc_pos_sinhala',
+        // Add your live domains below:
+        // 'shop1.example.lk' => storage_path('databases/shop1.sqlite'),
+        // 'shop2.example.lk' => storage_path('databases/shop2.sqlite'),
     ],
 
 ];

@@ -11,17 +11,26 @@ class SetTenantDatabase
 {
     public function handle(Request $request, Closure $next): Response
     {
-        $host   = $request->getHost();                          // e.g. shop1.lmucpos.lk
+        $host   = $request->getHost();
         $map    = config('tenants.domains', []);
-        $dbName = $map[$host] ?? null;
+        $target = $map[$host] ?? null;
 
-        if ($dbName) {
-            // Swap the database name on the active mysql connection.
-            config(['database.connections.mysql.database' => $dbName]);
-            DB::purge('mysql');
-            DB::reconnect('mysql');
+        if ($target) {
+            $driver = config('database.default');
+
+            if ($driver === 'sqlite') {
+                if (!file_exists($target)) {
+                    touch($target);
+                }
+                config(['database.connections.sqlite.database' => $target]);
+                DB::purge('sqlite');
+                DB::reconnect('sqlite');
+            } else {
+                config(['database.connections.mysql.database' => $target]);
+                DB::purge('mysql');
+                DB::reconnect('mysql');
+            }
         }
-        // If domain is not in the map, the .env DB_DATABASE is used as-is.
 
         return $next($request);
     }

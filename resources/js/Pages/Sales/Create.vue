@@ -6,8 +6,9 @@ import axios from 'axios';
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 const props = defineProps({
-    customers:       { type: Array, default: () => [] },
-    popularProducts: { type: Array, default: () => [] },
+    customers:          { type: Array, default: () => [] },
+    popularProducts:    { type: Array, default: () => [] },
+    fastMovingProducts: { type: Array, default: () => [] },
 });
 
 const t = inject('t');
@@ -45,14 +46,16 @@ const canDiscount = computed(() =>
 );
 
 // ─── Refs ─────────────────────────────────────────────────────────────────────
-const searchInput   = ref(null);
-const dropdownList  = ref(null);
-const searchQuery   = ref('');
-const searchResults = ref([]);
-const searching     = ref(false);
-const searchTimer   = ref(null);
-const showDropdown  = ref(false);
-const activeIndex   = ref(-1);   // highlighted row in dropdown (-1 = none)
+const searchInput    = ref(null);
+const dropdownList   = ref(null);
+const searchQuery    = ref('');
+const searchResults  = ref([]);
+const showDropdown   = ref(false);
+const activeIndex    = ref(-1);   // highlighted row in dropdown (-1 = none)
+
+// ─── Product cache ────────────────────────────────────────────────────────────
+const allProducts    = ref([]);   // full catalogue, loaded once on mount
+const productsReady  = ref(false);
 
 const cart             = ref([]);
 const selectedCustomer = ref(null);
@@ -145,6 +148,51 @@ const dropdownItems = computed(() =>
     searchQuery.value.trim() === '' ? props.popularProducts : searchResults.value
 );
 
+// ─── Size picker ─────────────────────────────────────────────────────────────
+const sizePickerProduct = ref(null);
+const showSizePicker    = ref(false);
+const sizeActiveIndex   = ref(0);
+
+function selectSize(size) {
+    const p = sizePickerProduct.value;
+    showSizePicker.value    = false;
+    sizePickerProduct.value = null;
+    sizeActiveIndex.value   = 0;
+    addToCart({
+        ...p,
+        variant_id:      size.id,
+        name:            p.name + ' - ' + size.label,
+        name_si:         p.name_si ? p.name_si + ' - ' + size.label : null,
+        selling_price:   size.price,
+        wholesale_price: size.price,
+        unit:            'pcs',
+        sizes:           [],
+    });
+}
+
+// ─── Barcode scan detection ───────────────────────────────────────────────────
+const lastKeyTime    = ref(0);
+const keyIntervals   = ref([]);
+const isScanMode     = ref(false);
+
+function onSearchKeypress(e) {
+    if (e.key === 'Enter') return;
+    const now = Date.now();
+    if (lastKeyTime.value > 0) {
+        keyIntervals.value.push(now - lastKeyTime.value);
+    }
+    lastKeyTime.value = now;
+    if (keyIntervals.value.length >= 3) {
+        isScanMode.value = keyIntervals.value.slice(-6).every(i => i < 60);
+    }
+}
+
+function resetScanState() {
+    lastKeyTime.value  = 0;
+    keyIntervals.value = [];
+    isScanMode.value   = false;
+}
+
 // ─── Product search ───────────────────────────────────────────────────────────
 function onSearchFocus() {
     activeIndex.value  = -1;
@@ -153,26 +201,20 @@ function onSearchFocus() {
 
 function onSearchInput() {
     activeIndex.value = -1;
-    clearTimeout(searchTimer.value);
-    const q = searchQuery.value.trim();
+    const q = searchQuery.value.trim().toLowerCase();
     if (!q) {
         searchResults.value = [];
         showDropdown.value  = props.popularProducts.length > 0;
+        resetScanState();
         return;
     }
-    searching.value = true;
-    searchTimer.value = setTimeout(async () => {
-        try {
-            const res = await axios.get('/api/products/search', { params: { q } });
-            searchResults.value = res.data;
-            showDropdown.value  = res.data.length > 0;
-        } catch {
-            searchResults.value = [];
-            showDropdown.value  = false;
-        } finally {
-            searching.value = false;
-        }
-    }, 200);
+    // Client-side filter against cached catalogue
+    searchResults.value = allProducts.value.filter(p =>
+        p.name.toLowerCase().includes(q) ||
+        (p.name_si && p.name_si.includes(q)) ||
+        (p.barcode && p.barcode.includes(q))
+    ).slice(0, 20);
+    showDropdown.value = searchResults.value.length > 0;
 }
 
 function onArrowDown(e) {
@@ -198,21 +240,41 @@ function scrollActiveIntoView() {
     });
 }
 
-function onSearchEnter(e) {
+async function onSearchEnter(e) {
     e.preventDefault();
-    // If an item is highlighted via arrow keys, add it
-    if (activeIndex.value >= 0 && dropdownItems.value[activeIndex.value]) {
-        addToCart(dropdownItems.value[activeIndex.value]);
+    const q = searchQuery.value.trim();
+
+    // Barcode scan — exact client-side lookup
+    if (isScanMode.value && q) {
+        resetScanState();
+        searchQuery.value   = '';
+        searchResults.value = [];
+        showDropdown.value  = false;
+        const hit = allProducts.value.find(p => p.barcode === q);
+        if (hit) addToCart(hit);
         return;
     }
-    // No highlight: fall back to text/barcode match
-    const q = searchQuery.value.trim();
-    if (!q) return;
+
     const items = dropdownItems.value;
-    let found = items.find(p => p.barcode && p.barcode.toLowerCase() === q.toLowerCase())
-             || items.find(p => p.name.toLowerCase().includes(q.toLowerCase()))
-             || (items.length === 1 ? items[0] : null);
-    if (found) addToCart(found);
+
+    // Arrow-key selection takes priority
+    if (activeIndex.value >= 0 && items[activeIndex.value]) {
+        addToCart(items[activeIndex.value]);
+        if (showSizePicker.value) e.stopPropagation();
+        return;
+    }
+
+    // Best match in current results, fall back to first item
+    if (!q || items.length === 0) return;
+    const ql = q.toLowerCase();
+    const found = items.find(p => p.barcode && p.barcode.toLowerCase() === ql)
+               || items.find(p => p.name.toLowerCase().includes(ql))
+               || items.find(p => p.name_si && p.name_si.includes(q))
+               || items[0];
+    if (found) {
+        addToCart(found);
+        if (showSizePicker.value) e.stopPropagation();
+    }
 }
 
 function setPriceMode(mode) {
@@ -228,8 +290,23 @@ function setPriceMode(mode) {
 }
 
 function addToCart(product) {
+    // Show size picker if product has sizes defined
+    if (product.sizes?.length > 0) {
+        sizePickerProduct.value = product;
+        showSizePicker.value    = true;
+        sizeActiveIndex.value   = 0;
+        searchQuery.value       = '';
+        searchResults.value     = [];
+        showDropdown.value      = false;
+        activeIndex.value       = -1;
+        return;
+    }
+
     const isWeightUnit = ['kg', 'g', 'l', 'ml', 'liter'].includes((product.unit || '').toLowerCase());
-    const existing = cart.value.find(i => i.product_id === product.id);
+    const variantId    = product.variant_id || null;
+    const existing     = cart.value.find(i =>
+        i.product_id === product.id && i.variant_id === variantId
+    );
 
     searchQuery.value   = '';
     searchResults.value = [];
@@ -254,6 +331,7 @@ function addToCart(product) {
 
         cart.value.push({
             product_id:      product.id,
+            variant_id:      variantId,
             name:            product.name_si ? `${product.name} / ${product.name_si}` : product.name,
             barcode:         product.barcode || '',
             qty:             isWeightUnit ? null : 1,
@@ -346,6 +424,7 @@ function submitSale() {
     submitting.value = true;
     form.items          = cart.value.map(i => ({
         product_id: i.product_id,
+        variant_id: i.variant_id || null,
         name:       i.name,
         qty:        i.qty,
         unit_price: i.unit_price,
@@ -399,21 +478,35 @@ function confirmHold() {
 }
 
 // ─── Keyboard shortcuts ───────────────────────────────────────────────────────
-function handleKeyboard(e) {
-    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') {
-        // Allow Enter on search input to bubble to onSearchEnter
+function handleGlobalKeyboard(e) {
+    // Size picker keyboard navigation takes priority
+    if (showSizePicker.value && sizePickerProduct.value) {
+        const sizes = sizePickerProduct.value.sizes;
+        switch (e.key) {
+            case 'ArrowRight':
+            case 'ArrowDown':
+                e.preventDefault();
+                sizeActiveIndex.value = Math.min(sizeActiveIndex.value + 1, sizes.length - 1);
+                return;
+            case 'ArrowLeft':
+            case 'ArrowUp':
+                e.preventDefault();
+                sizeActiveIndex.value = Math.max(sizeActiveIndex.value - 1, 0);
+                return;
+            case 'Enter':
+                e.preventDefault();
+                if (sizes[sizeActiveIndex.value]) selectSize(sizes[sizeActiveIndex.value]);
+                return;
+            case 'Escape':
+                e.preventDefault();
+                showSizePicker.value = false;
+                sizePickerProduct.value = null;
+                sizeActiveIndex.value = 0;
+                return;
+        }
         return;
     }
-    switch (e.key) {
-        case 'F2': e.preventDefault(); setPaymentMethod('cash');   break;
-        case 'F3': e.preventDefault(); setPaymentMethod('card');   break;
-        case 'F4': e.preventDefault(); setPaymentMethod('qr');     break;
-        case 'F5': e.preventDefault(); holdBill();                 break;
-        case 'Enter': e.preventDefault(); submitSale();            break;
-    }
-}
 
-function handleGlobalKeyboard(e) {
     switch (e.key) {
         case 'F1':     e.preventDefault(); refocusSearch();          break;
         case 'F2':     e.preventDefault(); setPaymentMethod('cash'); break;
@@ -434,9 +527,35 @@ function refocusSearch() {
     nextTick(() => searchInput.value?.focus());
 }
 
+const CACHE_KEY = 'pos_products_v1';
+const CACHE_TTL = 10 * 60 * 1000; // 10 minutes
+
+async function loadAllProducts() {
+    try {
+        const raw = localStorage.getItem(CACHE_KEY);
+        if (raw) {
+            const { ts, data } = JSON.parse(raw);
+            if (Date.now() - ts < CACHE_TTL) {
+                allProducts.value  = data;
+                productsReady.value = true;
+                return;
+            }
+        }
+    } catch {}
+    try {
+        const res = await axios.get('/api/products/all');
+        allProducts.value   = res.data;
+        productsReady.value = true;
+        localStorage.setItem(CACHE_KEY, JSON.stringify({ ts: Date.now(), data: res.data }));
+    } catch {
+        productsReady.value = true; // fail open — search just returns no results
+    }
+}
+
 onMounted(() => {
     window.addEventListener('keydown', handleGlobalKeyboard);
     document.addEventListener('fullscreenchange', onFullscreenChange);
+    loadAllProducts();
     refocusSearch();
 });
 
@@ -544,13 +663,14 @@ function fmt(val) {
                             class="w-full pl-12 pr-4 py-4 text-lg border-2 border-blue-200 rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 min-h-[60px] font-medium"
                             @focus="onSearchFocus"
                             @input="onSearchInput"
+                            @keypress="onSearchKeypress"
                             @keydown.enter="onSearchEnter"
                             @keydown.arrow-down="onArrowDown"
                             @keydown.arrow-up="onArrowUp"
                             @keydown.escape="showDropdown = false; searchQuery = ''; activeIndex = -1"
                             @blur="setTimeout(() => { showDropdown = false; activeIndex = -1 }, 150)"
                         />
-                        <div v-if="searching" class="absolute inset-y-0 right-0 pr-4 flex items-center">
+                        <div v-if="!productsReady" class="absolute inset-y-0 right-0 pr-4 flex items-center">
                             <svg class="animate-spin h-5 w-5 text-blue-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                                 <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
@@ -712,48 +832,36 @@ function fmt(val) {
                         <span class="text-blue-700 font-bold text-base">{{ t('lbl.grand_total') }}: {{ fmt(total) }}</span>
                     </div>
                 </div>
+
+                <!-- Fast Moving Products -->
+                <div class="bg-white rounded-xl shadow-sm border border-amber-100 p-3">
+                    <p class="text-xs font-semibold text-amber-700 uppercase tracking-wider mb-2 flex items-center gap-1">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clip-rule="evenodd" />
+                        </svg>
+                        {{ t('pos.fast_moving') }}
+                    </p>
+                    <div v-if="fastMovingProducts.length > 0" class="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 xl:grid-cols-8 gap-1.5">
+                        <button
+                            v-for="product in fastMovingProducts"
+                            :key="product.id"
+                            type="button"
+                            @click="addToCart(product)"
+                            class="flex flex-col items-center text-center p-2 rounded-lg border border-amber-100 bg-amber-50 hover:bg-amber-100 hover:border-amber-300 active:scale-95 transition-all"
+                        >
+                            <span class="text-xs font-semibold text-gray-700 leading-tight line-clamp-2 w-full">{{ product.name_si || product.name }}</span>
+                            <span v-if="product.sizes?.length > 0" class="text-[10px] text-amber-600 font-medium">{{ product.sizes.length }} sizes</span>
+                            <span v-else class="text-xs font-bold text-blue-600 mt-0.5">{{ fmt(product.selling_price) }}</span>
+                        </button>
+                    </div>
+                    <p v-else class="text-xs text-amber-400 italic">{{ t('prod.fast_moving_hint') }}</p>
+                </div>
             </div>
 
             <!-- ══════════════════════════════════════════
                  RIGHT PANEL: Customer + Payment
             ═══════════════════════════════════════════ -->
             <div class="lg:w-[40%] flex flex-col gap-3">
-
-                <!-- Customer selector — only shown for Credit payment -->
-                <div v-if="paymentMethod === 'credit'" class="bg-white rounded-xl shadow-sm border border-red-200 p-4">
-                    <div class="flex items-center justify-between mb-2">
-                        <label class="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                            {{ t('lbl.customer') }}
-                        </label>
-                        <button
-                            type="button"
-                            @click="openQuickCustomer"
-                            class="flex items-center gap-1 text-xs font-semibold text-blue-600 hover:text-blue-800 hover:bg-blue-50 px-2 py-1 rounded-lg transition-colors"
-                            :title="t('cust.quick_add')"
-                        >
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
-                            </svg>
-                            {{ t('cust.quick_add') }}
-                        </button>
-                    </div>
-                    <select
-                        @change="selectCustomer"
-                        class="w-full border border-gray-300 rounded-lg px-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 min-h-[48px] bg-white"
-                    >
-                        <option value="">{{ t('lbl.select_customer') }}</option>
-                        <option v-for="c in localCustomers" :key="c.id" :value="c.id" :selected="selectedCustomer?.id === c.id">
-                            {{ c.name }} {{ c.phone ? `· ${c.phone}` : '' }}
-                        </option>
-                    </select>
-                    <div v-if="selectedCustomer" class="mt-2 flex items-center gap-2 text-xs text-blue-700 bg-blue-50 rounded-lg px-3 py-2">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                        </svg>
-                        <span class="font-medium">{{ selectedCustomer.name }}</span>
-                        <span v-if="selectedCustomer.phone" class="text-blue-500">{{ selectedCustomer.phone }}</span>
-                    </div>
-                </div>
 
                 <!-- Totals summary + bill discount -->
                 <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 space-y-2">
@@ -822,7 +930,7 @@ function fmt(val) {
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
                             </svg>
-                            <span class="text-xs">{{ t('pos.cash_btn') }} [F2]</span>
+                            <span class="text-xs">{{ t('pos.cash_btn') }}</span>
                         </button>
 
                         <!-- Card F3 -->
@@ -837,7 +945,7 @@ function fmt(val) {
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
                             </svg>
-                            <span class="text-xs">{{ t('pos.card_btn') }} [F3]</span>
+                            <span class="text-xs">{{ t('pos.card_btn') }}</span>
                         </button>
 
                         <!-- Credit F4 -->
@@ -852,16 +960,47 @@ function fmt(val) {
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                             </svg>
-                            <span class="text-xs">{{ t('pos.credit_btn') }} [F4]</span>
+                            <span class="text-xs">{{ t('pos.credit_btn') }}</span>
                         </button>
                     </div>
 
-                    <!-- Credit warning -->
-                    <div v-if="paymentMethod === 'credit' && !selectedCustomer" class="mt-2 text-xs text-red-600 bg-red-50 rounded-lg px-3 py-2 flex items-center gap-1.5">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                        </svg>
-                        {{ t('lbl.credit_warn') }}
+                    <!-- Customer selector — shown when Credit is selected -->
+                    <div v-if="paymentMethod === 'credit'" class="mt-3 pt-3 border-t border-gray-100">
+                        <div class="flex items-center justify-between mb-1.5">
+                            <label class="text-xs font-semibold text-gray-500 uppercase tracking-wider">{{ t('lbl.customer') }}</label>
+                            <button
+                                type="button"
+                                @click="openQuickCustomer"
+                                class="flex items-center gap-1 text-xs font-semibold text-blue-600 hover:text-blue-800 hover:bg-blue-50 px-2 py-1 rounded-lg transition-colors"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+                                </svg>
+                                {{ t('cust.quick_add') }}
+                            </button>
+                        </div>
+                        <select
+                            @change="selectCustomer"
+                            class="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-400 bg-white"
+                        >
+                            <option value="">{{ t('lbl.select_customer') }}</option>
+                            <option v-for="c in localCustomers" :key="c.id" :value="c.id" :selected="selectedCustomer?.id === c.id">
+                                {{ c.name }} {{ c.phone ? `· ${c.phone}` : '' }}
+                            </option>
+                        </select>
+                        <div v-if="selectedCustomer" class="mt-1.5 flex items-center gap-2 text-xs text-blue-700 bg-blue-50 rounded-lg px-3 py-1.5">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                            </svg>
+                            <span class="font-medium">{{ selectedCustomer.name }}</span>
+                            <span v-if="selectedCustomer.phone" class="text-blue-500">{{ selectedCustomer.phone }}</span>
+                        </div>
+                        <div v-if="!selectedCustomer" class="mt-1.5 text-xs text-red-500 flex items-center gap-1">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                            </svg>
+                            {{ t('lbl.credit_warn') }}
+                        </div>
                     </div>
                 </div>
 
@@ -915,7 +1054,6 @@ function fmt(val) {
                             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
                         </svg>
                         <span>{{ submitting || form.processing ? t('lbl.loading') : t('pos.complete_sale') }}</span>
-                        <span v-if="!submitting && !form.processing" class="text-sm font-normal opacity-70">[F10]</span>
                     </button>
 
                     <!-- Hold Bill -->
@@ -929,7 +1067,6 @@ function fmt(val) {
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
                         <span>{{ t('pos.hold_bill') }}</span>
-                        <span class="text-sm font-normal opacity-70">[F5]</span>
                     </button>
 
                     <!-- Clear cart -->
@@ -1008,6 +1145,37 @@ function fmt(val) {
                             {{ t('btn.cancel') }}
                         </button>
                     </div>
+                </div>
+            </div>
+        </Teleport>
+
+        <!-- ══ Size Picker Modal ══ -->
+        <Teleport to="body">
+            <div v-if="showSizePicker && sizePickerProduct" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" @click.self="showSizePicker = false">
+                <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6">
+                    <h2 class="text-base font-bold text-gray-800 mb-1">{{ sizePickerProduct.name_si || sizePickerProduct.name }}</h2>
+                    <p class="text-xs text-gray-400 mb-4">{{ t('pos.select_size') }}</p>
+                    <div class="grid grid-cols-3 gap-2">
+                        <button
+                            v-for="(size, idx) in sizePickerProduct.sizes"
+                            :key="size.id"
+                            type="button"
+                            @click="selectSize(size)"
+                            @mouseover="sizeActiveIndex = idx"
+                            class="flex flex-col items-center justify-center gap-1 p-3 rounded-xl border-2 active:scale-95 transition-all"
+                            :class="idx === sizeActiveIndex
+                                ? 'border-blue-500 bg-blue-600 text-white shadow-lg shadow-blue-200'
+                                : 'border-blue-200 bg-blue-50 hover:bg-blue-100 hover:border-blue-400'"
+                        >
+                            <span class="font-bold text-sm" :class="idx === sizeActiveIndex ? 'text-white' : 'text-gray-800'">{{ size.label }}</span>
+                            <span class="text-xs font-semibold" :class="idx === sizeActiveIndex ? 'text-blue-200' : 'text-blue-600'">{{ fmt(size.price) }}</span>
+                        </button>
+                    </div>
+                    <button
+                        type="button"
+                        @click="showSizePicker = false; sizePickerProduct = null"
+                        class="w-full mt-4 py-2.5 text-sm text-gray-500 hover:text-gray-700 hover:bg-gray-50 rounded-xl transition-colors"
+                    >{{ t('btn.cancel') }}</button>
                 </div>
             </div>
         </Teleport>

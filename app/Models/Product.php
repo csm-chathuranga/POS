@@ -23,14 +23,21 @@ class Product extends Model
         'alert_qty',
         'unit',
         'active',
+        'is_fast_moving',
     ];
 
     protected $casts = [
         'cost_price'      => 'decimal:2',
         'selling_price'   => 'decimal:2',
         'wholesale_price' => 'decimal:2',
-        'active'        => 'boolean',
+        'active'          => 'boolean',
+        'is_fast_moving'  => 'boolean',
     ];
+
+    public function variants()
+    {
+        return $this->hasMany(ProductVariant::class)->orderBy('id');
+    }
 
     public function category()
     {

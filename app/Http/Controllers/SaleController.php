@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Customer;
 use App\Models\Payment;
 use App\Models\Product;
+use App\Models\ProductVariant;
 use App\Models\Sale;
 use App\Models\SaleItem;
 use App\Models\StockMovement;
@@ -60,16 +61,58 @@ class SaleController extends Controller
 
         $popularProducts = Product::where('active', true)
             ->where('stock_qty', '>', 0)
-            ->when($popularIds->isNotEmpty(), fn ($q) => $q->whereIn('id', $popularIds)
-                ->orderByRaw('FIELD(id, ' . $popularIds->implode(',') . ')')
-            )
-            ->when($popularIds->isEmpty(), fn ($q) => $q->orderByDesc('created_at'))
+            ->when($popularIds->isNotEmpty(), fn ($q) => $q->whereIn('id', $popularIds))
+            ->when($popularIds->isEmpty(),    fn ($q) => $q->orderByDesc('created_at'))
             ->limit(24)
-            ->get(['id', 'name', 'name_si', 'barcode', 'selling_price', 'wholesale_price', 'stock_qty', 'unit']);
+            ->with('variants')
+            ->get()
+            ->when($popularIds->isNotEmpty(), fn ($col) => $col->sortBy(
+                fn ($p) => $popularIds->search($p->id)
+            ))
+            ->map(fn ($p) => [
+                'id'              => $p->id,
+                'name'            => $p->name,
+                'name_si'         => $p->name_si,
+                'barcode'         => $p->barcode,
+                'selling_price'   => (float) $p->selling_price,
+                'wholesale_price' => (float) $p->wholesale_price,
+                'stock_qty'       => (float) $p->stock_qty,
+                'unit'            => $p->unit ?? 'pcs',
+                'sizes'           => $p->variants->map(fn ($v) => [
+                    'id'    => $v->id,
+                    'label' => $v->label,
+                    'price' => (float) $v->selling_price,
+                ])->values()->all(),
+            ])
+            ->values()
+            ->all();
+
+        $fastMovingProducts = Product::where('active', true)
+            ->where('is_fast_moving', true)
+            ->with('variants')
+            ->get()
+            ->map(fn ($p) => [
+                'id'              => $p->id,
+                'name'            => $p->name,
+                'name_si'         => $p->name_si,
+                'barcode'         => $p->barcode,
+                'selling_price'   => (float) $p->selling_price,
+                'wholesale_price' => (float) $p->wholesale_price,
+                'stock_qty'       => (float) $p->stock_qty,
+                'unit'            => $p->unit ?? 'pcs',
+                'sizes'           => $p->variants->map(fn ($v) => [
+                    'id'    => $v->id,
+                    'label' => $v->label,
+                    'price' => (float) $v->selling_price,
+                ])->values()->all(),
+            ])
+            ->values()
+            ->all();
 
         return Inertia::render('Sales/Create', [
-            'customers'       => $customers,
-            'popularProducts' => $popularProducts,
+            'customers'          => $customers,
+            'popularProducts'    => $popularProducts,
+            'fastMovingProducts' => $fastMovingProducts,
         ])->with(['flash' => session('flash')]);
     }
 
@@ -81,6 +124,7 @@ class SaleController extends Controller
         $request->validate([
             'items'                  => 'required|array|min:1',
             'items.*.product_id'     => 'required|exists:products,id',
+            'items.*.variant_id'     => 'nullable|exists:product_variants,id',
             'items.*.qty'            => 'required|numeric|min:0.01',
             'items.*.unit_price'     => 'required|numeric|min:0',
             'items.*.discount'       => 'nullable|numeric|min:0',
@@ -125,20 +169,29 @@ class SaleController extends Controller
 
             foreach ($request->items as $item) {
                 $product = Product::lockForUpdate()->findOrFail($item['product_id']);
+                $variant = !empty($item['variant_id'])
+                    ? ProductVariant::lockForUpdate()->findOrFail($item['variant_id'])
+                    : null;
 
                 SaleItem::create([
                     'sale_id'      => $sale->id,
                     'product_id'   => $product->id,
-                    'product_name' => $product->name,
+                    'variant_id'   => $variant?->id,
+                    'product_name' => $item['name'] ?? ($variant ? $product->name . ' - ' . $variant->label : $product->name),
                     'unit_price'   => $item['unit_price'],
-                    'cost_price'   => $product->cost_price,
+                    'cost_price'   => $variant ? $variant->cost_price : $product->cost_price,
                     'qty'          => $item['qty'],
                     'discount'     => $item['discount'] ?? 0,
                     'total'        => $item['total'],
                 ]);
 
-                $stockBefore = $product->stock_qty;
-                $product->decrement('stock_qty', $item['qty']);
+                if ($variant) {
+                    $stockBefore = $variant->stock_qty;
+                    $variant->decrement('stock_qty', $item['qty']);
+                } else {
+                    $stockBefore = $product->stock_qty;
+                    $product->decrement('stock_qty', $item['qty']);
+                }
 
                 StockMovement::create([
                     'product_id'   => $product->id,

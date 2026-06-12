@@ -59,17 +59,16 @@ const flashVisible = ref(true);
 
         <!-- ───── Desktop Sidebar ───── -->
         <aside
-            class="hidden md:flex md:flex-col md:fixed md:inset-y-0 z-30 print:hidden transition-all duration-300"
+            class="hidden md:flex md:flex-col md:fixed md:inset-y-0 z-30 print:hidden transition-all duration-300 overflow-hidden"
             :class="[
                 posFullscreen ? '!hidden' : '',
                 sidebarCollapsed ? 'md:w-16' : 'md:w-64',
             ]"
             style="background-color: var(--sidebar-bg, #1e293b);"
         >
-            <!-- Brand + collapse toggle -->
+            <!-- Brand -->
             <div
-                class="flex items-center h-16 px-3 flex-shrink-0"
-                :class="sidebarCollapsed ? 'justify-center' : 'justify-between'"
+                class="flex items-center justify-center h-16 px-3 flex-shrink-0"
                 style="background-color: var(--sidebar-header, #0f172a);"
             >
                 <Link :href="route('dashboard')" class="flex items-center gap-2 min-w-0">
@@ -80,32 +79,10 @@ const flashVisible = ref(true);
                     </div>
                     <span v-if="!sidebarCollapsed" class="font-bold text-base text-white truncate">LUMAC POS</span>
                 </Link>
-
-                <!-- Collapse toggle button -->
-                <button
-                    v-if="!sidebarCollapsed"
-                    @click="toggleCollapse"
-                    class="flex-shrink-0 w-7 h-7 rounded-md flex items-center justify-center sidebar-toggle-btn transition-colors"
-                    title="Collapse sidebar"
-                >
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
-                    </svg>
-                </button>
-                <button
-                    v-else
-                    @click="toggleCollapse"
-                    class="w-7 h-7 rounded-md flex items-center justify-center sidebar-toggle-btn transition-colors mt-1"
-                    title="Expand sidebar"
-                >
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7" />
-                    </svg>
-                </button>
             </div>
 
             <!-- Nav -->
-            <nav class="flex-1 py-3 space-y-0.5" :class="[sidebarCollapsed ? 'px-2 overflow-y-hidden' : 'px-3 overflow-y-auto']">
+            <nav class="flex-1 py-3 space-y-0.5" :class="[sidebarCollapsed ? 'px-2 overflow-hidden' : 'px-3 overflow-y-auto overflow-x-hidden']">
                 <template v-for="item in mainNavItems" :key="item.routeName">
                     <Link
                         :href="route(item.routeName)"
@@ -152,6 +129,20 @@ const flashVisible = ref(true);
 
             <!-- User info at bottom -->
             <div class="border-t border-slate-700 p-3 flex-shrink-0">
+                <!-- Collapse / expand toggle above avatar -->
+                <button
+                    @click="toggleCollapse"
+                    class="w-full flex items-center justify-center mb-2 py-1.5 rounded-lg transition-colors text-slate-300 hover:text-white"
+                    style="background-color: rgba(255,255,255,0.07);"
+                    :title="sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'"
+                >
+                    <svg v-if="sidebarCollapsed" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7" />
+                    </svg>
+                    <svg v-else xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
+                    </svg>
+                </button>
                 <div class="flex items-center" :class="sidebarCollapsed ? 'justify-center' : 'gap-3'">
                     <div class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style="background-color: var(--sidebar-active, #2563eb);">
                         <span class="text-sm font-bold text-white">{{ user?.name?.charAt(0)?.toUpperCase() }}</span>
