@@ -280,28 +280,44 @@ onMounted(async () => {
         margin: 0;
     }
 
-    .no-print {
-        display: none !important;
+    /* Hide entire page, then reveal only the receipt */
+    html, body {
+        margin: 0 !important;
+        padding: 0 !important;
+        width: 80mm !important;
     }
 
+    body * {
+        visibility: hidden !important;
+    }
 
-    /* Remove screen-only card chrome, add explicit print padding */
+    #receipt-wrapper,
+    #receipt-card,
+    #receipt-card * {
+        visibility: visible !important;
+    }
+
+    /* Pin wrapper to top-left, no gaps */
+    #receipt-wrapper {
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        width: 80mm !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        display: block !important;
+    }
+
+    /* Receipt card fills exactly 80mm */
     #receipt-card {
-        width: 100% !important;
+        position: static !important;
+        width: 80mm !important;
+        max-width: 80mm !important;
         padding: 4mm 5mm !important;
         margin: 0 !important;
         border: none !important;
         box-shadow: none !important;
         border-radius: 0 !important;
-    }
-
-    /* Center wrapper — switch to block so card takes full width */
-    #receipt-wrapper {
-        display: block !important;
-        padding: 0 !important;
-    }
-
-    #receipt-card {
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
     }
@@ -330,6 +346,5 @@ onMounted(async () => {
         max-height: 56px !important;
         max-width: 160px !important;
     }
-
 }
 </style>

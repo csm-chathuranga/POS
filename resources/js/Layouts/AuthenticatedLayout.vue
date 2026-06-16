@@ -81,6 +81,12 @@ function isActive(routeName) {
 }
 
 const flashVisible = ref(true);
+
+const reloading = ref(false);
+function reloadApp() {
+    reloading.value = true;
+    window.location.reload();
+}
 </script>
 
 <template>
@@ -238,6 +244,23 @@ const flashVisible = ref(true);
                         <h1 class="text-lg font-semibold text-gray-800 dark:text-slate-100">LUMAC POS</h1>
                     </slot>
                 </div>
+
+                <!-- Reload button -->
+                <button
+                    @click="reloadApp"
+                    :disabled="reloading"
+                    title="Reload"
+                    class="p-2 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
+                >
+                    <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        class="h-5 w-5"
+                        :class="reloading ? 'animate-spin' : ''"
+                        fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                    >
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                </button>
 
                 <div class="flex items-center gap-2 ml-4 pl-4" style="border-left:1px solid #E2E8F0;">
                     <div class="hidden sm:flex items-center gap-2">
