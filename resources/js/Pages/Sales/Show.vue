@@ -127,18 +127,18 @@ onMounted(async () => {
                         class="receipt-logo mx-auto mb-2 object-contain"
                         style="max-height:64px; max-width:180px;"
                     />
-                    <p class="shop-title font-bold text-[15px]" style="color:#0F172A;">{{ shopName }}</p>
-                    <p v-if="shopAddress" class="text-[12px] text-slate-500 mt-0.5">{{ shopAddress }}</p>
-                    <p v-if="shopPhone" class="text-[12px] text-slate-500">{{ shopPhone }}</p>
+                    <p class="shop-title font-extrabold text-[16px]" style="color:#0F172A; letter-spacing:0.01em;">{{ shopName }}</p>
+                    <p v-if="shopAddress" class="text-[12px] font-bold" style="color:#334155;">{{ shopAddress }}</p>
+                    <p v-if="shopPhone" class="text-[12px] font-bold" style="color:#334155;">{{ shopPhone }}</p>
                 </div>
 
                 <div class="divider" style="border-top:1px dashed #CBD5E1; margin:10px 0;"></div>
 
                 <!-- Invoice meta -->
-                <div class="text-[12px] space-y-1 mb-1" style="color:#334155;">
+                <div class="text-[12px] space-y-1 mb-1 font-bold" style="color:#1E293B;">
                     <div class="flex justify-between">
                         <span>{{ tBill('th.invoice') }}</span>
-                        <span class="font-bold">{{ sale.invoice_no }}</span>
+                        <span class="font-extrabold">{{ sale.invoice_no }}</span>
                     </div>
                     <div class="flex justify-between">
                         <span>{{ tBill('th.date') }}</span>
@@ -161,35 +161,35 @@ onMounted(async () => {
                 <div class="items-section divider" style="border-top:1px dashed #CBD5E1; margin:10px 0;"></div>
 
                 <!-- Items -->
-                <table class="items-section" style="width:100%; border-collapse:collapse; font-size:12px; color:#334155;">
+                <table class="items-section" style="width:100%; border-collapse:collapse; font-size:12px; color:#0F172A; font-weight:700;">
                     <thead>
-                        <tr style="border-bottom:1px solid #E2E8F0;">
-                            <th style="text-align:left; width:16px; padding:4px 4px 4px 0; font-weight:600; color:#64748B;">#</th>
-                            <th style="text-align:left; padding:4px 8px 4px 0; font-weight:600; color:#64748B;">{{ tBill('th.product') }}</th>
-                            <th style="text-align:center; width:28px; padding:4px 0; font-weight:600; color:#64748B;">{{ tBill('th.qty') }}</th>
-                            <th style="text-align:right; width:52px; padding:4px 0; font-weight:600; color:#64748B;">{{ tBill('th.price') }}</th>
-                            <th style="text-align:right; width:48px; padding:4px 0; font-weight:600; color:#F59E0B;">{{ tBill('lbl.discount') }}</th>
-                            <th style="text-align:right; width:56px; padding:4px 0; font-weight:600; color:#64748B;">{{ tBill('lbl.total') }}</th>
+                        <tr style="border-bottom:2px solid #CBD5E1;">
+                            <th style="text-align:left; width:16px; padding:4px 4px 4px 0; font-weight:800;">#</th>
+                            <th style="text-align:left; padding:4px 8px 4px 0; font-weight:800;">{{ tBill('th.product') }}</th>
+                            <th style="text-align:center; width:28px; padding:4px 0; font-weight:800;">{{ tBill('th.qty') }}</th>
+                            <th style="text-align:right; width:52px; padding:4px 0; font-weight:800;">{{ tBill('th.price') }}</th>
+                            <th style="text-align:right; width:48px; padding:4px 0; font-weight:800; color:#D97706;">{{ tBill('lbl.discount') }}</th>
+                            <th style="text-align:right; width:56px; padding:4px 0; font-weight:800;">{{ tBill('lbl.total') }}</th>
                         </tr>
                     </thead>
                     <tbody>
                         <template v-for="(item, index) in sale.items" :key="item.id">
                             <!-- Line 1: item number + product names -->
                             <tr>
-                                <td style="padding:3px 4px 0 0; color:#94A3B8; font-size:11px; vertical-align:top;">{{ index + 1 }}</td>
-                                <td colspan="5" style="padding:3px 8px 0 0; word-break:break-word;">
+                                <td style="padding:4px 4px 0 0; font-weight:700; vertical-align:top;">{{ index + 1 }}</td>
+                                <td colspan="5" style="padding:4px 8px 0 0; word-break:break-word; font-weight:800; color:#0F172A;">
                                     <span>{{ item.product_name?.split(' / ')[0] ?? item.product_name }}</span>
-                                    <span v-if="item.product?.name_si" style="font-size:11px; color:#64748B;"> / {{ item.product.name_si }}</span>
+                                    <span v-if="item.product?.name_si" style="font-size:11px; font-weight:700; color:#334155;"> / {{ item.product.name_si }}</span>
                                 </td>
                             </tr>
                             <!-- Line 2: qty / price / discount / total -->
-                            <tr style="border-bottom:1px dashed #F1F5F9;">
-                                <td style="padding:0 0 3px 0;"></td>
-                                <td style="padding:0 0 3px 0;"></td>
-                                <td style="text-align:center; padding:0 0 3px 0; color:#64748B;">{{ item.qty }}</td>
-                                <td style="text-align:right; padding:0 0 3px 0; color:#64748B;">{{ n(item.unit_price) }}</td>
-                                <td style="text-align:right; padding:0 0 3px 0; color:#F59E0B;">{{ Number(item.discount) > 0 ? n(item.discount) : '-' }}</td>
-                                <td style="text-align:right; padding:0 0 3px 0; font-weight:600;">{{ n(item.total) }}</td>
+                            <tr style="border-bottom:1px dashed #CBD5E1;">
+                                <td style="padding:0 0 5px 0;"></td>
+                                <td style="padding:0 0 5px 0;"></td>
+                                <td style="text-align:center; padding:0 0 5px 0; font-weight:700;">{{ item.qty }}</td>
+                                <td style="text-align:right; padding:0 0 5px 0; font-weight:700;">{{ n(item.unit_price) }}</td>
+                                <td style="text-align:right; padding:0 0 5px 0; color:#D97706; font-weight:700;">{{ Number(item.discount) > 0 ? n(item.discount) : '-' }}</td>
+                                <td style="text-align:right; padding:0 0 5px 0; font-weight:800; color:#0F172A;">{{ n(item.total) }}</td>
                             </tr>
                         </template>
                     </tbody>
@@ -198,24 +198,24 @@ onMounted(async () => {
                 <div class="items-section divider" style="border-top:1px dashed #CBD5E1; margin:10px 0;"></div>
 
                 <!-- Totals -->
-                <div class="space-y-1.5 text-[12px]" style="color:#334155;">
+                <div class="space-y-1.5 text-[12px] font-bold" style="color:#0F172A;">
                     <div class="flex justify-between">
                         <span>{{ tBill('lbl.subtotal') }}</span>
                         <span>{{ n(sale.subtotal) }}</span>
                     </div>
-                    <div v-if="Number(sale.discount) > 0" class="flex justify-between" style="color:#F59E0B;">
+                    <div v-if="Number(sale.discount) > 0" class="flex justify-between" style="color:#D97706;">
                         <span>{{ tBill('lbl.discount') }}</span>
                         <span>-{{ n(sale.discount) }}</span>
                     </div>
-                    <div class="total-row flex justify-between font-bold text-[15px] pt-1" style="color:#0F172A; border-top:1px solid #E2E8F0;">
+                    <div class="total-row flex justify-between text-[15px] pt-2" style="color:#0F172A; border-top:2px solid #0F172A; font-weight:800;">
                         <span>{{ tBill('lbl.total') }}</span>
                         <span style="color:#2563EB;">{{ currency }} {{ n(sale.total) }}</span>
                     </div>
                     <div class="flex justify-between" style="color:#16A34A;">
                         <span>{{ tBill('th.paid') }} ({{ paymentLabel }})</span>
-                        <span class="font-medium">{{ n(sale.payments?.[0]?.amount) }}</span>
+                        <span>{{ n(sale.payments?.[0]?.amount) }}</span>
                     </div>
-                    <div v-if="Number(sale.balance) < 0" class="flex justify-between text-slate-500">
+                    <div v-if="Number(sale.balance) < 0" class="flex justify-between">
                         <span>{{ tBill('lbl.change') }}</span>
                         <span>{{ n(Math.abs(sale.balance)) }}</span>
                     </div>
@@ -224,9 +224,9 @@ onMounted(async () => {
                 <div class="divider" style="border-top:1px dashed #CBD5E1; margin:10px 0;"></div>
 
                 <!-- Footer -->
-                <p class="text-center font-bold text-[13px]" style="color:#0F172A; white-space: pre-line;">{{ footer }}</p>
+                <p class="text-center font-extrabold text-[13px]" style="color:#0F172A; white-space: pre-line;">{{ footer }}</p>
 
-                <p class="text-center text-[10px] mt-3" style="color:#94A3B8;">lunac.lk</p>
+                <p class="text-center font-extrabold text-[11px] mt-3" style="color:#0F172A;">lunac.lk</p>
             </div>
 
         </div>
@@ -292,14 +292,19 @@ onMounted(async () => {
         print-color-adjust: exact;
     }
 
-    #receipt-card .shop-title {
-        font-size: 15px !important;
+    #receipt-card * {
         font-weight: 700 !important;
     }
 
+    #receipt-card .shop-title {
+        font-size: 16px !important;
+        font-weight: 800 !important;
+    }
+
+    #receipt-card .total-row,
     #receipt-card .total-row span {
-        font-size: 14px !important;
-        font-weight: 700 !important;
+        font-size: 15px !important;
+        font-weight: 800 !important;
     }
 
     #receipt-card .divider {

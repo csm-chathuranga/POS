@@ -173,7 +173,7 @@ const statCards = [
                 >
                     <div class="flex justify-between items-start">
                         <div>
-                            <p class="font-medium text-gray-900">{{ sale.invoice_no }}</p>
+                            <Link :href="route('sales.show', sale.id)" class="font-medium hover:underline" style="color:#2563EB;">{{ sale.invoice_no }}</Link>
                             <p class="text-sm text-gray-500">{{ sale.user?.name }}</p>
                         </div>
                         <div class="text-right">
@@ -204,7 +204,9 @@ const statCards = [
                             :key="sale.id"
                             class="hover:bg-gray-50 transition-colors"
                         >
-                            <td class="px-4 py-3 font-medium" style="color:#2563EB;">{{ sale.invoice_no }}</td>
+                            <td class="px-4 py-3">
+                                <Link :href="route('sales.show', sale.id)" class="font-medium hover:underline" style="color:#2563EB;">{{ sale.invoice_no }}</Link>
+                            </td>
                             <td class="px-4 py-3 text-gray-600">{{ sale.user?.name }}</td>
                             <td class="px-4 py-3 font-semibold text-green-600">{{ formatCurrency(sale.total) }}</td>
                             <td class="px-4 py-3 text-gray-400 text-sm">{{ formatTime(sale.created_at) }}</td>

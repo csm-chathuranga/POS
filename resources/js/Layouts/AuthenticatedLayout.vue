@@ -84,7 +84,7 @@ const flashVisible = ref(true);
 </script>
 
 <template>
-    <div class="min-h-screen flex" style="background-color:#F8FAFC;">
+    <div class="min-h-screen flex dark:bg-slate-900" style="background-color:#F8FAFC;">
 
         <!-- ── Printer-saved toast (Ctrl+Shift+P) ── -->
         <Transition name="printer-toast">
@@ -222,7 +222,7 @@ const flashVisible = ref(true);
             :class="posFullscreen ? 'ml-0' : (sidebarCollapsed ? 'md:ml-16' : 'md:ml-64')"
         >
             <!-- Header -->
-            <header class="bg-white h-16 flex items-center px-4 md:px-6 sticky top-0 z-20 print:hidden" style="border-bottom:1px solid #E2E8F0;">
+            <header class="bg-white dark:bg-slate-900 h-16 flex items-center px-4 md:px-6 sticky top-0 z-20 print:hidden" style="border-bottom:1px solid #E2E8F0;">
                 <!-- Mobile menu -->
                 <button
                     @click="sidebarOpen = !sidebarOpen"
@@ -235,7 +235,7 @@ const flashVisible = ref(true);
 
                 <div class="flex-1">
                     <slot name="header">
-                        <h1 class="text-lg font-semibold text-gray-800">LUMAC POS</h1>
+                        <h1 class="text-lg font-semibold text-gray-800 dark:text-slate-100">LUMAC POS</h1>
                     </slot>
                 </div>
 
@@ -245,8 +245,8 @@ const flashVisible = ref(true);
                             <span class="text-sm font-bold text-white">{{ user?.name?.charAt(0)?.toUpperCase() }}</span>
                         </div>
                         <div>
-                            <p class="text-sm font-medium text-gray-700">{{ user?.name }}</p>
-                            <p class="text-xs text-gray-500 capitalize">{{ user?.role }}</p>
+                            <p class="text-sm font-medium text-gray-700 dark:text-slate-200">{{ user?.name }}</p>
+                            <p class="text-xs text-gray-500 dark:text-slate-400 capitalize">{{ user?.role }}</p>
                         </div>
                     </div>
                     <Link
@@ -293,7 +293,7 @@ const flashVisible = ref(true);
                 </div>
             </div>
 
-            <main class="flex-1 p-4 md:p-6 pb-20 md:pb-6 print:p-0">
+            <main class="flex-1 p-4 md:p-6 pb-20 md:pb-6 print:p-0 dark:bg-slate-900 dark:text-slate-100">
                 <slot />
             </main>
         </div>

@@ -3,8 +3,12 @@
 /node_modules
 /public/hot
 /public/storage
+/public/build
 /storage/*.key
 /vendor
+/dist-electron
+/dist
+/build-resources
 .env
 .env.backup
 .env.production

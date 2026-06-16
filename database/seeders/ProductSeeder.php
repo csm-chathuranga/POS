@@ -44,12 +44,13 @@ class ProductSeeder extends Seeder
 
         // ── Products WITH variants ─────────────────────────────────────────────
         // Each variant row: [label, cost, selling, wholesale, stock]
+        // 'base' => index of the variant to use as the main product price (1kg/1L preferred).
         $withVariants = [
 
             // Rice & Grains
             [
                 'cat' => 'Rice & Grains', 'name' => 'Samba Rice', 'name_si' => 'සම්බා හාල්',
-                'sku' => 'RICE-SAM', 'unit' => 'kg',
+                'sku' => 'RICE-SAM', 'unit' => 'kg', 'base' => 1,
                 'v' => [
                     ['500g',  115,  130,  120, 100],
                     ['1kg',   230,  260,  245, 150],
@@ -59,7 +60,7 @@ class ProductSeeder extends Seeder
             ],
             [
                 'cat' => 'Rice & Grains', 'name' => 'Nadu Rice', 'name_si' => 'නාඩු හාල්',
-                'sku' => 'RICE-NAD', 'unit' => 'kg',
+                'sku' => 'RICE-NAD', 'unit' => 'kg', 'base' => 0,
                 'v' => [
                     ['1kg',   215,  240,  228, 120],
                     ['5kg',  1020, 1150, 1090,  40],
@@ -68,7 +69,7 @@ class ProductSeeder extends Seeder
             ],
             [
                 'cat' => 'Rice & Grains', 'name' => 'Keeri Samba Rice', 'name_si' => 'කීරි සම්බා හාල්',
-                'sku' => 'RICE-KS', 'unit' => 'kg',
+                'sku' => 'RICE-KS', 'unit' => 'kg', 'base' => 0,
                 'v' => [
                     ['1kg',   280,  320,  300,  80],
                     ['5kg',  1350, 1550, 1450,  30],
@@ -79,7 +80,7 @@ class ProductSeeder extends Seeder
             // Flour & Baking
             [
                 'cat' => 'Flour & Baking', 'name' => 'Wheat Flour', 'name_si' => 'තිරිඟු පිටි',
-                'sku' => 'FLR-WHT', 'unit' => 'g',
+                'sku' => 'FLR-WHT', 'unit' => 'kg', 'base' => 1,
                 'v' => [
                     ['500g', 120, 140, 130,  80],
                     ['1kg',  235, 270, 255, 120],
@@ -88,7 +89,7 @@ class ProductSeeder extends Seeder
             ],
             [
                 'cat' => 'Flour & Baking', 'name' => 'Rice Flour', 'name_si' => 'හාල් පිටි',
-                'sku' => 'FLR-RICE', 'unit' => 'g',
+                'sku' => 'FLR-RICE', 'unit' => 'kg', 'base' => 1,
                 'v' => [
                     ['500g', 100, 115, 108, 60],
                     ['1kg',  195, 225, 210, 80],
@@ -98,7 +99,7 @@ class ProductSeeder extends Seeder
             // Sugar & Salt
             [
                 'cat' => 'Sugar & Salt', 'name' => 'White Sugar', 'name_si' => 'සුදු සීනි',
-                'sku' => 'SUG-WHT', 'unit' => 'kg',
+                'sku' => 'SUG-WHT', 'unit' => 'kg', 'base' => 1,
                 'v' => [
                     ['500g',  110,  125,  118, 100],
                     ['1kg',   215,  245,  230, 150],
@@ -109,7 +110,7 @@ class ProductSeeder extends Seeder
             // Oils & Fats
             [
                 'cat' => 'Oils & Fats', 'name' => 'Coconut Oil', 'name_si' => 'පොල් තෙල්',
-                'sku' => 'OIL-COC', 'unit' => 'ml',
+                'sku' => 'OIL-COC', 'unit' => 'L', 'base' => 1,
                 'v' => [
                     ['500ml',  350,  395,  375, 60],
                     ['1L',     690,  780,  740, 80],
@@ -118,7 +119,7 @@ class ProductSeeder extends Seeder
             ],
             [
                 'cat' => 'Oils & Fats', 'name' => 'Sunflower Oil', 'name_si' => 'සූරියකාන්ත තෙල්',
-                'sku' => 'OIL-SUN', 'unit' => 'ml',
+                'sku' => 'OIL-SUN', 'unit' => 'L', 'base' => 1,
                 'v' => [
                     ['500ml',  280,  320,  305, 50],
                     ['1L',     555,  630,  595, 70],
@@ -129,7 +130,7 @@ class ProductSeeder extends Seeder
             // Dhal & Pulses
             [
                 'cat' => 'Dhal & Pulses', 'name' => 'Red Lentils', 'name_si' => 'රතු දාල්',
-                'sku' => 'DAL-RED', 'unit' => 'g',
+                'sku' => 'DAL-RED', 'unit' => 'kg', 'base' => 2,
                 'v' => [
                     ['250g',  85, 100,  92,  80],
                     ['500g', 165, 195, 180, 100],
@@ -138,7 +139,7 @@ class ProductSeeder extends Seeder
             ],
             [
                 'cat' => 'Dhal & Pulses', 'name' => 'Green Gram', 'name_si' => 'මුං ඇට',
-                'sku' => 'DAL-GRN', 'unit' => 'g',
+                'sku' => 'DAL-GRN', 'unit' => 'kg', 'base' => 2,
                 'v' => [
                     ['250g',  90, 105,  98, 60],
                     ['500g', 175, 205, 190, 80],
@@ -146,10 +147,10 @@ class ProductSeeder extends Seeder
                 ],
             ],
 
-            // Spices & Condiments
+            // Spices & Condiments — use 100g as base (most common purchase unit)
             [
                 'cat' => 'Spices & Condiments', 'name' => 'Chili Powder', 'name_si' => 'මිරිස් කුඩු',
-                'sku' => 'SPC-CHI', 'unit' => 'g',
+                'sku' => 'SPC-CHI', 'unit' => 'g', 'base' => 0,
                 'v' => [
                     ['100g', 110, 130, 120, 60],
                     ['200g', 215, 250, 235, 80],
@@ -158,7 +159,7 @@ class ProductSeeder extends Seeder
             ],
             [
                 'cat' => 'Spices & Condiments', 'name' => 'Turmeric Powder', 'name_si' => 'කහ කුඩු',
-                'sku' => 'SPC-TUR', 'unit' => 'g',
+                'sku' => 'SPC-TUR', 'unit' => 'g', 'base' => 1,
                 'v' => [
                     ['50g',   75,  90,  83, 60],
                     ['100g', 145, 170, 158, 80],
@@ -166,10 +167,10 @@ class ProductSeeder extends Seeder
                 ],
             ],
 
-            // Tea & Beverages
+            // Tea & Beverages — use 100g / 1kg as base
             [
                 'cat' => 'Tea & Beverages', 'name' => 'Ceylon Black Tea', 'name_si' => 'සිලෝන් කළු තේ',
-                'sku' => 'TEA-BLK', 'unit' => 'g',
+                'sku' => 'TEA-BLK', 'unit' => 'g', 'base' => 1,
                 'v' => [
                     ['50g',  115,  135,  125,  80],
                     ['100g', 225,  260,  245, 100],
@@ -179,7 +180,7 @@ class ProductSeeder extends Seeder
             ],
             [
                 'cat' => 'Tea & Beverages', 'name' => 'Milo', 'name_si' => 'මිලෝ',
-                'sku' => 'BEV-MLO', 'unit' => 'g',
+                'sku' => 'BEV-MLO', 'unit' => 'g', 'base' => 2,
                 'v' => [
                     ['200g',  290,  330,  315, 60],
                     ['400g',  570,  650,  615, 80],
@@ -190,7 +191,7 @@ class ProductSeeder extends Seeder
             // Dairy & Eggs
             [
                 'cat' => 'Dairy & Eggs', 'name' => 'Milk Powder', 'name_si' => 'කිරිපිටි',
-                'sku' => 'MILK-PWD', 'unit' => 'g',
+                'sku' => 'MILK-PWD', 'unit' => 'kg', 'base' => 2,
                 'v' => [
                     ['200g',  420,  480,  455, 60],
                     ['400g',  820,  940,  890, 50],
@@ -201,7 +202,7 @@ class ProductSeeder extends Seeder
             // Cleaning & Household
             [
                 'cat' => 'Cleaning & Household', 'name' => 'Washing Powder', 'name_si' => 'රෙදි සෝදන කුඩු',
-                'sku' => 'CLN-WSH', 'unit' => 'g',
+                'sku' => 'CLN-WSH', 'unit' => 'kg', 'base' => 2,
                 'v' => [
                     ['200g',  85, 100,  93,  80],
                     ['500g', 195, 225, 212, 100],
@@ -210,7 +211,7 @@ class ProductSeeder extends Seeder
             ],
             [
                 'cat' => 'Cleaning & Household', 'name' => 'Toilet Paper', 'name_si' => 'වැසිකිළි කඩදාසි',
-                'sku' => 'HH-TP', 'unit' => 'roll',
+                'sku' => 'HH-TP', 'unit' => 'roll', 'base' => 0,
                 'v' => [
                     ['4 Rolls',  195, 230, 215, 60],
                     ['8 Rolls',  380, 450, 420, 40],
@@ -219,7 +220,7 @@ class ProductSeeder extends Seeder
             ],
             [
                 'cat' => 'Cleaning & Household', 'name' => 'Tissue Paper', 'name_si' => 'ටිෂ්යූ කඩදාසි',
-                'sku' => 'HH-TIS', 'unit' => 'pcs',
+                'sku' => 'HH-TIS', 'unit' => 'pcs', 'base' => 0,
                 'v' => [
                     ['100 Sheets',  85, 100,  93, 80],
                     ['200 Sheets', 165, 195, 182, 60],
@@ -229,7 +230,7 @@ class ProductSeeder extends Seeder
             // Personal Care
             [
                 'cat' => 'Personal Care', 'name' => 'Shampoo', 'name_si' => 'ශෑම්පූ',
-                'sku' => 'PC-SHP', 'unit' => 'ml',
+                'sku' => 'PC-SHP', 'unit' => 'ml', 'base' => 1,
                 'v' => [
                     ['80ml',  145, 170, 158, 60],
                     ['200ml', 340, 390, 368, 80],
@@ -238,7 +239,7 @@ class ProductSeeder extends Seeder
             ],
             [
                 'cat' => 'Personal Care', 'name' => 'Bath Soap', 'name_si' => 'ස්නාන සාබන්',
-                'sku' => 'PC-SOAP', 'unit' => 'g',
+                'sku' => 'PC-SOAP', 'unit' => 'g', 'base' => 1,
                 'v' => [
                     ['75g',   75,  90,  83, 100],
                     ['100g',  98, 115, 107, 120],
@@ -249,7 +250,7 @@ class ProductSeeder extends Seeder
             // Biscuits & Snacks
             [
                 'cat' => 'Biscuits & Snacks', 'name' => 'Noodles', 'name_si' => 'නූඩ්ල්ස්',
-                'sku' => 'SNK-NOD', 'unit' => 'g',
+                'sku' => 'SNK-NOD', 'unit' => 'g', 'base' => 0,
                 'v' => [
                     ['100g',  75,  90,  83, 100],
                     ['400g', 280, 330, 310,  60],
@@ -258,16 +259,22 @@ class ProductSeeder extends Seeder
         ];
 
         foreach ($withVariants as $p) {
+            $base      = $p['v'][$p['base']];
+            $baseCost  = $base[1];
+            $basePrice = $base[2];
+            $baseWs    = $base[3];
+            $baseStock = $base[4];
+
             $pid = DB::table('products')->insertGetId([
                 'category_id'     => $catIds[$p['cat']],
                 'name'            => $p['name'],
                 'name_si'         => $p['name_si'],
                 'sku'             => $p['sku'],
                 'unit'            => $p['unit'],
-                'cost_price'      => 0,
-                'selling_price'   => 0,
-                'wholesale_price' => 0,
-                'stock_qty'       => 0,
+                'cost_price'      => $baseCost,
+                'selling_price'   => $basePrice,
+                'wholesale_price' => $baseWs,
+                'stock_qty'       => $baseStock,
                 'alert_qty'       => 5,
                 'active'          => true,
                 'created_at'      => now(),

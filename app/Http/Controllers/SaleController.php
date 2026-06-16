@@ -22,6 +22,12 @@ class SaleController extends Controller
      */
     public function index(Request $request)
     {
+        // Default date_from to today when no filters supplied at all
+        $dateFrom = $request->filled('date_from')
+            ? $request->date_from
+            : ($request->hasAny(['search', 'date_from', 'date_to']) ? null : now()->toDateString());
+        $dateTo   = $request->filled('date_to') ? $request->date_to : null;
+
         $query = Sale::with(['user', 'customer'])
             ->where('status', '!=', 'held');
 
@@ -29,19 +35,26 @@ class SaleController extends Controller
             $query->where('invoice_no', 'like', '%' . $request->search . '%');
         }
 
-        if ($request->filled('date_from')) {
-            $query->whereDate('created_at', '>=', $request->date_from);
+        if ($dateFrom) {
+            $query->whereDate('created_at', '>=', $dateFrom);
         }
 
-        if ($request->filled('date_to')) {
-            $query->whereDate('created_at', '<=', $request->date_to);
+        if ($dateTo) {
+            $query->whereDate('created_at', '<=', $dateTo);
         }
 
         $sales = $query->latest()->paginate(20)->withQueryString();
 
+        $grandTotal = (clone $query)->sum('total');
+
         return Inertia::render('Sales/Index', [
-            'sales'   => $sales,
-            'filters' => $request->only(['search', 'date_from', 'date_to']),
+            'sales'      => $sales,
+            'grandTotal' => (float) $grandTotal,
+            'filters'    => [
+                'search'    => $request->search ?? '',
+                'date_from' => $dateFrom ?? '',
+                'date_to'   => $dateTo ?? '',
+            ],
         ])->with(['flash' => session('flash')]);
     }
 

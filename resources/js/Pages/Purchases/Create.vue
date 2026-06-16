@@ -1,7 +1,7 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
-import { computed, ref, inject } from 'vue';
+import { computed, ref, inject, nextTick } from 'vue';
 
 const t = inject('t');
 
@@ -10,35 +10,88 @@ const props = defineProps({
     products: { type: Array, default: () => [] },
 });
 
+const today = new Date().toISOString().slice(0, 10);
+
 const form = useForm({
     supplier_id: '',
+    purchase_date: today,
     note: '',
+    total: 0,
     items: [
-        { product_id: '', qty: 1, cost_price: 0 }
+        { product_id: '', qty: 1, cost_price: 0, total: 0 }
     ],
 });
 
+// Per-row search state
+const searchQueries = ref(['']);
+const openIndex = ref(null);
+
+function filteredProducts(index) {
+    const q = (searchQueries.value[index] || '').toLowerCase().trim();
+    if (!q) return props.products.slice(0, 50);
+    return props.products.filter(p =>
+        (p.name && p.name.toLowerCase().includes(q)) ||
+        (p.name_si && p.name_si.includes(searchQueries.value[index].trim())) ||
+        (p.barcode && p.barcode.toLowerCase().includes(q)) ||
+        (p.sku && p.sku.toLowerCase().includes(q))
+    ).slice(0, 50);
+}
+
+function selectProduct(index, product) {
+    form.items[index].product_id = product.id;
+    form.items[index].cost_price = product.cost_price || 0;
+    searchQueries.value[index] = product.name;
+    openIndex.value = null;
+}
+
+function openSearch(index) {
+    openIndex.value = index;
+    // If already has a product selected, clear query to allow fresh search
+    if (!form.items[index].product_id) {
+        searchQueries.value[index] = '';
+    }
+}
+
+function clearProduct(index) {
+    form.items[index].product_id = '';
+    form.items[index].cost_price = 0;
+    searchQueries.value[index] = '';
+    openIndex.value = index;
+    nextTick(() => {
+        document.getElementById(`search-${index}`)?.focus();
+    });
+}
+
+function onSearchBlur(index) {
+    // Delay close so click on dropdown item registers first
+    setTimeout(() => {
+        if (openIndex.value === index) openIndex.value = null;
+        // If user blurred without selecting, restore the product name or clear
+        const item = form.items[index];
+        if (item.product_id) {
+            const product = props.products.find(p => p.id == item.product_id);
+            if (product) searchQueries.value[index] = product.name;
+        } else {
+            searchQueries.value[index] = '';
+        }
+    }, 200);
+}
+
+function getSelectedProduct(index) {
+    return props.products.find(p => p.id == form.items[index].product_id) || null;
+}
+
 function addRow() {
-    form.items.push({ product_id: '', qty: 1, cost_price: 0 });
+    form.items.push({ product_id: '', qty: 1, cost_price: 0, total: 0 });
+    searchQueries.value.push('');
 }
 
 function removeRow(index) {
     if (form.items.length > 1) {
         form.items.splice(index, 1);
+        searchQueries.value.splice(index, 1);
+        if (openIndex.value === index) openIndex.value = null;
     }
-}
-
-function onProductChange(index) {
-    const item = form.items[index];
-    const product = props.products.find(p => p.id == item.product_id);
-    if (product) {
-        item.cost_price = product.cost_price || 0;
-    }
-}
-
-function getProductName(id) {
-    const product = props.products.find(p => p.id == id);
-    return product ? product.name : '';
 }
 
 const grandTotal = computed(() => {
@@ -52,6 +105,10 @@ function formatCurrency(value) {
 }
 
 function submit() {
+    form.items.forEach(item => {
+        item.total = Number(item.qty || 0) * Number(item.cost_price || 0);
+    });
+    form.total = grandTotal.value;
     form.post(route('purchases.store'));
 }
 </script>
@@ -77,9 +134,9 @@ function submit() {
                 <!-- Header Card -->
                 <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
                     <h2 class="text-sm font-semibold text-gray-700 mb-4 uppercase tracking-wider">{{ t('lbl.general') }}</h2>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">{{ t('pur.supplier') }} <span class="text-red-500">*</span></label>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">{{ t('pur.supplier') }}</label>
                             <select
                                 v-model="form.supplier_id"
                                 class="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[44px]"
@@ -91,6 +148,16 @@ function submit() {
                                 </option>
                             </select>
                             <p v-if="form.errors.supplier_id" class="text-red-500 text-xs mt-1">{{ form.errors.supplier_id }}</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">{{ t('lbl.date') }} <span class="text-red-500">*</span></label>
+                            <input
+                                v-model="form.purchase_date"
+                                type="date"
+                                class="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[44px]"
+                                :class="{ 'border-red-500': form.errors.purchase_date }"
+                            />
+                            <p v-if="form.errors.purchase_date" class="text-red-500 text-xs mt-1">{{ form.errors.purchase_date }}</p>
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">{{ t('lbl.note') }}</label>
@@ -120,7 +187,7 @@ function submit() {
                         </button>
                     </div>
 
-                    <!-- Desktop table-like layout -->
+                    <!-- Desktop layout -->
                     <div class="hidden md:block">
                         <div class="grid grid-cols-12 gap-2 mb-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">
                             <div class="col-span-5">{{ t('th.product') }}</div>
@@ -128,24 +195,80 @@ function submit() {
                             <div class="col-span-3">{{ t('th.cost') }} (Rs.)</div>
                             <div class="col-span-2 text-right">{{ t('lbl.total') }}</div>
                         </div>
+
                         <div
                             v-for="(item, index) in form.items"
                             :key="index"
-                            class="grid grid-cols-12 gap-2 mb-2 items-center"
+                            class="grid grid-cols-12 gap-2 mb-2 items-start"
                         >
-                            <div class="col-span-5">
-                                <select
-                                    v-model="item.product_id"
-                                    @change="onProductChange(index)"
-                                    class="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[44px]"
+                            <!-- Product search -->
+                            <div class="col-span-5 relative">
+                                <!-- Selected product display -->
+                                <div v-if="item.product_id && openIndex !== index"
+                                    class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm min-h-[44px] flex items-center justify-between cursor-pointer hover:border-blue-400 bg-white"
                                     :class="{ 'border-red-500': form.errors[`items.${index}.product_id`] }"
+                                    @click="openSearch(index)"
                                 >
-                                    <option value="">{{ t('btn.search') }}</option>
-                                    <option v-for="product in products" :key="product.id" :value="product.id">
-                                        {{ product.name }}
-                                    </option>
-                                </select>
+                                    <div class="min-w-0">
+                                        <div class="font-medium text-gray-800 truncate">{{ getSelectedProduct(index)?.name }}</div>
+                                        <div v-if="getSelectedProduct(index)?.name_si" class="text-xs text-blue-600 truncate">{{ getSelectedProduct(index)?.name_si }}</div>
+                                    </div>
+                                    <button type="button" @click.stop="clearProduct(index)" class="ml-2 text-gray-400 hover:text-red-500 flex-shrink-0">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                        </svg>
+                                    </button>
+                                </div>
+
+                                <!-- Search input -->
+                                <div v-else class="relative">
+                                    <div class="absolute inset-y-0 left-3 flex items-center pointer-events-none">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0" />
+                                        </svg>
+                                    </div>
+                                    <input
+                                        :id="`search-${index}`"
+                                        v-model="searchQueries[index]"
+                                        type="text"
+                                        autocomplete="off"
+                                        placeholder="Search product..."
+                                        class="w-full border border-gray-300 rounded-lg pl-9 pr-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[44px]"
+                                        :class="{ 'border-red-500': form.errors[`items.${index}.product_id`] }"
+                                        @focus="openSearch(index)"
+                                        @blur="onSearchBlur(index)"
+                                    />
+                                </div>
+
+                                <!-- Dropdown -->
+                                <div v-if="openIndex === index && filteredProducts(index).length > 0"
+                                    class="absolute z-50 left-0 right-0 top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-56 overflow-y-auto"
+                                >
+                                    <div
+                                        v-for="product in filteredProducts(index)"
+                                        :key="product.id"
+                                        class="px-3 py-2 cursor-pointer hover:bg-blue-50 border-b border-gray-50 last:border-0"
+                                        @mousedown.prevent="selectProduct(index, product)"
+                                    >
+                                        <div class="text-sm font-medium text-gray-800">{{ product.name }}</div>
+                                        <div v-if="product.name_si" class="text-xs text-blue-600">{{ product.name_si }}</div>
+                                        <div class="text-xs text-gray-400 mt-0.5">
+                                            Rs. {{ Number(product.cost_price || 0).toFixed(2) }}
+                                            <span v-if="product.barcode" class="ml-2">· {{ product.barcode }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div v-if="openIndex === index && filteredProducts(index).length === 0"
+                                    class="absolute z-50 left-0 right-0 top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg px-3 py-3 text-sm text-gray-500"
+                                >
+                                    No products found
+                                </div>
+
+                                <p v-if="form.errors[`items.${index}.product_id`]" class="text-red-500 text-xs mt-1">
+                                    {{ form.errors[`items.${index}.product_id`] }}
+                                </p>
                             </div>
+
                             <div class="col-span-2">
                                 <input
                                     v-model="item.qty"
@@ -163,10 +286,10 @@ function submit() {
                                     class="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[44px]"
                                 />
                             </div>
-                            <div class="col-span-1 text-right font-medium text-gray-700 text-sm">
+                            <div class="col-span-1 text-right font-medium text-gray-700 text-sm pt-3">
                                 {{ formatCurrency(item.qty * item.cost_price) }}
                             </div>
-                            <div class="col-span-1 flex justify-end">
+                            <div class="col-span-1 flex justify-end pt-2">
                                 <button
                                     type="button"
                                     @click="removeRow(index)"
@@ -181,7 +304,7 @@ function submit() {
                         </div>
                     </div>
 
-                    <!-- Mobile card layout for items -->
+                    <!-- Mobile card layout -->
                     <div class="md:hidden space-y-3">
                         <div
                             v-for="(item, index) in form.items"
@@ -201,17 +324,68 @@ function submit() {
                                     </svg>
                                 </button>
                             </div>
+
                             <div>
                                 <label class="block text-xs text-gray-500 mb-1">{{ t('th.product') }}</label>
-                                <select
-                                    v-model="item.product_id"
-                                    @change="onProductChange(index)"
-                                    class="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[44px]"
-                                >
-                                    <option value="">{{ t('btn.search') }}</option>
-                                    <option v-for="product in products" :key="product.id" :value="product.id">{{ product.name }}</option>
-                                </select>
+                                <div class="relative">
+                                    <!-- Selected product display -->
+                                    <div v-if="item.product_id && openIndex !== index"
+                                        class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm min-h-[44px] flex items-center justify-between cursor-pointer"
+                                        @click="openSearch(index)"
+                                    >
+                                        <div class="min-w-0">
+                                            <div class="font-medium text-gray-800 truncate">{{ getSelectedProduct(index)?.name }}</div>
+                                            <div v-if="getSelectedProduct(index)?.name_si" class="text-xs text-blue-600 truncate">{{ getSelectedProduct(index)?.name_si }}</div>
+                                        </div>
+                                        <button type="button" @click.stop="clearProduct(index)" class="ml-2 text-gray-400 hover:text-red-500 flex-shrink-0">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                            </svg>
+                                        </button>
+                                    </div>
+
+                                    <!-- Search input -->
+                                    <div v-else class="relative">
+                                        <div class="absolute inset-y-0 left-3 flex items-center pointer-events-none">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0" />
+                                            </svg>
+                                        </div>
+                                        <input
+                                            :id="`search-m-${index}`"
+                                            v-model="searchQueries[index]"
+                                            type="text"
+                                            autocomplete="off"
+                                            placeholder="Search product..."
+                                            class="w-full border border-gray-300 rounded-lg pl-9 pr-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[44px]"
+                                            @focus="openSearch(index)"
+                                            @blur="onSearchBlur(index)"
+                                        />
+                                    </div>
+
+                                    <!-- Dropdown -->
+                                    <div v-if="openIndex === index && filteredProducts(index).length > 0"
+                                        class="absolute z-50 left-0 right-0 top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto"
+                                    >
+                                        <div
+                                            v-for="product in filteredProducts(index)"
+                                            :key="product.id"
+                                            class="px-3 py-2 cursor-pointer hover:bg-blue-50 border-b border-gray-50 last:border-0"
+                                            @mousedown.prevent="selectProduct(index, product)"
+                                        >
+                                            <div class="text-sm font-medium text-gray-800">{{ product.name }}</div>
+                                            <div v-if="product.name_si" class="text-xs text-blue-600">{{ product.name_si }}</div>
+                                            <div class="text-xs text-gray-400 mt-0.5">Rs. {{ Number(product.cost_price || 0).toFixed(2) }}</div>
+                                        </div>
+                                    </div>
+                                    <div v-if="openIndex === index && filteredProducts(index).length === 0"
+                                        class="absolute z-50 left-0 right-0 top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg px-3 py-3 text-sm text-gray-500"
+                                    >
+                                        No products found
+                                    </div>
+                                </div>
                             </div>
+
                             <div class="grid grid-cols-2 gap-3">
                                 <div>
                                     <label class="block text-xs text-gray-500 mb-1">{{ t('th.qty') }}</label>

@@ -11,18 +11,48 @@ const props = defineProps({
     grandTotal: { type: Number, default: 0 },
 });
 
-const search = ref(props.filters?.search || '');
+const search   = ref(props.filters?.search    || '');
 const dateFrom = ref(props.filters?.date_from || '');
-const dateTo = ref(props.filters?.date_to || '');
+const dateTo   = ref(props.filters?.date_to   || '');
+
+function todayStr() {
+    return new Date().toISOString().slice(0, 10);
+}
+function mondayStr() {
+    const d = new Date();
+    const day = d.getDay();
+    const diff = (day === 0 ? -6 : 1 - day);
+    d.setDate(d.getDate() + diff);
+    return d.toISOString().slice(0, 10);
+}
+function monthStartStr() {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`;
+}
+
+const activePeriod = computed(() => {
+    const today = todayStr();
+    if (dateFrom.value === today && dateTo.value === today) return 'today';
+    if (dateFrom.value === mondayStr() && dateTo.value === today) return 'week';
+    if (dateFrom.value === monthStartStr() && dateTo.value === today) return 'month';
+    return null;
+});
+
+function setPeriod(period) {
+    const today = todayStr();
+    if (period === 'today') { dateFrom.value = today; dateTo.value = today; }
+    else if (period === 'week')  { dateFrom.value = mondayStr();     dateTo.value = today; }
+    else if (period === 'month') { dateFrom.value = monthStartStr(); dateTo.value = today; }
+}
 
 let searchTimer = null;
 watch([search, dateFrom, dateTo], () => {
     clearTimeout(searchTimer);
     searchTimer = setTimeout(() => {
         router.get(route('sales.index'), {
-            search: search.value,
+            search:    search.value,
             date_from: dateFrom.value,
-            date_to: dateTo.value,
+            date_to:   dateTo.value,
         }, { preserveState: true, replace: true });
     }, 400);
 });
@@ -87,6 +117,19 @@ const statusClass = {
                     :placeholder="t('lbl.invoice_no')"
                     class="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[44px]"
                 />
+            </div>
+            <!-- Period chips -->
+            <div class="flex items-center gap-1.5">
+                <button
+                    v-for="p in [{key:'today',label:t('lbl.today')},{key:'week',label:t('lbl.this_week')},{key:'month',label:t('lbl.this_month')}]"
+                    :key="p.key"
+                    type="button"
+                    @click="setPeriod(p.key)"
+                    class="px-3 py-2 rounded-lg text-sm font-semibold border transition-colors min-h-[44px]"
+                    :class="activePeriod === p.key
+                        ? 'bg-blue-600 text-white border-blue-600'
+                        : 'bg-white text-gray-600 border-gray-300 hover:border-blue-400 hover:text-blue-600'"
+                >{{ p.label }}</button>
             </div>
             <input
                 v-model="dateFrom"
