@@ -22,6 +22,10 @@ return [
         // Default / localhost — uses the main SQLite database
         'localhost' => database_path('database.sqlite'),
         'pos.lumac.lk' => database_path('database.sqlite'),
+        'asitha-pos.lumac.lk' => database_path('asitha.sqlite'),
+
+        
+add
     ],
 
 ];
