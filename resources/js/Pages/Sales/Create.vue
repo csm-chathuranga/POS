@@ -54,8 +54,7 @@ const searchResults  = ref([]);
 const showDropdown   = ref(false);
 const activeIndex    = ref(-1);   // highlighted row in dropdown (-1 = none)
 
-// ─── Product cache ────────────────────────────────────────────────────────────
-const allProducts    = ref([]);   // full catalogue, loaded once on mount
+const allProducts    = ref([]);   // full catalogue, loaded on mount
 const productsReady  = ref(false);
 
 const cart             = ref([]);
@@ -256,7 +255,6 @@ function onSearchInput() {
         resetScanState();
         return;
     }
-    // Client-side filter against cached catalogue
     searchResults.value = allProducts.value.filter(p =>
         p.name.toLowerCase().includes(q) ||
         (p.name_si && p.name_si.includes(q)) ||
@@ -580,36 +578,11 @@ function refocusSearch() {
     nextTick(() => searchInput.value?.focus());
 }
 
-const CACHE_KEY     = 'pos_products_v2';
-const CACHE_VER_KEY = 'pos_products_ver';
-
 async function loadAllProducts() {
-    // 1. Fetch current server version (tiny request — just a timestamp)
-    let serverVersion = null;
-    try {
-        const verRes  = await axios.get('/api/products/version');
-        serverVersion = verRes.data.version;
-    } catch {}
-
-    // 2. If cache exists and version matches, use it immediately
-    if (serverVersion) {
-        try {
-            const raw = localStorage.getItem(CACHE_KEY);
-            if (raw && localStorage.getItem(CACHE_VER_KEY) === serverVersion) {
-                allProducts.value   = JSON.parse(raw);
-                productsReady.value = true;
-                return;
-            }
-        } catch {}
-    }
-
-    // 3. Cache is stale or missing — fetch fresh product list
     try {
         const res = await axios.get('/api/products/all');
         allProducts.value   = res.data;
         productsReady.value = true;
-        localStorage.setItem(CACHE_KEY,     JSON.stringify(res.data));
-        localStorage.setItem(CACHE_VER_KEY, serverVersion ?? '');
     } catch {
         productsReady.value = true;
     }
