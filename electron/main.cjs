@@ -9,8 +9,8 @@ const crypto  = require('crypto');
 
 const APP_PORT = 8000;
 const APP_URL  = `http://127.0.0.1:${APP_PORT}`;
-const LIVE_URL = ''; // set to '' to use local PHP server
-// const LIVE_URL = 'https://pos.lumac.lk'; // set to '' to use local PHP server
+// const LIVE_URL = ''; // set to '' to use local PHP server
+const LIVE_URL = 'https://pos.lumac.lk'; // set to '' to use local PHP server
 
 // ── Paths ──────────────────────────────────────────────────────────────────────
 // In packaged build:  resources are under process.resourcesPath
