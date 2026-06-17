@@ -23,6 +23,7 @@ const translations = {
         'nav.credit_book': 'ණය පොත',
         'nav.settings':    'සැකසුම්',
         'nav.users':       'පරිශීලකයන්',
+        'nav.devices':     'උපකරණ',
 
         // Buttons
         'btn.save':        'සුරකින්න',
@@ -401,6 +402,7 @@ const translations = {
         'nav.credit_book': 'Credit Book',
         'nav.settings':    'Settings',
         'nav.users':       'Users',
+        'nav.devices':     'Devices',
 
         'btn.save':        'Save',
         'btn.cancel':      'Cancel',
@@ -756,6 +758,7 @@ const translations = {
         'nav.credit_book': 'கடன் புத்தகம்',
         'nav.settings':    'அமைப்புகள்',
         'nav.users':       'பயனர்கள்',
+        'nav.devices':     'சாதனங்கள்',
 
         'btn.save':        'சேமி',
         'btn.cancel':      'ரத்து',

@@ -11,6 +11,7 @@ use App\Http\Controllers\PurchaseController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\SettingController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\DeviceController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -66,6 +67,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // Users & Permissions (admin only)
     Route::resource('users', UserController::class);
+
+    // Device registry (admin only)
+    Route::get('/devices',              [DeviceController::class, 'index'])->name('devices.index');
+    Route::post('/devices',             [DeviceController::class, 'store'])->name('devices.store');
+    Route::put('/devices/{mac}',        [DeviceController::class, 'update'])->name('devices.update');
+    Route::delete('/devices/{mac}',     [DeviceController::class, 'destroy'])->name('devices.destroy');
 
     // License management (admin only)
     Route::get('/licenses',                       [\App\Http\Controllers\LicenseController::class, 'index'])->name('licenses.index');

@@ -31,4 +31,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
     /** Run Laravel migrations on the current database */
     runMigrations: () => ipcRenderer.invoke('db:migrate'),
+
+    /** Returns the device MAC address for axios request headers */
+    getMacAddress: () => ipcRenderer.invoke('get-mac-address'),
 });

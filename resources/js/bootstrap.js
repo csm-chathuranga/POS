@@ -9,6 +9,13 @@ window.axios = axios;
 
 window.axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
 
+// Attach device MAC address on every request when running inside Electron
+if (typeof window !== 'undefined' && window.electronAPI?.getMacAddress) {
+    window.electronAPI.getMacAddress().then((mac) => {
+        if (mac) window.axios.defaults.headers.common['X-Device-Mac'] = mac;
+    });
+}
+
 /**
  * Echo exposes an expressive API for subscribing to channels and listening
  * for events that are broadcast by Laravel. Echo and event broadcasting

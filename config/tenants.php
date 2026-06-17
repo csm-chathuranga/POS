@@ -2,29 +2,23 @@
 
 /*
 |--------------------------------------------------------------------------
-| Domain → Database Mapping
+| Domain → Database Mapping  (browser / non-Electron fallback)
 |--------------------------------------------------------------------------
 |
-| SQLite: value must be an absolute file path.
-| MySQL:  value is the database name.
+| Electron devices are identified by X-Device-Mac header and configured in
+| storage/app/devices.json.  This map is only used when no MAC header is
+| present (e.g. someone opens the URL directly in a browser).
 |
-| Domains not listed here use DB_DATABASE from .env as-is.
+| SQLite: absolute file path.   MySQL: database name.
 |
 */
 
 return [
 
     'domains' => [
-        // Add your live domains below:
-        // 'shop1.example.lk' => storage_path('databases/shop1.sqlite'),
-        // 'shop2.example.lk' => storage_path('databases/shop2.sqlite'),
-
-        // Default / localhost — uses the main SQLite database
-        'localhost' => database_path('database.sqlite'),
-        'pos.lumac.lk' => database_path('database.sqlite'),
+        'localhost'            => database_path('database.sqlite'),
+        'pos.lumac.lk'        => database_path('database.sqlite'),
         'asitha-pos.lumac.lk' => database_path('asitha.sqlite'),
-
-        
     ],
 
 ];

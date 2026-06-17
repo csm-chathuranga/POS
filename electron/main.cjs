@@ -242,6 +242,9 @@ function showActivationWindow(isExpired = false) {
 // IPC: get MAC for display in activation window
 ipcMain.handle('activation:get-mac', () => getMacAddress());
 
+// IPC: expose MAC address to renderer for axios device header
+ipcMain.handle('get-mac-address', () => getMacAddress());
+
 // IPC: called from within the running app to change license key
 ipcMain.handle('activation:change-key', () => {
   if (activationWindow && !activationWindow.isDestroyed()) return;
