@@ -37,7 +37,7 @@ function fmtTime(d) {
 }
 
 function n(val) {
-    return Number(val || 0).toFixed(2);
+    return Number(val || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 const profit = computed(() => {
@@ -49,17 +49,17 @@ const profit = computed(() => {
     }, 0);
 });
 
+const isElectron = !!window.electronAPI?.isElectron;
+const printing   = ref(false);
+
 async function printReceipt() {
     if (printing.value) return;
     printing.value = true;
     try {
-        if (window.electronAPI?.isElectron) {
+        if (isElectron) {
             const printer = localStorage.getItem('pos_printer') || '';
             const result  = await window.electronAPI.printReceipt(printer);
-            if (!result?.success) {
-                console.error('[print-receipt] failed:', result?.error);
-                window.print();
-            }
+            if (!result?.success) window.print();
         } else {
             window.print();
         }
@@ -67,9 +67,6 @@ async function printReceipt() {
         setTimeout(() => { printing.value = false; }, 3000);
     }
 }
-
-const isElectron = !!window.electronAPI?.isElectron;
-const printing   = ref(false);
 
 onMounted(async () => {
     const params = new URLSearchParams(window.location.search);
@@ -141,15 +138,15 @@ onMounted(async () => {
                         class="receipt-logo mx-auto mb-2 object-contain"
                         style="max-height:64px; max-width:180px;"
                     />
-                    <p class="shop-title font-extrabold text-[16px]" style="color:#0F172A; letter-spacing:0.01em;">{{ shopName }}</p>
-                    <p v-if="shopAddress" class="text-[12px] font-bold" style="color:#334155;">{{ shopAddress }}</p>
-                    <p v-if="shopPhone" class="text-[12px] font-bold" style="color:#334155;">{{ shopPhone }}</p>
+                    <p class="shop-title font-extrabold text-[13px]" style="color:#0F172A; letter-spacing:0.01em;">{{ shopName }}</p>
+                    <p v-if="shopAddress" class="text-[12px] font-bold" style="color:#0F172A;">{{ shopAddress }}</p>
+                    <p v-if="shopPhone" class="text-[12px] font-bold" style="color:#0F172A;">{{ shopPhone }}</p>
                 </div>
 
-                <div class="divider" style="border-top:1px dashed #CBD5E1; margin:10px 0;"></div>
+                <div class="divider" style="border-top:1px solid #CBD5E1; margin:10px 0;"></div>
 
                 <!-- Invoice meta -->
-                <table class="meta-table" style="width:100%; border-collapse:collapse; font-size:12px; font-weight:700; color:#1E293B; margin-bottom:4px;">
+                <table class="meta-table" style="width:100%; border-collapse:collapse; font-size:11px; font-weight:900; color:#0F172A; margin-bottom:4px;">
                     <tr>
                         <td class="meta-label">{{ tBill('th.invoice') }}</td>
                         <td class="meta-value font-extrabold">{{ sale.invoice_no }}</td>
@@ -172,60 +169,54 @@ onMounted(async () => {
                     </tr>
                 </table>
 
-                <div class="items-section divider" style="border-top:1px dashed #CBD5E1; margin:10px 0;"></div>
+                <div class="items-section divider" style="border-top:1px solid #CBD5E1; margin:10px 0;"></div>
 
                 <!-- Items -->
-                <table class="items-section" style="width:100%; border-collapse:collapse; font-size:12px; color:#0F172A; font-weight:800;">
+                <table class="items-section" style="width:100%; table-layout:fixed; border-collapse:collapse; font-size:12px; line-height:2; color:#0F172A; font-weight:800;">
                     <thead>
-                        <tr style="border-bottom:2px solid #CBD5E1;">
-                            <th style="text-align:left; width:16px; padding:4px 4px 4px 0; font-weight:800;">#</th>
-                            <th style="text-align:left; padding:4px 8px 4px 0; font-weight:800;">{{ tBill('th.product') }}</th>
-                            <th style="text-align:center; width:28px; padding:4px 0; font-weight:800;">{{ tBill('th.qty') }}</th>
-                            <th style="text-align:right; width:52px; padding:4px 0; font-weight:800;">{{ tBill('th.price') }}</th>
-                            <th style="text-align:right; width:48px; padding:4px 0; font-weight:800; color:#D97706;">{{ tBill('lbl.discount') }}</th>
-                            <th style="text-align:right; width:56px; padding:4px 0; font-weight:800;">{{ tBill('lbl.total') }}</th>
+                        <tr style="border-top:2px solid #0F172A; border-bottom:2px solid #0F172A;">
+                            <th style="text-align:left; width:12px; padding:2px 2px 2px 0; font-weight:800;">#</th>
+                            <th style="text-align:left; padding:2px 3px 2px 0; font-weight:800;">{{ tBill('th.product') }}</th>
+                            <th style="text-align:right; width:48px; padding:2px 0; font-weight:800;">{{ tBill('lbl.total') }}</th>
                         </tr>
                     </thead>
                     <tbody>
                         <template v-for="(item, index) in sale.items" :key="item.id">
-                            <!-- Line 1: item number + product names -->
-                            <tr>
-                                <td style="padding:4px 4px 0 0; font-weight:800; vertical-align:top;">{{ index + 1 }}</td>
-                                <td colspan="5" style="padding:4px 8px 0 0; word-break:break-word; font-weight:800; color:#0F172A;">
-                                    <span>{{ item.product_name?.split(' / ')[0] ?? item.product_name }}</span>
-                                    <span v-if="item.product?.name_si" style="font-size:11px; font-weight:800; color:#334155;"> / {{ item.product.name_si }}</span>
+                            <tr style="border-bottom:1px solid #CBD5E1;">
+                                <td style="padding:2px 2px 2px 0; font-weight:800; vertical-align:top;">{{ index + 1 }}</td>
+                                <td style="padding:2px 3px 2px 0; font-weight:800;">
+                                    <div style="word-break:break-word;">
+                                        {{ item.product_name?.split(' / ')[0] ?? item.product_name }}
+                                        <span v-if="item.product?.name_si"> / {{ item.product.name_si }}</span>
+                                    </div>
+                                    <div style="margin-top:1px;">
+                                        {{ item.qty }} &times; {{ n(item.unit_price) }}
+                                        <span v-if="Number(item.discount) > 0"> (ලද වට්ටම: &minus;{{ n(item.discount) }})</span>
+                                    </div>
                                 </td>
-                            </tr>
-                            <!-- Line 2: qty / price / discount / total -->
-                            <tr style="border-bottom:1px dashed #CBD5E1;">
-                                <td style="padding:0 0 5px 0;"></td>
-                                <td style="padding:0 0 5px 0;"></td>
-                                <td style="text-align:center; padding:0 0 5px 0; font-weight:800;">{{ item.qty }}</td>
-                                <td style="text-align:right; padding:0 0 5px 0; font-weight:800;">{{ n(item.unit_price) }}</td>
-                                <td style="text-align:right; padding:0 0 5px 0; color:#D97706; font-weight:800;">{{ Number(item.discount) > 0 ? n(item.discount) : '-' }}</td>
-                                <td style="text-align:right; padding:0 0 5px 0; font-weight:800; color:#0F172A;">{{ n(item.total) }}</td>
+                                <td style="text-align:right; padding:2px 0; font-weight:800; vertical-align:bottom;">{{ n(item.total) }}</td>
                             </tr>
                         </template>
                     </tbody>
                 </table>
 
-                <div class="items-section divider" style="border-top:1px dashed #CBD5E1; margin:10px 0;"></div>
+                <div class="items-section divider" style="border-top:1px solid #CBD5E1; margin:10px 0;"></div>
 
                 <!-- Totals -->
-                <table style="width:100%; border-collapse:collapse; font-size:12px; font-weight:700; color:#0F172A;">
+                <table style="width:100%; border-collapse:collapse; font-size:13px; font-weight:700; color:#0F172A;">
                     <tr>
                         <td class="meta-label">{{ tBill('lbl.subtotal') }}</td>
                         <td class="meta-value">{{ n(sale.subtotal) }}</td>
                     </tr>
-                    <tr v-if="Number(sale.discount) > 0" style="color:#D97706;">
-                        <td class="meta-label">{{ tBill('lbl.discount') }}</td>
-                        <td class="meta-value">-{{ n(sale.discount) }}</td>
+                    <tr v-if="Number(sale.discount) > 0" style="color:#0F172A; font-size:13px; font-weight:800;">
+                        <td class="meta-label" style="padding:6px 8px; border:2px solid #0F172A; border-right:none;">ලද වට්ටම</td>
+                        <td class="meta-value" style="padding:6px 8px; border:2px solid #0F172A; border-left:none;">- {{ n(sale.discount) }}</td>
                     </tr>
-                    <tr class="total-row" style="border-top:2px solid #0F172A; font-size:15px; font-weight:800;">
+                    <tr class="total-row" style="border-top:2px solid #0F172A; font-size:14px; font-weight:900; color:#0F172A;">
                         <td class="meta-label" style="padding-top:6px;">{{ tBill('lbl.total') }}</td>
-                        <td class="meta-value" style="padding-top:6px; color:#2563EB;">{{ currency }} {{ n(sale.total) }}</td>
+                        <td class="meta-value" style="padding-top:6px;">{{ currency }} {{ n(sale.total) }}</td>
                     </tr>
-                    <tr style="color:#16A34A;">
+                    <tr style="color:#0F172A; font-weight:800;">
                         <td class="meta-label">{{ tBill('th.paid') }} ({{ paymentLabel }})</td>
                         <td class="meta-value">{{ n(sale.payments?.[0]?.amount) }}</td>
                     </tr>
@@ -235,12 +226,12 @@ onMounted(async () => {
                     </tr>
                 </table>
 
-                <div class="divider" style="border-top:1px dashed #CBD5E1; margin:10px 0;"></div>
+                <div class="divider" style="border-top:1px solid #CBD5E1; margin:10px 0;"></div>
 
                 <!-- Footer -->
-                <p class="text-center font-extrabold text-[13px]" style="color:#0F172A; white-space: pre-line;">{{ footer }}</p>
+                <p class="text-center font-extrabold text-[11px]" style="color:#0F172A; white-space: pre-line;">{{ footer }}</p>
 
-                <p class="text-center font-extrabold text-[11px] mt-3" style="color:#0F172A;">lunac.lk</p>
+                <p class="text-center font-extrabold text-[9px] mt-2" style="color:#0F172A;">lunac.lk</p>
             </div>
 
         </div>
@@ -274,6 +265,13 @@ onMounted(async () => {
     90%            { opacity: 0.6; transform: translateX(3px); }
 }
 
+/* Prevent browser/Tailwind from overriding font-size on table cells */
+#receipt-card th,
+#receipt-card td {
+    font-size: inherit;
+    line-height: 1.8;
+}
+
 /* Meta table: label left, value right */
 .meta-label {
     text-align: left;
@@ -289,45 +287,47 @@ onMounted(async () => {
 
 @media print {
     @page {
-        size: 80mm auto;
+        size: 70mm auto;
         margin: 0;
     }
 
-    /* Zero page shell */
     html, body {
         margin: 0 !important;
         padding: 0 !important;
-        width: 80mm !important;
+        width: 70mm !important;
         background: #fff !important;
     }
 
-    /* Completely remove layout chrome — display:none takes them out of flow */
+    /* Hide layout chrome */
     header, aside, nav, .no-print {
         display: none !important;
     }
 
-    /* Strip all padding/margin from the ancestor chain so receipt reaches top */
+    /* Zero every ancestor in the chain:
+       body > #app > .min-h-screen > .flex-1.flex-col > main */
     body > div,
-    body > div > div,
-    body > div > div > main,
-    main, [id="app"], [id="app"] > div {
+    #app > div,
+    #app > div > div,
+    main {
         display: block !important;
         padding: 0 !important;
         margin: 0 !important;
-        width: 80mm !important;
+        min-height: 0 !important;
+        height: auto !important;
+        width: 70mm !important;
     }
 
     #receipt-wrapper {
         display: block !important;
         padding: 0 !important;
         margin: 0 !important;
+        gap: 0 !important;
     }
 
-    /* Receipt card: exact 80mm, no decorations */
     #receipt-card {
         display: block !important;
-        width: 80mm !important;
-        max-width: 80mm !important;
+        width: 70mm !important;
+        max-width: 70mm !important;
         padding: 3mm 4mm !important;
         margin: 0 !important;
         border: none !important;
@@ -344,18 +344,18 @@ onMounted(async () => {
     }
 
     #receipt-card .shop-title {
-        font-size: 16px !important;
+        font-size: 13px !important;
         font-weight: 800 !important;
     }
 
     #receipt-card .total-row,
     #receipt-card .total-row span {
-        font-size: 15px !important;
+        font-size: 13px !important;
         font-weight: 800 !important;
     }
 
     #receipt-card .divider {
-        border-top: 1px dashed #555 !important;
+        border-top: 1px solid #555 !important;
         margin: 5px 0 !important;
     }
 

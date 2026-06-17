@@ -9,7 +9,8 @@ const crypto  = require('crypto');
 
 const APP_PORT = 8000;
 const APP_URL  = `http://127.0.0.1:${APP_PORT}`;
-const LIVE_URL = 'https://pos.lumac.lk'; // set to '' to use local PHP server
+const LIVE_URL = ''; // set to '' to use local PHP server
+// const LIVE_URL = 'https://pos.lumac.lk'; // set to '' to use local PHP server
 
 // ── Paths ──────────────────────────────────────────────────────────────────────
 // In packaged build:  resources are under process.resourcesPath
@@ -320,6 +321,10 @@ function stopPhpServer() {
 }
 
 function createSplash() {
+  const imgPath = app.isPackaged
+    ? path.join(process.resourcesPath, 'app', 'public', 'lumac-load.jpeg')
+    : path.join(__dirname, '..', 'public', 'lumac-load.jpeg');
+
   const splash = new BrowserWindow({
     width:           420,
     height:          260,
@@ -333,6 +338,12 @@ function createSplash() {
     icon: path.join(__dirname, '..', 'public', 'lumac-load.jpeg'),
   });
   splash.loadFile(path.join(__dirname, 'splash.html'));
+  splash.webContents.once('did-finish-load', () => {
+    const fileUrl = 'file:///' + imgPath.replace(/\\/g, '/');
+    splash.webContents.executeJavaScript(
+      `const img = document.querySelector('.logo-ring img'); if (img) img.src = ${JSON.stringify(fileUrl)};`
+    ).catch(() => {});
+  });
   return splash;
 }
 
@@ -462,81 +473,30 @@ ipcMain.handle('get-printers', async (event) => {
 });
 
 // ─── IPC: silent print ────────────────────────────────────────────────────────
+// Uses printableArea margins (no custom pageSize) so the XP-80C driver handles
+// paper positioning exactly as it does for window.print() — no top gap.
 ipcMain.handle('print-receipt', async (event, printerName, options = {}) => {
   const wc = event.sender;
 
-  // 1. Measure the actual receipt element height so we don't get blank space
-  const heightPx = await wc.executeJavaScript(`
-    (() => {
-      const el = document.getElementById('receipt-card')
-              || document.getElementById('thermal-receipt');
-      return el ? Math.ceil(el.getBoundingClientRect().height) : 500;
-    })()
-  `).catch(() => 500);
-
-  // Convert px → microns (96 dpi screen → 25 400 microns per inch)
-  const heightMicrons = Math.ceil(heightPx * 25400 / 96) + 8000; // +8 mm buffer
-
-  // 2. Inject CSS: strip layout chrome and zero ancestor padding so receipt starts at top
-  const cssKey = await wc.insertCSS(`
-    @media print {
-      html, body {
-        margin: 0 !important;
-        padding: 0 !important;
-        width: 80mm !important;
-        background: #fff !important;
-      }
-      header, aside, nav, .no-print {
-        display: none !important;
-      }
-      body > div,
-      body > div > div,
-      body > div > div > main {
-        display: block !important;
-        padding: 0 !important;
-        margin: 0 !important;
-        width: 80mm !important;
-      }
-      #receipt-wrapper {
-        display: block !important;
-        padding: 0 !important;
-        margin: 0 !important;
-      }
-      #receipt-card, #thermal-receipt {
-        display:          block       !important;
-        width:            80mm        !important;
-        max-width:        80mm        !important;
-        padding:          4mm 5mm     !important;
-        margin:           0           !important;
-        border:           none        !important;
-        box-shadow:       none        !important;
-        border-radius:    0           !important;
-        background:       #fff        !important;
-        color:            #000        !important;
-      }
-    }
-  `).catch(() => null);
-
-  return new Promise((resolve) => {
+  const result = await new Promise((resolve) => {
     wc.print({
       silent:          true,
       printBackground: false,
       deviceName:      printerName || '',
-      pageSize:        { width: 80000, height: heightMicrons },
-      margins:         { marginType: 'none' },
+      margins:         { marginType: 'printableArea' },
       copies:          1,
       ...options,
-    }, async (success, failureReason) => {
-      // 3. Remove injected CSS so the screen view is unchanged
-      if (cssKey) await wc.removeInsertedCSS(cssKey).catch(() => {});
-      if (success) {
-        resolve({ success: true });
-      } else {
-        console.error('[print-receipt] failed:', failureReason);
-        resolve({ success: false, error: failureReason });
-      }
+    }, (success, failureReason) => {
+      resolve({ success, failureReason });
     });
   });
+
+  if (result.success) {
+    return { success: true };
+  } else {
+    console.error('[print-receipt] failed:', result.failureReason);
+    return { success: false, error: result.failureReason };
+  }
 });
 
 // ─── IPC: database export ─────────────────────────────────────────────────────

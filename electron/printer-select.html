@@ -129,7 +129,8 @@
     padding: 10px 14px;
     border-top: 1px solid #1e293b;
     display: flex;
-    justify-content: flex-end;
+    justify-content: space-between;
+    align-items: center;
     flex-shrink: 0;
   }
   .btn-cancel {
@@ -144,6 +145,23 @@
     transition: border-color 0.12s, color 0.12s;
   }
   .btn-cancel:hover { border-color: #64748b; color: #f1f5f9; }
+  .btn-refresh {
+    font-size: 13px;
+    font-weight: 500;
+    padding: 7px 14px;
+    border-radius: 7px;
+    border: 1.5px solid #334155;
+    background: transparent;
+    color: #38bdf8;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: border-color 0.12s, background 0.12s;
+  }
+  .btn-refresh:hover { border-color: #38bdf8; background: #0c1929; }
+  .btn-refresh svg { transition: transform 0.4s; }
+  .btn-refresh.spinning svg { animation: spin 0.8s linear infinite; }
 </style>
 </head>
 <body>
@@ -167,6 +185,12 @@
 
 <!-- Footer -->
 <div class="footer">
+  <button id="btn-refresh" class="btn-refresh" onclick="refresh()">
+    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+    </svg>
+    Refresh
+  </button>
   <button class="btn-cancel" onclick="window.printerAPI.cancel()">Cancel</button>
 </div>
 
@@ -232,6 +256,15 @@
       content.innerHTML = `<span style="font-size:13px;color:#f87171;">Error: ${esc(err.message)}</span>`;
       content.className = 'state-box';
     }
+  }
+
+  async function refresh() {
+    const btn = document.getElementById('btn-refresh');
+    btn.classList.add('spinning');
+    btn.disabled = true;
+    await load();
+    btn.classList.remove('spinning');
+    btn.disabled = false;
   }
 
   load();
