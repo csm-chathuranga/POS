@@ -16,7 +16,7 @@ class SetTenantDatabase
         $device = $this->resolveDevice($request);
 
         if ($device) {
-            $this->switchDatabase(database_path($device['db']));
+            $this->switchDatabase($device['db']);
 
             // Make shop name available to controllers and Inertia shared props
             config(['tenant.shop' => $device['shop'] ?? null]);
@@ -33,11 +33,12 @@ class SetTenantDatabase
             $registry = $this->loadRegistry();
             $entry    = $registry[$mac] ?? null;
             if ($entry && !empty($entry['db'])) {
-                return $entry;
+                // devices.json stores bare filenames — resolve to full path here
+                return ['shop' => $entry['shop'] ?? null, 'db' => database_path($entry['db'])];
             }
         }
 
-        // Browser fallback: domain map from config/tenants.php
+        // Browser fallback: domain map from config/tenants.php (values are already absolute paths)
         $domainMap = config('tenants.domains', []);
         $dbPath    = $domainMap[$request->getHost()] ?? null;
         if ($dbPath) {
