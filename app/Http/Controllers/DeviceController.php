@@ -29,13 +29,16 @@ class DeviceController extends Controller
 
     public function store(Request $request)
     {
+        // Normalize MAC before validation: strip separators, lowercase, reformat with colons
+        $request->merge(['mac' => $this->normalizeMac($request->input('mac', ''))]);
+
         $data = $request->validate([
-            'mac'  => ['required', 'regex:/^([0-9a-f]{2}:){5}[0-9a-f]{2}$/i', 'max:17'],
+            'mac'  => ['required', 'regex:/^([0-9a-f]{2}:){5}[0-9a-f]{2}$/'],
             'shop' => ['required', 'string', 'max:100'],
             'db'   => ['required', 'string', 'max:80', 'regex:/^[\w\-]+\.sqlite$/'],
         ]);
 
-        $mac      = strtolower($data['mac']);
+        $mac      = $data['mac'];
         $devices  = $this->readDevices();
 
         if (isset($devices[$mac])) {
@@ -111,6 +114,15 @@ class DeviceController extends Controller
     }
 
     // ── Helpers ──────────────────────────────────────────────────────────────────
+
+    private function normalizeMac(string $raw): string
+    {
+        $hex = strtolower(preg_replace('/[^0-9a-fA-F]/', '', $raw));
+        if (strlen($hex) !== 12) {
+            return $raw; // let validation catch the bad format
+        }
+        return implode(':', str_split($hex, 2));
+    }
 
     private function readDevices(): array
     {

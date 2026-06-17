@@ -287,7 +287,7 @@ function confirmDelete() {
                             placeholder="aa:bb:cc:dd:ee:ff"
                             class="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm font-mono outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
                         />
-                        <p class="text-gray-400 text-xs mt-1">Lowercase with colons. Found in Settings → Device Info.</p>
+                        <p class="text-gray-400 text-xs mt-1">Any format accepted — e.g. D8-12-65-6B-B4-AD or d8:12:65:6b:b4:ad. Found in Settings → Device Info.</p>
                         <p v-if="addErrors.mac" class="text-red-500 text-xs mt-1">{{ addErrors.mac }}</p>
                     </div>
 
