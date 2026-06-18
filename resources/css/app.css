@@ -15,11 +15,12 @@
 
 @layer base {
     html {
-        font-family: 'Noto Sans Sinhala', sans-serif;
+        font-family: 'Gemunu Libre', sans-serif;
     }
 
     body {
         font-size: 15px;
+        font-weight: 500;
     }
 
     /* Form inputs, selects, textareas — 15px */
@@ -41,6 +42,21 @@
     th {
         font-size: 13px;
     }
+}
+
+/* Large monitor (≥1440px / ~19 inch+): scale everything up */
+@media (min-width: 1440px) {
+    body {
+        font-size: 17px;
+    }
+    input:not([type='checkbox']):not([type='radio']):not([type='range']),
+    select,
+    textarea,
+    label {
+        font-size: 17px;
+    }
+    td { font-size: 16px; }
+    th { font-size: 15px; }
 }
 
 @layer components {

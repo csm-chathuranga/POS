@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, provide, inject, onMounted, onUnmounted } from 'vue';
-import { Link, usePage } from '@inertiajs/vue3';
+import { Link, usePage, router } from '@inertiajs/vue3';
 
 const page = usePage();
 const user = computed(() => page.props.auth.user);
@@ -16,6 +16,19 @@ provide('posFullscreen', posFullscreen);
 function toggleCollapse() {
     sidebarCollapsed.value = !sidebarCollapsed.value;
     localStorage.setItem('sidebarCollapsed', sidebarCollapsed.value);
+}
+
+// Auto-collapse sidebar on sales.create, restore preference on other pages
+let autoCollapsed = false;
+function applySidebarForRoute() {
+    const onPOS = route().current('sales.create');
+    if (onPOS && !sidebarCollapsed.value) {
+        sidebarCollapsed.value = true;
+        autoCollapsed = true;
+    } else if (!onPOS && autoCollapsed) {
+        sidebarCollapsed.value = localStorage.getItem('sidebarCollapsed') === 'true';
+        autoCollapsed = false;
+    }
 }
 
 // ── Locale ────────────────────────────────────────────────────────────────────
@@ -49,8 +62,16 @@ function onGlobalKeydown(e) {
     }
 }
 
-onMounted(()   => window.addEventListener('keydown', onGlobalKeydown));
-onUnmounted(() => window.removeEventListener('keydown', onGlobalKeydown));
+let removeNavListener;
+onMounted(() => {
+    window.addEventListener('keydown', onGlobalKeydown);
+    applySidebarForRoute();
+    removeNavListener = router.on('navigate', applySidebarForRoute);
+});
+onUnmounted(() => {
+    window.removeEventListener('keydown', onGlobalKeydown);
+    removeNavListener?.();
+});
 
 const mainNavItems = [
     { labelKey: 'nav.dashboard',   routeName: 'dashboard',       icon: `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>` },

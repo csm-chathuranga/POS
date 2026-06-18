@@ -2,6 +2,7 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import { inject, ref } from 'vue';
+import { invalidateProducts } from '@/stores/productCache';
 
 const t = inject('t');
 
@@ -40,6 +41,7 @@ function removeVariant(i) {
 }
 
 function submit() {
+    invalidateProducts();
     form.post(route('products.store'));
 }
 </script>
@@ -221,7 +223,7 @@ function submit() {
                             <input v-model="v.label" type="text" placeholder="100g / 200g / 500g" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400 w-full" />
                             <input v-model="v.selling_price" type="number" step="0.01" min="0" placeholder="Price" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400 w-full" />
                             <div>
-                                <input v-model="v.conversion_factor" type="number" step="0.001" min="0.001" placeholder="1" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400 w-full" />
+                                <input v-model="v.conversion_factor" type="number" step="0.01" min="0.01" placeholder="1" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400 w-full" />
                                 <p class="text-xs text-gray-400 mt-0.5 px-1">× base unit</p>
                             </div>
                             <button type="button" @click="removeVariant(i)" class="w-8 h-8 flex items-center justify-center rounded-lg text-red-400 hover:bg-red-50 hover:text-red-600 transition-colors">

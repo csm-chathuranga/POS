@@ -3,6 +3,7 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
 import { ref, computed, inject, onMounted, onUnmounted, nextTick } from 'vue';
 import axios from 'axios';
+import { getProducts } from '@/stores/productCache';
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 const props = defineProps({
@@ -180,13 +181,16 @@ const balance = computed(() => (parseFloat(cashPaid.value) || 0) - total.value);
 
 // ─── Dropdown items: popular when query empty, search results otherwise ───────
 const dropdownItems = computed(() =>
-    searchQuery.value.trim() === '' ? props.popularProducts : searchResults.value
+    searchQuery.value.trim() === '' ? [] : searchResults.value
 );
 
 // ─── Size picker ─────────────────────────────────────────────────────────────
 const sizePickerProduct = ref(null);
 const showSizePicker    = ref(false);
 const sizeActiveIndex   = ref(0);
+const sizePickerQty     = ref('');
+const sizeQtyInput      = ref(null);
+const customWeightInput = ref(null);
 
 let blockNextDropdownOpen = false; // prevents dropdown reopening after outside click
 
@@ -195,6 +199,7 @@ function selectSize(size) {
     showSizePicker.value    = false;
     sizePickerProduct.value = null;
     sizeActiveIndex.value   = 0;
+    sizePickerQty.value     = '';
     addToCart({
         ...p,
         variant_id:      size.id,
@@ -207,10 +212,106 @@ function selectSize(size) {
     });
 }
 
-// ─── Barcode scan detection ───────────────────────────────────────────────────
+function addCustomWeight() {
+    const p    = sizePickerProduct.value;
+    const unit = (p?.unit || 'kg').toLowerCase();
+    const raw  = parseFloat(sizePickerQty.value);
+    if (!raw || raw <= 0 || !p) return;
+
+    const unitPrice = parseFloat(p.selling_price) || 0;
+
+    // kg → enter grams, l → enter ml; both divide by 1000
+    let qty, label;
+    if (unit === 'kg') {
+        qty   = parseFloat((raw / 1000).toFixed(4));
+        label = raw + 'g';
+    } else if (unit === 'l' || unit === 'ml') {
+        qty   = parseFloat((raw / 1000).toFixed(4));
+        label = raw + 'ml';
+    } else {
+        qty   = parseFloat(raw.toFixed(2));
+        label = qty + unit;
+    }
+
+    showSizePicker.value    = false;
+    sizePickerProduct.value = null;
+    sizeActiveIndex.value   = 0;
+    sizePickerQty.value     = '';
+
+    addToCart({
+        ...p,
+        variant_id:      null,
+        name:            p.name + ' - ' + label,
+        name_si:         p.name_si ? p.name_si + ' - ' + label : null,
+        selling_price:   unitPrice,
+        wholesale_price: parseFloat(p.wholesale_price) || unitPrice,
+        unit:            unit,
+        sizes:           [],
+    }, qty);
+}
+
+// ─── Barcode scan detection (search field) ────────────────────────────────────
 const lastKeyTime    = ref(0);
 const keyIntervals   = ref([]);
 const isScanMode     = ref(false);
+
+// ─── Barcode scan detection (qty field) ───────────────────────────────────────
+// Barcode scanners fire chars < 60ms apart. We buffer them and redirect to cart
+// when Enter arrives, rather than letting the barcode corrupt the qty value.
+let qtyBuffer      = '';
+let qtyLastKeyTime = 0;
+let qtyIsScanning  = false;
+let qtySavedQty    = null;
+
+function resetQtyState() {
+    qtyBuffer      = '';
+    qtyLastKeyTime = 0;
+    qtyIsScanning  = false;
+    qtySavedQty    = null;
+}
+
+function onQtyKeydown(e, item) {
+    if (e.key === 'Enter') {
+        e.preventDefault();
+        if (qtyIsScanning && qtyBuffer.length >= 3) {
+            const barcode = qtyBuffer;
+            resetQtyState();
+            // Restore qty that the scanner's first char corrupted
+            if (qtySavedQty !== null) {
+                item.qty = qtySavedQty;
+                recalcLine(item);
+                e.target.value = qtySavedQty ?? '';
+                qtySavedQty = null;
+            }
+            const hit = allProducts.value.find(p => p.barcode === barcode);
+            if (hit) addToCart(hit);
+            else refocusSearch();
+        } else {
+            resetQtyState();
+            refocusSearch();
+        }
+        return;
+    }
+
+    if (e.key.length !== 1) return;
+
+    const now      = Date.now();
+    const interval = qtyLastKeyTime > 0 ? now - qtyLastKeyTime : 9999;
+    qtyLastKeyTime = now;
+
+    if (interval < 60 && qtyBuffer.length > 0) {
+        // Fast subsequent char → scanner; intercept so it doesn't go into the input
+        qtyIsScanning = true;
+        qtyBuffer    += e.key;
+        e.preventDefault();
+    } else {
+        // First char or manual typing — save current qty before it gets overwritten
+        qtySavedQty  = item.qty;
+        qtyBuffer    = e.key;
+        qtyIsScanning = false;
+        // Let this char through to the input normally
+    }
+}
 
 function onSearchKeypress(e) {
     if (e.key === 'Enter') return;
@@ -254,7 +355,7 @@ function onSearchInput() {
     const q = searchQuery.value.trim().toLowerCase();
     if (!q) {
         searchResults.value = [];
-        showDropdown.value  = props.popularProducts.length > 0;
+        showDropdown.value  = false;
         resetScanState();
         return;
     }
@@ -341,12 +442,14 @@ function setPriceMode(mode) {
     });
 }
 
-function addToCart(product) {
+function addToCart(product, initialQty = null) {
     // Show size picker if product has sizes defined
     if (product.sizes?.length > 0) {
         sizePickerProduct.value = product;
         showSizePicker.value    = true;
         sizeActiveIndex.value   = 0;
+        sizePickerQty.value     = '';
+        nextTick(() => sizeQtyInput.value?.focus());
         searchQuery.value       = '';
         searchResults.value     = [];
         showDropdown.value      = false;
@@ -354,7 +457,7 @@ function addToCart(product) {
         return;
     }
 
-    const isWeightUnit = ['kg', 'g', 'l', 'ml', 'liter'].includes((product.unit || '').toLowerCase());
+    const isWeightUnit = ['kg', 'g'].includes((product.unit || '').toLowerCase());
     const variantId    = product.variant_id || null;
     const existing     = cart.value.find(i =>
         i.product_id === product.id && i.variant_id === variantId
@@ -381,12 +484,13 @@ function addToCart(product) {
             ? wsPrice
             : parseFloat(product.selling_price) || 0;
 
+        const startQty = initialQty !== null ? initialQty : (isWeightUnit ? null : 1);
         cart.value.push({
             product_id:      product.id,
             variant_id:      variantId,
             name:            product.name_si ? `${product.name} / ${product.name_si}` : product.name,
             barcode:         product.barcode || '',
-            qty:             isWeightUnit ? null : 1,
+            qty:             startQty,
             unit_price:      unitPrice,
             selling_price:   parseFloat(product.selling_price) || 0,
             wholesale_price: wsPrice,
@@ -396,7 +500,7 @@ function addToCart(product) {
             stock_qty:       product.stock_qty || 0,
             alert_qty:       product.alert_qty || 5,
         });
-        if (!isWeightUnit) recalcLine(cart.value[cart.value.length - 1]);
+        if (startQty !== null) recalcLine(cart.value[cart.value.length - 1]);
         nextTick(() => {
             const inputs = document.querySelectorAll('.cart-qty-input');
             const last = inputs[inputs.length - 1];
@@ -583,8 +687,7 @@ function refocusSearch() {
 
 async function loadAllProducts() {
     try {
-        const res = await axios.get('/api/products/all');
-        allProducts.value   = res.data;
+        allProducts.value   = await getProducts();
         productsReady.value = true;
     } catch {
         productsReady.value = true;
@@ -623,6 +726,15 @@ function fmt(val) {
         maximumFractionDigits: 2,
     });
 }
+
+function fmtNum(val) {
+    return Number(val || 0).toLocaleString('en-LK', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+    });
+}
+
+const focusedPriceIdx = ref(null);
 </script>
 
 <template>
@@ -709,7 +821,7 @@ function fmt(val) {
                             type="text"
                             :placeholder="t('pos.search_product')"
                             autocomplete="off"
-                            class="w-full pl-12 pr-28 py-4 text-lg lg:text-xl border-2 border-blue-200 rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 min-h-[60px] lg:min-h-[68px] font-medium bg-white dark:bg-slate-900 dark:border-slate-600 dark:text-white dark:placeholder-slate-500 dark:focus:border-blue-400 dark:focus:ring-blue-900"
+                            class="w-full pl-12 pr-28 py-2.5 text-base lg:text-lg border-2 border-blue-200 rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 min-h-[44px] lg:min-h-[50px] font-medium bg-white dark:bg-slate-900 dark:border-slate-600 dark:text-white dark:placeholder-slate-500 dark:focus:border-blue-400 dark:focus:ring-blue-900"
                             @focus="onSearchFocus"
                             @blur="onSearchBlur"
                             @input="onSearchInput"
@@ -834,8 +946,8 @@ function fmt(val) {
                                 <tr class="text-xs lg:text-sm font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">
                                     <th class="px-4 py-2.5 text-left">{{ t('th.product') }}</th>
                                     <th class="px-3 py-2.5 text-center w-28 lg:w-36">{{ t('th.qty') }}</th>
-                                    <th class="px-3 py-2.5 text-right w-28 lg:w-32">{{ t('th.price') }}</th>
-                                    <th v-if="canDiscount" class="px-3 py-2.5 text-right w-28 lg:w-32">{{ t('lbl.discount') }}</th>
+                                    <th class="px-3 py-2.5 text-right w-20 lg:w-24">{{ t('th.price') }}</th>
+                                    <th v-if="canDiscount" class="px-3 py-2.5 text-right w-20 lg:w-24">{{ t('lbl.discount') }}</th>
                                     <th class="px-3 py-2.5 text-right w-28 lg:w-36">{{ t('lbl.total') }}</th>
                                     <th class="px-3 py-2.5 w-10"></th>
                                 </tr>
@@ -869,9 +981,10 @@ function fmt(val) {
                                                 min="0.01"
                                                 step="0.01"
                                                 :value="item.qty ?? ''"
-                                                :placeholder="['kg','g','l','ml','liter'].includes(item.unit) ? '0' : '1'"
+                                                :placeholder="['kg','g'].includes(item.unit) ? '0' : '1'"
                                                 @input="e => updateQty(item, e.target.value)"
-                                                @keydown.enter.prevent="refocusSearch()"
+                                                @keydown="onQtyKeydown($event, item)"
+                                                @focus="resetQtyState()"
                                                 class="cart-qty-input w-14 lg:w-18 text-center border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-gray-100 rounded-lg py-1.5 px-1 focus:outline-none focus:ring-2 focus:ring-blue-300 dark:focus:ring-blue-800 text-sm lg:text-base font-medium"
                                             />
                                             <button
@@ -883,12 +996,13 @@ function fmt(val) {
                                     </td>
                                     <td class="px-3 py-2.5">
                                         <input
-                                            type="number"
-                                            min="0"
-                                            step="0.01"
-                                            :value="item.unit_price"
+                                            type="text"
+                                            inputmode="decimal"
+                                            :value="focusedPriceIdx === idx ? item.unit_price : fmtNum(item.unit_price)"
+                                            @focus="focusedPriceIdx = idx; $event.target.value = item.unit_price; $event.target.select()"
+                                            @blur="focusedPriceIdx = null"
                                             @change="e => updatePrice(item, e.target.value)"
-                                            class="w-24 lg:w-28 text-right border border-gray-200 dark:border-slate-600 dark:bg-slate-700 dark:text-gray-100 rounded-lg py-1.5 px-2 focus:outline-none focus:ring-2 focus:ring-blue-300 dark:focus:ring-blue-800 text-sm lg:text-base font-medium text-gray-700"
+                                            class="w-16 lg:w-20 text-right border border-gray-200 dark:border-slate-600 dark:bg-slate-700 dark:text-gray-100 rounded-lg py-1.5 px-2 focus:outline-none focus:ring-2 focus:ring-blue-300 dark:focus:ring-blue-800 text-sm lg:text-base font-medium text-gray-700"
                                         />
                                     </td>
                                     <td v-if="canDiscount" class="px-3 py-2.5">
@@ -898,7 +1012,7 @@ function fmt(val) {
                                             step="0.01"
                                             :value="item.discount"
                                             @change="e => updateDiscount(item, e.target.value)"
-                                            class="w-24 lg:w-28 text-right border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-gray-100 rounded-lg py-1.5 px-2 focus:outline-none focus:ring-2 focus:ring-orange-300 dark:focus:ring-orange-800 text-sm lg:text-base"
+                                            class="w-16 lg:w-20 text-right border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-gray-100 rounded-lg py-1.5 px-2 focus:outline-none focus:ring-2 focus:ring-orange-300 dark:focus:ring-orange-800 text-sm lg:text-base"
                                         />
                                     </td>
                                     <td class="px-3 py-3 text-right">
@@ -985,60 +1099,44 @@ function fmt(val) {
 
                 <!-- Totals summary + bill discount -->
                 <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-100 dark:border-slate-700 p-4 space-y-2">
-                    <div class="flex justify-between text-sm lg:text-base text-gray-600 dark:text-slate-300">
-                        <span>{{ t('lbl.subtotal') }}</span>
-                        <span class="font-medium">{{ fmt(subtotal) }}</span>
-                    </div>
-
                     <!-- Bill-level discount row -->
-                    <div class="space-y-1.5">
-                        <div class="flex items-center justify-between">
-                            <span class="text-sm text-orange-600 font-medium">{{ t('lbl.discount') }}</span>
-                            <span v-if="billDiscountAmt > 0" class="text-sm font-semibold text-orange-600">-{{ fmt(billDiscountAmt) }}</span>
-                        </div>
-                        <!-- Quick % presets -->
-                        <div class="flex gap-1">
-                            <button
-                                v-for="pct in [5, 10, 15, 20]"
-                                :key="pct"
-                                type="button"
-                                :disabled="cart.length === 0"
-                                @click="discountType = 'percent'; billDiscount = String(pct)"
-                                class="flex-1 py-1.5 rounded-lg text-xs lg:text-sm font-bold border transition-colors disabled:opacity-40"
-                                :class="discountType === 'percent' && Number(billDiscount) === pct
-                                    ? 'border-orange-500 bg-orange-500 text-white'
-                                    : 'border-orange-200 bg-orange-50 text-orange-600 hover:bg-orange-100 dark:border-slate-600 dark:bg-slate-700 dark:text-orange-300 dark:hover:bg-slate-600'"
-                            >{{ pct }}%</button>
-                            <button
-                                type="button"
-                                :disabled="cart.length === 0"
-                                @click="discountType = 'amount'; billDiscount = ''; $nextTick(() => $el.closest('.space-y-1\\.5').querySelector('input')?.focus())"
-                                class="flex-1 py-1.5 rounded-lg text-xs lg:text-sm font-bold border transition-colors disabled:opacity-40"
-                                :class="discountType === 'amount' && billDiscount !== ''
-                                    ? 'border-orange-500 bg-orange-500 text-white'
-                                    : 'border-orange-200 bg-orange-50 text-orange-600 hover:bg-orange-100 dark:border-slate-600 dark:bg-slate-700 dark:text-orange-300 dark:hover:bg-slate-600'"
-                            >Rs</button>
-                        </div>
-                        <!-- Custom amount input (shown for Rs mode or when custom % needed) -->
+                    <div class="flex items-center gap-2">
+                        <span class="text-lg font-bold text-orange-600 dark:text-orange-400 flex-shrink-0">{{ t('lbl.discount') }}</span>
+                        <!-- Input + type toggle -->
                         <div class="flex gap-1">
                             <input
                                 v-model="billDiscount"
                                 type="number"
                                 min="0"
                                 step="0.01"
-                                :placeholder="discountType === 'percent' ? '% value' : 'Rs. amount'"
+                                :placeholder="discountType === 'percent' ? '%' : 'Rs'"
                                 :disabled="cart.length === 0"
-                                class="flex-1 border border-orange-300 dark:border-slate-600 dark:bg-slate-700 dark:text-gray-100 dark:placeholder-slate-500 rounded-lg px-2 py-1.5 text-sm lg:text-base text-right focus:outline-none focus:ring-2 focus:ring-orange-300 dark:focus:ring-orange-800 disabled:bg-gray-50 dark:disabled:bg-slate-800 disabled:text-gray-400"
+                                class="w-32 border border-orange-300 dark:border-slate-600 dark:bg-slate-700 dark:text-gray-100 dark:placeholder-slate-500 rounded-lg px-2 py-1.5 text-sm text-right focus:outline-none focus:ring-2 focus:ring-orange-300 dark:focus:ring-orange-800 disabled:bg-gray-50 dark:disabled:bg-slate-800 disabled:text-gray-400"
                             />
                             <button
                                 type="button"
                                 @click="discountType = discountType === 'percent' ? 'amount' : 'percent'"
-                                class="w-10 rounded-lg border text-xs font-bold transition-colors"
+                                class="w-9 rounded-lg border text-xs font-bold transition-colors flex-shrink-0"
                                 :class="discountType === 'percent'
                                     ? 'border-orange-400 bg-orange-500 text-white'
                                     : 'border-orange-300 bg-orange-50 text-orange-600 dark:border-slate-600 dark:bg-slate-700 dark:text-orange-300'"
                             >{{ discountType === 'percent' ? '%' : 'Rs' }}</button>
                         </div>
+                        <!-- Quick % presets -->
+                        <div class="flex gap-1 flex-1">
+                            <button
+                                v-for="pct in [5, 10, 15, 20]"
+                                :key="pct"
+                                type="button"
+                                :disabled="cart.length === 0"
+                                @click="discountType = 'percent'; billDiscount = String(pct)"
+                                class="flex-1 py-1.5 rounded-lg text-xs font-bold border transition-colors disabled:opacity-40 whitespace-nowrap"
+                                :class="discountType === 'percent' && Number(billDiscount) === pct
+                                    ? 'border-orange-500 bg-orange-500 text-white'
+                                    : 'border-orange-200 bg-orange-50 text-orange-600 hover:bg-orange-100 dark:border-slate-600 dark:bg-slate-700 dark:text-orange-300 dark:hover:bg-slate-600'"
+                            >{{ pct }}%</button>
+                        </div>
+                        <span v-if="billDiscountAmt > 0" class="text-xs font-semibold text-orange-600 flex-shrink-0">-{{ fmt(billDiscountAmt) }}</span>
                     </div>
 
                     <div v-if="lineDiscount > 0" class="flex justify-between text-xs text-orange-400">
@@ -1063,7 +1161,7 @@ function fmt(val) {
                         <button
                             type="button"
                             @click="setPaymentMethod('cash')"
-                            class="flex flex-col items-center justify-center gap-1 rounded-xl border-2 py-3 lg:py-4 min-h-[68px] lg:min-h-[80px] transition-all font-semibold text-sm lg:text-base"
+                            class="flex flex-col items-center justify-center gap-1 rounded-xl border-2 py-2 lg:py-3 min-h-[50px] lg:min-h-[60px] transition-all font-semibold text-sm lg:text-base"
                             :class="paymentMethod === 'cash'
                                 ? 'border-green-500 bg-green-500 text-white shadow-md shadow-green-200'
                                 : 'border-green-200 bg-green-50 text-green-700 hover:border-green-400 hover:bg-green-100 dark:border-green-900 dark:bg-green-950 dark:text-green-400 dark:hover:bg-green-900'"
@@ -1078,7 +1176,7 @@ function fmt(val) {
                         <button
                             type="button"
                             @click="setPaymentMethod('card')"
-                            class="flex flex-col items-center justify-center gap-1 rounded-xl border-2 py-3 lg:py-4 min-h-[68px] lg:min-h-[80px] transition-all font-semibold text-sm lg:text-base"
+                            class="flex flex-col items-center justify-center gap-1 rounded-xl border-2 py-2 lg:py-3 min-h-[50px] lg:min-h-[60px] transition-all font-semibold text-sm lg:text-base"
                             :class="paymentMethod === 'card'
                                 ? 'border-blue-500 bg-blue-500 text-white shadow-md shadow-blue-200'
                                 : 'border-blue-200 bg-blue-50 text-blue-700 hover:border-blue-400 hover:bg-blue-100 dark:border-blue-900 dark:bg-blue-950 dark:text-blue-400 dark:hover:bg-blue-900'"
@@ -1093,7 +1191,7 @@ function fmt(val) {
                         <button
                             type="button"
                             @click="setPaymentMethod('credit')"
-                            class="flex flex-col items-center justify-center gap-1 rounded-xl border-2 py-3 lg:py-4 min-h-[68px] lg:min-h-[80px] transition-all font-semibold text-sm lg:text-base"
+                            class="flex flex-col items-center justify-center gap-1 rounded-xl border-2 py-2 lg:py-3 min-h-[50px] lg:min-h-[60px] transition-all font-semibold text-sm lg:text-base"
                             :class="paymentMethod === 'credit'
                                 ? 'border-red-500 bg-red-500 text-white shadow-md shadow-red-200'
                                 : 'border-red-200 bg-red-50 text-red-700 hover:border-red-400 hover:bg-red-100 dark:border-red-900 dark:bg-red-950 dark:text-red-400 dark:hover:bg-red-900'"
@@ -1105,96 +1203,99 @@ function fmt(val) {
                         </button>
                     </div>
 
-                    <!-- Customer selector — shown when Credit is selected -->
-                    <div v-if="paymentMethod === 'credit'" class="mt-3 pt-3 border-t border-gray-100 dark:border-slate-700">
-                        <div class="flex items-center justify-between mb-1.5">
-                            <label class="text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">{{ t('lbl.customer') }}</label>
-                            <button
-                                type="button"
-                                @click="openQuickCustomer"
-                                class="flex items-center gap-1 text-xs font-semibold text-blue-600 hover:text-blue-800 hover:bg-blue-50 px-2 py-1 rounded-lg transition-colors"
-                            >
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
-                                </svg>
-                                {{ t('cust.quick_add') }}
-                            </button>
-                        </div>
-                        <select
-                            @change="selectCustomer"
-                            class="w-full border border-gray-300 dark:border-slate-600 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-400 bg-white dark:bg-slate-700 dark:text-gray-100"
-                        >
-                            <option value="">{{ t('lbl.select_customer') }}</option>
-                            <option v-for="c in localCustomers" :key="c.id" :value="c.id" :selected="selectedCustomer?.id === c.id">
-                                {{ c.name }} {{ c.phone ? `· ${c.phone}` : '' }}
-                            </option>
-                        </select>
-                        <div v-if="selectedCustomer" class="mt-1.5 flex items-center gap-2 text-xs text-blue-700 bg-blue-50 rounded-lg px-3 py-1.5">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                            </svg>
-                            <span class="font-medium">{{ selectedCustomer.name }}</span>
-                            <span v-if="selectedCustomer.phone" class="text-blue-500">{{ selectedCustomer.phone }}</span>
-                        </div>
-                        <div v-if="!selectedCustomer" class="mt-1.5 text-xs text-red-500 flex items-center gap-1">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                            </svg>
-                            {{ t('lbl.credit_warn') }}
-                        </div>
-                    </div>
                 </div>
 
-                <!-- Cash / Credit payment: amount paid + balance -->
-                <div v-if="paymentMethod === 'cash' || paymentMethod === 'credit'" class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border p-4 space-y-3" :class="paymentMethod === 'credit' ? 'border-red-200 dark:border-red-900' : 'border-green-200 dark:border-green-900'">
-                    <div>
-                        <div class="flex items-center gap-1.5 mb-1.5">
-                            <label class="text-sm lg:text-base font-semibold text-gray-700 dark:text-slate-300 flex-shrink-0">
-                                {{ paymentMethod === 'credit' ? t('lbl.optional') : t('lbl.cash_paid') }}
-                            </label>
-                            <div class="flex flex-wrap gap-1 flex-1">
+                <!-- Customer + Cash paid inline (cash/credit) -->
+                <div v-if="paymentMethod === 'cash' || paymentMethod === 'credit'" class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border p-4" :class="paymentMethod === 'credit' ? 'border-red-200 dark:border-red-900' : 'border-green-200 dark:border-green-900'">
+                    <div class="flex gap-3">
+                        <!-- Customer selector -->
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center justify-between mb-1.5">
+                                <label class="text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">{{ t('lbl.customer') }}</label>
                                 <button
-                                    v-for="amt in [100, 200, 500, 1000, 2000, 5000]"
+                                    type="button"
+                                    @click="openQuickCustomer"
+                                    class="flex items-center gap-1 text-xs font-semibold text-blue-600 hover:text-blue-800 hover:bg-blue-50 px-2 py-1 rounded-lg transition-colors"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+                                    </svg>
+                                    {{ t('cust.quick_add') }}
+                                </button>
+                            </div>
+                            <select
+                                @change="selectCustomer"
+                                class="w-full border border-gray-300 dark:border-slate-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white dark:bg-slate-700 dark:text-gray-100"
+                            >
+                                <option value="">{{ t('lbl.select_customer') }}</option>
+                                <option v-for="c in localCustomers" :key="c.id" :value="c.id" :selected="selectedCustomer?.id === c.id">
+                                    {{ c.name }} {{ c.phone ? `· ${c.phone}` : '' }}
+                                </option>
+                            </select>
+                            <div v-if="selectedCustomer" class="mt-1 flex items-center gap-1.5 text-xs text-blue-700 bg-blue-50 rounded-lg px-2 py-1">
+                                <span class="font-medium truncate">{{ selectedCustomer.name }}</span>
+                                <span v-if="selectedCustomer.phone" class="text-blue-400 flex-shrink-0">{{ selectedCustomer.phone }}</span>
+                            </div>
+                            <div v-if="!selectedCustomer && paymentMethod === 'credit'" class="mt-1 text-xs text-red-500 flex items-center gap-1">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                </svg>
+                                {{ t('lbl.credit_warn') }}
+                            </div>
+                        </div>
+
+                        <!-- Divider -->
+                        <div class="w-px bg-gray-100 dark:bg-slate-700 self-stretch"></div>
+
+                        <!-- Cash paid -->
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center justify-between mb-1.5">
+                                <label class="text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">
+                                    {{ paymentMethod === 'credit' ? t('lbl.optional') : t('lbl.cash_paid') }}
+                                </label>
+                                <button
+                                    type="button"
+                                    @click="cashPaid = total.toFixed(2)"
+                                    class="text-xs font-bold px-2 py-1 rounded-lg bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 hover:bg-green-200 dark:hover:bg-green-800 transition-colors"
+                                >= හරි මුදල</button>
+                            </div>
+                            <input
+                                id="cash-paid-input"
+                                v-model="cashPaid"
+                                type="number"
+                                min="0"
+                                step="0.01"
+                                placeholder="0.00"
+                                @keydown.enter.prevent="submitSale"
+                                class="w-full border-2 rounded-xl px-3 py-2 text-lg lg:text-xl font-bold focus:outline-none dark:bg-slate-700 dark:placeholder-slate-500"
+                                :class="[
+                                    shakePaid ? 'shake-field border-red-500 text-red-700 dark:text-red-400' :
+                                        paymentMethod === 'credit'
+                                            ? 'border-red-300 dark:border-red-800 text-red-800 dark:text-red-300 focus:ring-2 focus:ring-red-400 focus:border-red-500'
+                                            : 'border-green-300 dark:border-green-800 text-green-800 dark:text-green-300 focus:ring-2 focus:ring-green-400 focus:border-green-500'
+                                ]"
+                            />
+                            <div class="flex flex-wrap gap-1 mt-1.5">
+                                <button
+                                    v-for="amt in [100, 500, 1000, 2000, 5000]"
                                     :key="amt"
                                     type="button"
                                     @click="cashPaid = amt"
-                                    class="px-2 py-1 rounded-md text-xs lg:text-sm font-semibold border transition-colors"
+                                    class="px-2 py-0.5 rounded text-xs font-semibold border transition-colors"
                                     :class="Number(cashPaid) === amt
                                         ? 'border-green-500 bg-green-500 text-white'
-                                        : 'border-gray-200 bg-gray-50 text-gray-600 hover:border-green-300 hover:bg-green-50 hover:text-green-700 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-300 dark:hover:border-green-700 dark:hover:bg-green-900 dark:hover:text-green-300'"
+                                        : 'border-gray-200 bg-gray-50 text-gray-600 hover:border-green-300 hover:bg-green-50 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-300'"
                                 >{{ amt }}</button>
                             </div>
-                            <button
-                                type="button"
-                                @click="cashPaid = total.toFixed(2)"
-                                class="text-xs lg:text-sm font-bold px-2.5 py-1 rounded-lg bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 hover:bg-green-200 dark:hover:bg-green-800 transition-colors flex-shrink-0"
-                            >= හරි මුදල</button>
+                            <div v-if="cashPaid" class="flex items-center justify-between rounded-lg px-3 py-1.5 mt-1.5"
+                                :class="balance >= 0 ? 'bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-900' : 'bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-900'"
+                            >
+                                <span class="font-semibold text-xs" :class="balance >= 0 ? 'text-green-700' : 'text-red-700'">{{ t('lbl.change') }}</span>
+                                <span class="text-base font-bold" :class="balance >= 0 ? 'text-green-700' : 'text-red-600'">
+                                    {{ fmt(Math.abs(balance)) }}
+                                </span>
+                            </div>
                         </div>
-                        <input
-                            id="cash-paid-input"
-                            v-model="cashPaid"
-                            type="number"
-                            min="0"
-                            step="0.01"
-                            :placeholder="paymentMethod === 'credit' ? '0.00' : '0.00'"
-                            @keydown.enter.prevent="submitSale"
-                            class="w-full border-2 rounded-xl px-4 py-3 text-xl lg:text-2xl font-bold focus:outline-none min-h-[56px] lg:min-h-[68px] dark:bg-slate-700 dark:placeholder-slate-500"
-                            :class="[
-                                shakePaid ? 'shake-field border-red-500 text-red-700 dark:text-red-400' :
-                                    paymentMethod === 'credit'
-                                        ? 'border-red-300 dark:border-red-800 text-red-800 dark:text-red-300 focus:ring-2 focus:ring-red-400 focus:border-red-500'
-                                        : 'border-green-300 dark:border-green-800 text-green-800 dark:text-green-300 focus:ring-2 focus:ring-green-400 focus:border-green-500'
-                            ]"
-                        />
-                    </div>
-                    <div v-if="cashPaid" class="flex items-center justify-between rounded-lg px-4 py-3"
-                        :class="balance >= 0 ? 'bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-900' : 'bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-900'"
-                    >
-                        <span class="font-semibold text-sm" :class="balance >= 0 ? 'text-green-700' : 'text-red-700'">{{ t('lbl.change') }}</span>
-                        <span class="text-xl font-bold" :class="balance >= 0 ? 'text-green-700' : 'text-red-600'">
-                            {{ fmt(Math.abs(balance)) }}
-                            <span class="text-sm font-normal ml-1">{{ balance < 0 ? '(' + t('th.balance') + ')' : '(' + t('lbl.change') + ')' }}</span>
-                        </span>
                     </div>
                 </div>
 
@@ -1332,7 +1433,9 @@ function fmt(val) {
                 <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-sm p-6">
                     <h2 class="text-base font-bold text-gray-800 dark:text-slate-100 mb-1">{{ sizePickerProduct.name_si || sizePickerProduct.name }}</h2>
                     <p class="text-xs text-gray-400 dark:text-slate-500 mb-4">{{ t('pos.select_size') }}</p>
-                    <div class="grid grid-cols-3 gap-2">
+
+                    <!-- Pre-defined size buttons -->
+                    <div class="grid grid-cols-3 gap-2 mb-4">
                         <button
                             v-for="(size, idx) in sizePickerProduct.sizes"
                             :key="size.id"
@@ -1348,6 +1451,50 @@ function fmt(val) {
                             <span class="text-xs font-semibold" :class="idx === sizeActiveIndex ? 'text-blue-200' : 'text-blue-600 dark:text-blue-400'">{{ fmt(size.price) }}</span>
                         </button>
                     </div>
+
+                    <!-- Custom size entry — for kg/g/l/ml products -->
+                    <div v-if="['kg','g','l','ml'].includes((sizePickerProduct?.unit||'').toLowerCase())" class="border-t border-gray-100 dark:border-slate-700 pt-4">
+                        <p class="text-[11px] font-semibold text-gray-400 dark:text-slate-500 uppercase tracking-wide mb-2">
+                            Custom size ({{ sizePickerProduct?.unit?.toLowerCase() === 'kg' ? 'g' : sizePickerProduct?.unit?.toLowerCase() === 'l' ? 'ml' : sizePickerProduct?.unit }})
+                        </p>
+                        <div class="flex gap-2 items-center">
+                            <div class="relative flex-1">
+                                <input
+                                    ref="sizeQtyInput"
+                                    v-model="sizePickerQty"
+                                    type="number"
+                                    min="1"
+                                    step="1"
+                                    placeholder="e.g. 250"
+                                    @keydown.enter.prevent="addCustomWeight"
+                                    @keydown.escape.stop="showSizePicker = false; sizePickerProduct = null"
+                                    class="w-full text-center text-xl font-bold bg-gray-50 dark:bg-slate-700 border-2 border-gray-200 dark:border-slate-600 rounded-xl px-3 py-2.5 outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-400 text-gray-900 dark:text-white placeholder:text-gray-300 dark:placeholder:text-slate-600 placeholder:text-sm placeholder:font-normal"
+                                />
+                                <span class="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-400">
+                                    {{ sizePickerProduct?.unit?.toLowerCase() === 'kg' ? 'g' : sizePickerProduct?.unit?.toLowerCase() === 'l' ? 'ml' : sizePickerProduct?.unit }}
+                                </span>
+                            </div>
+                            <!-- Calculated price preview -->
+                            <div class="text-center min-w-[80px]">
+                                <p v-if="Number(sizePickerQty) > 0" class="text-sm font-bold text-emerald-600 dark:text-emerald-400">
+                                    {{
+                                        ['kg','l','ml'].includes(sizePickerProduct?.unit?.toLowerCase())
+                                            ? fmt(parseFloat(((Number(sizePickerQty) / 1000) * (parseFloat(sizePickerProduct.selling_price) || 0)).toFixed(2)))
+                                            : fmt(parseFloat((Number(sizePickerQty) * (parseFloat(sizePickerProduct.selling_price) || 0)).toFixed(2)))
+                                    }}
+                                </p>
+                                <p v-else class="text-xs text-gray-400">price</p>
+                            </div>
+                            <button
+                                type="button"
+                                @click="addCustomWeight"
+                                :disabled="!sizePickerQty || Number(sizePickerQty) <= 0"
+                                class="px-4 py-2.5 rounded-xl text-sm font-bold text-white transition-colors disabled:opacity-40"
+                                style="background:#16A34A;"
+                            >Add</button>
+                        </div>
+                    </div>
+
                     <button
                         type="button"
                         @click="showSizePicker = false; sizePickerProduct = null"

@@ -1,7 +1,8 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { Head, Link, router } from '@inertiajs/vue3';
-import { ref, watch, inject } from 'vue';
+import { ref, watch, inject, nextTick, onMounted, onUnmounted } from 'vue';
+import JsBarcode from 'jsbarcode';
 
 const props = defineProps({
     products: { type: Object, default: () => ({ data: [], links: [], meta: {} }) },
@@ -13,6 +14,17 @@ const t = inject('t');
 
 const search = ref(props.filters?.search || '');
 const categoryId = ref(props.filters?.category_id || '');
+const loading = ref(false);
+
+let removeStart, removeFinish;
+onMounted(() => {
+    removeStart = router.on('start', () => { loading.value = true; });
+    removeFinish = router.on('finish', () => { loading.value = false; });
+});
+onUnmounted(() => {
+    removeStart?.();
+    removeFinish?.();
+});
 
 let searchTimer = null;
 
@@ -34,6 +46,32 @@ function deleteProduct(id) {
     if (confirm(t('btn.delete') + '?')) {
         router.delete(route('products.destroy', id));
     }
+}
+
+const barcodeSvg = ref(null);
+const barcodeProduct = ref(null);
+
+function printBarcode(product) {
+    barcodeProduct.value = product;
+    nextTick(async () => {
+        try {
+            JsBarcode(barcodeSvg.value, product.barcode, {
+                format: 'CODE128',
+                displayValue: false,
+                width: 1,
+                height: 18,
+                margin: 0,
+            });
+        } catch {}
+
+        if (window.electronAPI?.printBarcode) {
+            const printer = localStorage.getItem('pos_printer') || '';
+            await window.electronAPI.printBarcode(printer);
+        } else {
+            window.print();
+        }
+        barcodeProduct.value = null;
+    });
 }
 </script>
 
@@ -78,6 +116,29 @@ function deleteProduct(id) {
 
         <!-- Mobile card list -->
         <div class="md:hidden space-y-3 mb-4">
+            <!-- Skeleton cards -->
+            <template v-if="loading">
+                <div v-for="i in 6" :key="'sk-'+i" class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 animate-pulse">
+                    <div class="flex justify-between items-start mb-3">
+                        <div class="space-y-2">
+                            <div class="h-4 w-36 bg-gray-200 rounded"></div>
+                            <div class="h-3 w-24 bg-gray-100 rounded"></div>
+                        </div>
+                        <div class="h-5 w-14 bg-gray-200 rounded-full"></div>
+                    </div>
+                    <div class="grid grid-cols-3 gap-2 mb-3">
+                        <div v-for="j in 3" :key="j" class="space-y-1">
+                            <div class="h-2.5 w-12 bg-gray-100 rounded"></div>
+                            <div class="h-4 w-16 bg-gray-200 rounded"></div>
+                        </div>
+                    </div>
+                    <div class="flex gap-2">
+                        <div class="flex-1 h-10 bg-gray-100 rounded-lg"></div>
+                        <div class="flex-1 h-10 bg-gray-100 rounded-lg"></div>
+                    </div>
+                </div>
+            </template>
+            <template v-else>
             <div v-if="products.data?.length === 0" class="bg-white rounded-xl p-6 text-center text-gray-400">
                 {{ t('prod.no_products') }}
             </div>
@@ -116,20 +177,37 @@ function deleteProduct(id) {
                     </div>
                 </div>
                 <div class="flex gap-2">
+                    <button
+                        v-if="product.barcode"
+                        @click="printBarcode(product)"
+                        class="bg-purple-50 hover:bg-purple-100 text-purple-600 py-2 px-3 rounded-lg text-sm font-medium transition-colors min-h-[44px] flex items-center justify-center"
+                        title="Print Barcode"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                        </svg>
+                    </button>
                     <Link
                         :href="route('products.edit', product.id)"
-                        class="flex-1 text-center bg-blue-50 hover:bg-blue-100 text-blue-600 py-2 rounded-lg text-sm font-medium transition-colors min-h-[44px] flex items-center justify-center"
+                        class="flex-1 text-center bg-blue-50 hover:bg-blue-100 text-blue-600 py-2 rounded-lg text-sm font-medium transition-colors min-h-[44px] flex items-center justify-center gap-1.5"
                     >
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        </svg>
                         {{ t('btn.edit') }}
                     </Link>
                     <button
                         @click="deleteProduct(product.id)"
-                        class="flex-1 bg-red-50 hover:bg-red-100 text-red-600 py-2 rounded-lg text-sm font-medium transition-colors min-h-[44px]"
+                        class="flex-1 bg-red-50 hover:bg-red-100 text-red-600 py-2 rounded-lg text-sm font-medium transition-colors min-h-[44px] flex items-center justify-center gap-1.5"
                     >
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
                         {{ t('btn.delete') }}
                     </button>
                 </div>
             </div>
+            </template>
         </div>
 
         <!-- Desktop table -->
@@ -148,6 +226,28 @@ function deleteProduct(id) {
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-100">
+                        <!-- Skeleton rows -->
+                        <template v-if="loading">
+                            <tr v-for="i in 8" :key="'sk-'+i" class="animate-pulse">
+                                <td class="px-4 py-3">
+                                    <div class="h-4 w-40 bg-gray-200 rounded mb-1.5"></div>
+                                    <div class="h-3 w-28 bg-gray-100 rounded"></div>
+                                </td>
+                                <td class="px-4 py-3"><div class="h-4 w-28 bg-gray-200 rounded"></div></td>
+                                <td class="px-4 py-3"><div class="h-4 w-20 bg-gray-200 rounded"></div></td>
+                                <td class="px-4 py-3"><div class="h-4 w-20 bg-gray-200 rounded"></div></td>
+                                <td class="px-4 py-3"><div class="h-4 w-16 bg-gray-200 rounded"></div></td>
+                                <td class="px-4 py-3"><div class="h-5 w-14 bg-gray-200 rounded-full"></div></td>
+                                <td class="px-4 py-3">
+                                    <div class="flex justify-end gap-2">
+                                        <div class="h-8 w-8 bg-gray-200 rounded"></div>
+                                        <div class="h-8 w-16 bg-gray-200 rounded"></div>
+                                        <div class="h-8 w-16 bg-gray-200 rounded"></div>
+                                    </div>
+                                </td>
+                            </tr>
+                        </template>
+                        <template v-else>
                         <tr v-if="products.data?.length === 0">
                             <td colspan="7" class="px-4 py-8 text-center text-gray-400">{{ t('prod.no_products') }}</td>
                         </tr>
@@ -181,21 +281,38 @@ function deleteProduct(id) {
                             </td>
                             <td class="px-4 py-3">
                                 <div class="flex items-center justify-end gap-2">
+                                    <button
+                                        v-if="product.barcode"
+                                        @click="printBarcode(product)"
+                                        class="text-purple-600 hover:text-purple-800 px-2 py-1.5 rounded hover:bg-purple-50 min-h-[36px] flex items-center"
+                                        title="Print Barcode"
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                                        </svg>
+                                    </button>
                                     <Link
                                         :href="route('products.edit', product.id)"
-                                        class="text-blue-600 hover:text-blue-800 text-sm font-medium px-3 py-1.5 rounded hover:bg-blue-50 min-h-[36px] flex items-center"
+                                        class="text-blue-600 hover:text-blue-800 text-sm font-medium px-2 py-1.5 rounded hover:bg-blue-50 min-h-[36px] flex items-center gap-1"
                                     >
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                        </svg>
                                         {{ t('btn.edit') }}
                                     </Link>
                                     <button
                                         @click="deleteProduct(product.id)"
-                                        class="text-red-600 hover:text-red-800 text-sm font-medium px-3 py-1.5 rounded hover:bg-red-50 min-h-[36px]"
+                                        class="text-red-600 hover:text-red-800 text-sm font-medium px-2 py-1.5 rounded hover:bg-red-50 min-h-[36px] flex items-center gap-1"
                                     >
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                        </svg>
                                         {{ t('btn.delete') }}
                                     </button>
                                 </div>
                             </td>
                         </tr>
+                        </template>
                     </tbody>
                 </table>
             </div>
@@ -221,4 +338,35 @@ function deleteProduct(id) {
             </template>
         </div>
     </AuthenticatedLayout>
+
+    <!-- Teleported to body so it's outside #app, allowing @media print to isolate it -->
+    <Teleport to="body">
+        <div v-if="barcodeProduct" id="barcode-print-area">
+            <svg ref="barcodeSvg"></svg>
+            <p class="barcode-name">{{ barcodeProduct.name }}</p>
+            <p v-if="barcodeProduct.name_si" class="barcode-name-si">{{ barcodeProduct.name_si }}</p>
+        </div>
+    </Teleport>
 </template>
+
+<style>
+#barcode-print-area { display: none; }
+@media print {
+    @page { size: 30mm 20mm; margin: 0; }
+    body > * { display: none !important; }
+    #barcode-print-area {
+        display: flex !important;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        width: 30mm;
+        height: 20mm;
+        padding: 1mm 1mm 1mm;
+        font-family: sans-serif;
+        overflow: hidden;
+    }
+    #barcode-print-area svg { display: block; width: 18mm !important; height: auto !important; }
+    #barcode-print-area .barcode-name { margin: 1mm 0 0; font-size: 7pt; font-weight: bold; text-align: center; line-height: 1.1; max-width: 28mm; overflow: hidden; white-space: nowrap; }
+    #barcode-print-area .barcode-name-si { margin: 0.5mm 0 0; font-size: 5.5pt; font-weight: bold; text-align: center; line-height: 1.1; max-width: 28mm; overflow: hidden; white-space: nowrap; }
+}
+</style>

@@ -104,5 +104,8 @@
         "tailwindcss": "^3.2.1",
         "vite": "^5.0.0",
         "vue": "^3.4.0"
+    },
+    "dependencies": {
+        "jsbarcode": "^3.12.3"
     }
 }

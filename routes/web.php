@@ -71,8 +71,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Device registry (admin only)
     Route::get('/devices',              [DeviceController::class, 'index'])->name('devices.index');
     Route::post('/devices',             [DeviceController::class, 'store'])->name('devices.store');
-    Route::put('/devices/{mac}',        [DeviceController::class, 'update'])->name('devices.update');
-    Route::delete('/devices/{mac}',     [DeviceController::class, 'destroy'])->name('devices.destroy');
+    Route::put('/devices/{key}',        [DeviceController::class, 'update'])->name('devices.update');
+    Route::delete('/devices/{key}',     [DeviceController::class, 'destroy'])->name('devices.destroy');
 
     // License management (admin only)
     Route::get('/licenses',                       [\App\Http\Controllers\LicenseController::class, 'index'])->name('licenses.index');

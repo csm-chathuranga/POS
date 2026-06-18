@@ -9,8 +9,8 @@ const crypto  = require('crypto');
 
 const APP_PORT = 8000;
 const APP_URL  = `http://127.0.0.1:${APP_PORT}`;
-// const LIVE_URL = ''; // set to '' to use local PHP server
-const LIVE_URL = 'https://pos.lumac.lk'; // set to '' to use local PHP server
+const LIVE_URL = ''; // set to '' to use local PHP server
+// const LIVE_URL = 'https://pos.lumac.lk'; // set to '' to use local PHP server
 
 // ── Paths ──────────────────────────────────────────────────────────────────────
 // In packaged build:  resources are under process.resourcesPath
@@ -61,6 +61,19 @@ function runMigrations() {
     console.log('[setup] Migrations OK');
   } catch (e) {
     console.error('[setup] migrate failed:', e.message);
+  }
+}
+
+// ── Cache Laravel config/routes/views for faster requests ────────────────────
+function runLaravelCache() {
+  const cmds = ['config:cache', 'route:cache', 'view:cache'];
+  for (const cmd of cmds) {
+    try {
+      execFileSync(PHP_EXE, ['artisan', cmd], { cwd: PROJECT_DIR, windowsHide: true });
+      console.log(`[setup] ${cmd} OK`);
+    } catch (e) {
+      console.error(`[setup] ${cmd} failed:`, e.message);
+    }
   }
 }
 
@@ -243,8 +256,8 @@ function showActivationWindow(isExpired = false) {
 // IPC: get MAC for display in activation window
 ipcMain.handle('activation:get-mac', () => getMacAddress());
 
-// IPC: expose MAC address to renderer for axios device header
-ipcMain.handle('get-mac-address', () => getMacAddress());
+// IPC: expose license key to renderer for axios device header
+ipcMain.handle('get-license-key', () => readLicense()?.key ?? null);
 
 // IPC: called from within the running app to change license key
 ipcMain.handle('activation:change-key', () => {
@@ -358,9 +371,10 @@ async function createWindow() {
     minWidth: 900,
     minHeight: 600,
     webPreferences: {
-      preload:          path.join(__dirname, 'preload.cjs'),
-      nodeIntegration:  false,
-      contextIsolation: true,
+      preload:             path.join(__dirname, 'preload.cjs'),
+      nodeIntegration:     false,
+      contextIsolation:    true,
+      backgroundThrottling: false,
     },
     title:           'LMUC POS',
     show:            false,
@@ -499,6 +513,45 @@ ipcMain.handle('print-receipt', async (event, printerName, options = {}) => {
   }
 });
 
+// ─── IPC: barcode label print (30mm × 20mm) ───────────────────────────────────
+ipcMain.handle('print-barcode', async (event, printerName) => {
+  const wc = event.sender;
+
+  const cssKey = await wc.insertCSS(`
+    @media print {
+      body > * { display: none !important; }
+      #barcode-print-area {
+        display: flex !important;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        width: 30mm; height: 20mm;
+        padding: 1mm;
+        font-family: sans-serif;
+        overflow: hidden;
+      }
+      #barcode-print-area svg { display: block; width: 18mm !important; height: auto !important; }
+      #barcode-print-area .barcode-name { margin: 1mm 0 0; font-size: 7pt; font-weight: bold; text-align: center; line-height: 1.1; }
+      #barcode-print-area .barcode-name-si { margin: 0.5mm 0 0; font-size: 5.5pt; font-weight: bold; text-align: center; line-height: 1.1; }
+    }
+  `).catch(() => null);
+
+  const result = await new Promise((resolve) => {
+    wc.print({
+      silent:          true,
+      printBackground: false,
+      deviceName:      printerName || '',
+      margins:         { marginType: 'none' },
+      pageSize:        { width: 30000, height: 20000 },
+      copies:          1,
+    }, (success, failureReason) => resolve({ success, failureReason }));
+  });
+
+  if (cssKey) wc.removeInsertedCSS(cssKey).catch(() => null);
+
+  return result.success ? { success: true } : { success: false, error: result.failureReason };
+});
+
 // ─── IPC: database export ─────────────────────────────────────────────────────
 ipcMain.handle('db:export', async () => {
   const dbPath = path.join(PROJECT_DIR, 'database', 'database.sqlite');
@@ -560,6 +613,7 @@ app.whenReady().then(async () => {
   if (!LIVE_URL) {
     ensureEnv();
     runMigrations();
+    runLaravelCache();
     startPhpServer();
   }
 

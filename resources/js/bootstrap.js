@@ -9,10 +9,10 @@ window.axios = axios;
 
 window.axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
 
-// Attach device MAC address on every request when running inside Electron
-if (typeof window !== 'undefined' && window.electronAPI?.getMacAddress) {
-    window.electronAPI.getMacAddress().then((mac) => {
-        if (mac) window.axios.defaults.headers.common['X-Device-Mac'] = mac;
+// Attach license key on every request when running inside Electron
+if (typeof window !== 'undefined' && window.electronAPI?.getLicenseKey) {
+    window.electronAPI.getLicenseKey().then((key) => {
+        if (key) window.axios.defaults.headers.common['X-License-Key'] = key;
     });
 }
 

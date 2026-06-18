@@ -27,11 +27,11 @@ class SetTenantDatabase
 
     private function resolveDevice(Request $request): ?array
     {
-        // Electron: MAC header takes full priority
-        $mac = strtolower(trim($request->header('X-Device-Mac', '')));
-        if ($mac) {
+        // Electron: license key header takes full priority
+        $licenseKey = strtoupper(trim($request->header('X-License-Key', '')));
+        if ($licenseKey) {
             $registry = $this->loadRegistry();
-            $entry    = $registry[$mac] ?? null;
+            $entry    = $registry[$licenseKey] ?? null;
             if ($entry && !empty($entry['db'])) {
                 // devices.json stores bare filenames — resolve to full path here
                 return ['shop' => $entry['shop'] ?? null, 'db' => database_path($entry['db'])];

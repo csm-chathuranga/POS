@@ -29,20 +29,20 @@ class DeviceController extends Controller
 
     public function store(Request $request)
     {
-        // Normalize MAC before validation: strip separators, lowercase, reformat with colons
-        $request->merge(['mac' => $this->normalizeMac($request->input('mac', ''))]);
+        // Normalize license key: strip spaces, uppercase
+        $request->merge(['key' => strtoupper(trim($request->input('key', '')))]);
 
         $data = $request->validate([
-            'mac'  => ['required', 'regex:/^([0-9a-f]{2}:){5}[0-9a-f]{2}$/'],
+            'key'  => ['required', 'regex:/^[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$/'],
             'shop' => ['required', 'string', 'max:100'],
             'db'   => ['required', 'string', 'max:80', 'regex:/^[\w\-]+\.sqlite$/'],
         ]);
 
-        $mac      = $data['mac'];
-        $devices  = $this->readDevices();
+        $key     = $data['key'];
+        $devices = $this->readDevices();
 
-        if (isset($devices[$mac])) {
-            return back()->withErrors(['mac' => 'This MAC address is already registered.']);
+        if (isset($devices[$key])) {
+            return back()->withErrors(['key' => 'This license key is already registered.']);
         }
 
         $dbPath = database_path($data['db']);
@@ -56,7 +56,7 @@ class DeviceController extends Controller
             $this->migrateDatabase($dbPath);
         }
 
-        $devices[$mac] = ['shop' => $data['shop'], 'db' => $data['db']];
+        $devices[$key] = ['shop' => $data['shop'], 'db' => $data['db']];
 
         $this->writeDevices($devices);
 
@@ -65,21 +65,21 @@ class DeviceController extends Controller
 
     // ── Update ───────────────────────────────────────────────────────────────────
 
-    public function update(Request $request, string $mac)
+    public function update(Request $request, string $key)
     {
-        $mac  = strtolower($mac);
         $data = $request->validate([
             'shop' => ['required', 'string', 'max:100'],
             'db'   => ['required', 'string', 'max:80', 'regex:/^[\w\-]+\.sqlite$/'],
         ]);
 
-        $devices = $this->readDevices();
+        $devices     = $this->readDevices();
+        $resolvedKey = $this->resolveKey($devices, $key);
 
-        if (!isset($devices[$mac])) {
-            return back()->withErrors(['mac' => 'Device not found.']);
+        if ($resolvedKey === null) {
+            return back()->withErrors(['key' => 'Device not found.']);
         }
 
-        $devices[$mac] = ['shop' => $data['shop'], 'db' => $data['db']];
+        $devices[$resolvedKey] = ['shop' => $data['shop'], 'db' => $data['db']];
 
         $this->writeDevices($devices);
 
@@ -88,21 +88,22 @@ class DeviceController extends Controller
 
     // ── Delete ───────────────────────────────────────────────────────────────────
 
-    public function destroy(Request $request, string $mac)
+    public function destroy(Request $request, string $key)
     {
-        $mac     = strtolower($mac);
-        $devices = $this->readDevices();
+        $devices     = $this->readDevices();
+        $resolvedKey = $this->resolveKey($devices, $key);
 
-        if (!isset($devices[$mac])) {
-            return back()->withErrors(['mac' => 'Device not found.']);
+        if ($resolvedKey === null) {
+            return back()->withErrors(['key' => 'Device not found.']);
         }
 
-        $dbFile = $devices[$mac]['db'] ?? null;
+        $key = $resolvedKey;
 
-        unset($devices[$mac]);
+        $dbFile = $devices[$key]['db'] ?? null;
+
+        unset($devices[$key]);
         $this->writeDevices($devices);
 
-        // Optionally delete the SQLite file if requested
         if ($request->boolean('delete_db') && $dbFile) {
             $dbPath = database_path($dbFile);
             if (file_exists($dbPath)) {
@@ -115,13 +116,13 @@ class DeviceController extends Controller
 
     // ── Helpers ──────────────────────────────────────────────────────────────────
 
-    private function normalizeMac(string $raw): string
+    // Try exact key, then uppercase — handles both old MAC keys and new license keys
+    private function resolveKey(array $devices, string $key): ?string
     {
-        $hex = strtolower(preg_replace('/[^0-9a-fA-F]/', '', $raw));
-        if (strlen($hex) !== 12) {
-            return $raw; // let validation catch the bad format
-        }
-        return implode(':', str_split($hex, 2));
+        if (isset($devices[$key]))                   return $key;
+        if (isset($devices[strtoupper($key)]))       return strtoupper($key);
+        if (isset($devices[strtolower($key)]))       return strtolower($key);
+        return null;
     }
 
     private function readDevices(): array
@@ -136,7 +137,6 @@ class DeviceController extends Controller
             return [];
         }
 
-        // Strip comment keys
         return array_filter($decoded, fn($k) => !str_starts_with($k, '_'), ARRAY_FILTER_USE_KEY);
     }
 
@@ -150,7 +150,6 @@ class DeviceController extends Controller
 
     private function migrateDatabase(string $dbPath): void
     {
-        // Point sqlite connection to the new file, run migrations, then restore
         $original = config('database.connections.sqlite.database');
 
         config(['database.connections.sqlite.database' => $dbPath]);

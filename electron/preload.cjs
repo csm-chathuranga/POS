@@ -14,6 +14,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
     printReceipt: (printerName, options = {}) =>
         ipcRenderer.invoke('print-receipt', printerName, options),
 
+    /** Print a barcode label (30mm × 20mm) silently */
+    printBarcode: (printerName) =>
+        ipcRenderer.invoke('print-barcode', printerName),
+
     /**
      * Open the native Electron printer-selection modal, then print silently
      * to whichever printer the user picks.
@@ -32,6 +36,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
     /** Run Laravel migrations on the current database */
     runMigrations: () => ipcRenderer.invoke('db:migrate'),
 
-    /** Returns the device MAC address for axios request headers */
-    getMacAddress: () => ipcRenderer.invoke('get-mac-address'),
+    /** Returns the stored license key for axios request headers */
+    getLicenseKey: () => ipcRenderer.invoke('get-license-key'),
 });

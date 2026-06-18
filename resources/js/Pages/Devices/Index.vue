@@ -7,22 +7,22 @@ const props = defineProps({
     devices: { type: Object, default: () => ({}) },
 });
 
-const page = usePage();
+const page  = usePage();
 const flash = computed(() => page.props.flash);
 
 // ── Device list as array ──────────────────────────────────────────────────────
 const deviceList = computed(() =>
-    Object.entries(props.devices).map(([mac, info]) => ({ mac, ...info }))
+    Object.entries(props.devices).map(([key, info]) => ({ key, ...info }))
 );
 
 // ── Add form ──────────────────────────────────────────────────────────────────
 const showAdd   = ref(false);
 const addBusy   = ref(false);
 const addErrors = ref({});
-const addForm   = reactive({ mac: '', shop: '', db: '' });
+const addForm   = reactive({ key: '', shop: '', db: '' });
 
 function openAdd() {
-    Object.assign(addForm, { mac: '', shop: '', db: '' });
+    Object.assign(addForm, { key: '', shop: '', db: '' });
     addErrors.value = {};
     showAdd.value   = true;
 }
@@ -50,7 +50,7 @@ const editErrors = ref({});
 const editForm   = reactive({ shop: '', db: '' });
 
 function openEdit(device) {
-    editTarget.value = device.mac;
+    editTarget.value = device.key;
     Object.assign(editForm, { shop: device.shop, db: device.db });
     editErrors.value = {};
 }
@@ -58,7 +58,7 @@ function openEdit(device) {
 function submitEdit() {
     editBusy.value   = true;
     editErrors.value = {};
-    router.put(route('devices.update', { mac: editTarget.value }), editForm, {
+    router.put(route('devices.update', { key: editTarget.value }), editForm, {
         onError:  (e) => { editErrors.value = e; },
         onSuccess: () => { editTarget.value = null; },
         onFinish: () => { editBusy.value = false; },
@@ -66,9 +66,9 @@ function submitEdit() {
 }
 
 // ── Delete ────────────────────────────────────────────────────────────────────
-const deleteTarget  = ref(null);
-const deleteDb      = ref(false);
-const deleteBusy    = ref(false);
+const deleteTarget = ref(null);
+const deleteDb     = ref(false);
+const deleteBusy   = ref(false);
 
 function openDelete(device) {
     deleteTarget.value = device;
@@ -77,10 +77,10 @@ function openDelete(device) {
 
 function confirmDelete() {
     deleteBusy.value = true;
-    router.delete(route('devices.destroy', { mac: deleteTarget.value.mac }), {
-        data:     { delete_db: deleteDb.value },
+    router.delete(route('devices.destroy', { key: deleteTarget.value.key }), {
+        data:      { delete_db: deleteDb.value },
         onSuccess: () => { deleteTarget.value = null; },
-        onFinish: () => { deleteBusy.value = false; },
+        onFinish:  () => { deleteBusy.value = false; },
     });
 }
 </script>
@@ -130,15 +130,15 @@ function confirmDelete() {
                 <thead class="bg-gray-50 border-b border-gray-100">
                     <tr>
                         <th class="text-left px-5 py-3 font-semibold text-gray-600">Shop Name</th>
-                        <th class="text-left px-5 py-3 font-semibold text-gray-600">MAC Address</th>
+                        <th class="text-left px-5 py-3 font-semibold text-gray-600">License Key</th>
                         <th class="text-left px-5 py-3 font-semibold text-gray-600">Database File</th>
                         <th class="px-5 py-3"></th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-50">
-                    <template v-for="device in deviceList" :key="device.mac">
+                    <template v-for="device in deviceList" :key="device.key">
                         <!-- View row -->
-                        <tr v-if="editTarget !== device.mac" class="hover:bg-gray-50 transition-colors">
+                        <tr v-if="editTarget !== device.key" class="hover:bg-gray-50 transition-colors">
                             <td class="px-5 py-4">
                                 <div class="flex items-center gap-2">
                                     <div class="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center flex-shrink-0">
@@ -147,7 +147,7 @@ function confirmDelete() {
                                     <span class="font-medium text-gray-900">{{ device.shop }}</span>
                                 </div>
                             </td>
-                            <td class="px-5 py-4 font-mono text-gray-600">{{ device.mac }}</td>
+                            <td class="px-5 py-4 font-mono text-gray-600 text-xs">{{ device.key }}</td>
                             <td class="px-5 py-4">
                                 <span class="inline-flex items-center gap-1 bg-gray-100 text-gray-600 rounded px-2 py-0.5 text-xs font-mono">
                                     {{ device.db }}
@@ -155,14 +155,8 @@ function confirmDelete() {
                             </td>
                             <td class="px-5 py-4 text-right">
                                 <div class="flex items-center justify-end gap-2">
-                                    <button
-                                        @click="openEdit(device)"
-                                        class="px-3 py-1.5 rounded-lg text-xs font-medium bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors"
-                                    >Edit</button>
-                                    <button
-                                        @click="openDelete(device)"
-                                        class="px-3 py-1.5 rounded-lg text-xs font-medium bg-red-50 text-red-600 hover:bg-red-100 transition-colors"
-                                    >Delete</button>
+                                    <button @click="openEdit(device)" class="px-3 py-1.5 rounded-lg text-xs font-medium bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors">Edit</button>
+                                    <button @click="openDelete(device)" class="px-3 py-1.5 rounded-lg text-xs font-medium bg-red-50 text-red-600 hover:bg-red-100 transition-colors">Delete</button>
                                 </div>
                             </td>
                         </tr>
@@ -170,35 +164,26 @@ function confirmDelete() {
                         <!-- Inline edit row -->
                         <tr v-else class="bg-blue-50">
                             <td class="px-5 py-3">
-                                <input
-                                    v-model="editForm.shop"
-                                    type="text"
-                                    placeholder="Shop name"
-                                    class="w-full rounded-lg border border-blue-300 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-400"
-                                />
+                                <input v-model="editForm.shop" type="text" placeholder="Shop name"
+                                    class="w-full rounded-lg border border-blue-300 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-400" />
                                 <p v-if="editErrors.shop" class="text-red-500 text-xs mt-1">{{ editErrors.shop }}</p>
                             </td>
-                            <td class="px-5 py-3 font-mono text-gray-400 text-xs">{{ device.mac }}</td>
+                            <td class="px-5 py-3 font-mono text-gray-400 text-xs">{{ device.key }}</td>
                             <td class="px-5 py-3">
-                                <input
-                                    v-model="editForm.db"
-                                    type="text"
-                                    placeholder="filename.sqlite"
-                                    class="w-full rounded-lg border border-blue-300 px-3 py-2 text-sm font-mono outline-none focus:ring-2 focus:ring-blue-400"
-                                />
+                                <input v-model="editForm.db" type="text" placeholder="filename.sqlite"
+                                    class="w-full rounded-lg border border-blue-300 px-3 py-2 text-sm font-mono outline-none focus:ring-2 focus:ring-blue-400" />
                                 <p v-if="editErrors.db" class="text-red-500 text-xs mt-1">{{ editErrors.db }}</p>
                             </td>
                             <td class="px-5 py-3 text-right">
                                 <div class="flex items-center justify-end gap-2">
-                                    <button
-                                        @click="submitEdit"
-                                        :disabled="editBusy"
-                                        class="px-3 py-1.5 rounded-lg text-xs font-medium bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 transition-colors"
-                                    >{{ editBusy ? 'Saving…' : 'Save' }}</button>
-                                    <button
-                                        @click="editTarget = null"
-                                        class="px-3 py-1.5 rounded-lg text-xs font-medium bg-white text-gray-500 hover:bg-gray-100 border border-gray-200 transition-colors"
-                                    >Cancel</button>
+                                    <button @click="submitEdit" :disabled="editBusy"
+                                        class="px-3 py-1.5 rounded-lg text-xs font-medium bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 transition-colors">
+                                        {{ editBusy ? 'Saving…' : 'Save' }}
+                                    </button>
+                                    <button @click="editTarget = null"
+                                        class="px-3 py-1.5 rounded-lg text-xs font-medium bg-white text-gray-500 hover:bg-gray-100 border border-gray-200 transition-colors">
+                                        Cancel
+                                    </button>
                                 </div>
                             </td>
                         </tr>
@@ -209,36 +194,26 @@ function confirmDelete() {
 
         <!-- Cards (mobile) -->
         <div class="md:hidden space-y-3">
-            <div
-                v-for="device in deviceList"
-                :key="device.mac"
-                class="bg-white rounded-xl shadow-sm border border-gray-100 p-4"
-            >
+            <div v-for="device in deviceList" :key="device.key" class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
                 <div class="flex items-center gap-3 mb-3">
                     <div class="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center flex-shrink-0">
                         <span class="text-indigo-600 font-bold">{{ device.shop?.charAt(0)?.toUpperCase() }}</span>
                     </div>
                     <div class="flex-1 min-w-0">
                         <p class="font-semibold text-gray-900">{{ device.shop }}</p>
-                        <p class="text-xs font-mono text-gray-500 truncate">{{ device.mac }}</p>
+                        <p class="text-xs font-mono text-gray-500 truncate">{{ device.key }}</p>
                     </div>
                 </div>
                 <p class="text-xs text-gray-400 mb-3">
                     DB: <span class="font-mono text-gray-600">{{ device.db }}</span>
                 </p>
                 <div class="flex gap-2">
-                    <button
-                        @click="openEdit(device)"
-                        class="flex-1 text-center bg-blue-50 text-blue-600 py-2 rounded-lg text-sm font-medium hover:bg-blue-100 transition-colors min-h-[44px]"
-                    >Edit</button>
-                    <button
-                        @click="openDelete(device)"
-                        class="flex-1 text-center bg-red-50 text-red-600 py-2 rounded-lg text-sm font-medium hover:bg-red-100 transition-colors min-h-[44px]"
-                    >Delete</button>
+                    <button @click="openEdit(device)" class="flex-1 text-center bg-blue-50 text-blue-600 py-2 rounded-lg text-sm font-medium hover:bg-blue-100 transition-colors min-h-[44px]">Edit</button>
+                    <button @click="openDelete(device)" class="flex-1 text-center bg-red-50 text-red-600 py-2 rounded-lg text-sm font-medium hover:bg-red-100 transition-colors min-h-[44px]">Delete</button>
                 </div>
 
                 <!-- Mobile inline edit -->
-                <div v-if="editTarget === device.mac" class="mt-3 pt-3 border-t border-gray-100 space-y-2">
+                <div v-if="editTarget === device.key" class="mt-3 pt-3 border-t border-gray-100 space-y-2">
                     <input v-model="editForm.shop" type="text" placeholder="Shop name"
                         class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none" />
                     <input v-model="editForm.db" type="text" placeholder="filename.sqlite"
@@ -248,10 +223,7 @@ function confirmDelete() {
                             class="flex-1 bg-blue-600 text-white py-2 rounded-lg text-sm font-medium disabled:opacity-50">
                             {{ editBusy ? 'Saving…' : 'Save' }}
                         </button>
-                        <button @click="editTarget = null"
-                            class="flex-1 bg-gray-100 text-gray-600 py-2 rounded-lg text-sm font-medium">
-                            Cancel
-                        </button>
+                        <button @click="editTarget = null" class="flex-1 bg-gray-100 text-gray-600 py-2 rounded-lg text-sm font-medium">Cancel</button>
                     </div>
                 </div>
             </div>
@@ -268,53 +240,40 @@ function confirmDelete() {
                     <!-- Shop name -->
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Shop Name</label>
-                        <input
-                            v-model="addForm.shop"
-                            @blur="autoDb"
-                            type="text"
-                            placeholder="Main Branch"
-                            class="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
-                        />
+                        <input v-model="addForm.shop" @blur="autoDb" type="text" placeholder="Main Branch"
+                            class="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400" />
                         <p v-if="addErrors.shop" class="text-red-500 text-xs mt-1">{{ addErrors.shop }}</p>
                     </div>
 
-                    <!-- MAC address -->
+                    <!-- License key -->
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">MAC Address</label>
-                        <input
-                            v-model="addForm.mac"
-                            type="text"
-                            placeholder="aa:bb:cc:dd:ee:ff"
-                            class="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm font-mono outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
-                        />
-                        <p class="text-gray-400 text-xs mt-1">Any format accepted — e.g. D8-12-65-6B-B4-AD or d8:12:65:6b:b4:ad. Found in Settings → Device Info.</p>
-                        <p v-if="addErrors.mac" class="text-red-500 text-xs mt-1">{{ addErrors.mac }}</p>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">License Key</label>
+                        <input v-model="addForm.key" type="text" placeholder="XXXX-XXXX-XXXX-XXXX"
+                            class="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm font-mono uppercase outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
+                            @input="addForm.key = addForm.key.toUpperCase()" />
+                        <p class="text-gray-400 text-xs mt-1">The license key issued to this device. Format: XXXX-XXXX-XXXX-XXXX.</p>
+                        <p v-if="addErrors.key" class="text-red-500 text-xs mt-1">{{ addErrors.key }}</p>
                     </div>
 
                     <!-- DB filename -->
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Database Filename</label>
-                        <input
-                            v-model="addForm.db"
-                            type="text"
-                            placeholder="branch-name.sqlite"
-                            class="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm font-mono outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
-                        />
+                        <input v-model="addForm.db" type="text" placeholder="branch-name.sqlite"
+                            class="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm font-mono outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400" />
                         <p class="text-gray-400 text-xs mt-1">Auto-filled from shop name. Existing DB will be copied as base.</p>
                         <p v-if="addErrors.db" class="text-red-500 text-xs mt-1">{{ addErrors.db }}</p>
                     </div>
                 </div>
 
                 <div class="flex gap-3 mt-6">
-                    <button
-                        @click="submitAdd"
-                        :disabled="addBusy"
-                        class="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2.5 rounded-lg text-sm font-semibold disabled:opacity-50 transition-colors"
-                    >{{ addBusy ? 'Creating…' : 'Register Device' }}</button>
-                    <button
-                        @click="showAdd = false"
-                        class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 py-2.5 rounded-lg text-sm font-semibold transition-colors"
-                    >Cancel</button>
+                    <button @click="submitAdd" :disabled="addBusy"
+                        class="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2.5 rounded-lg text-sm font-semibold disabled:opacity-50 transition-colors">
+                        {{ addBusy ? 'Creating…' : 'Register Device' }}
+                    </button>
+                    <button @click="showAdd = false"
+                        class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 py-2.5 rounded-lg text-sm font-semibold transition-colors">
+                        Cancel
+                    </button>
                 </div>
             </div>
         </div>
@@ -332,7 +291,7 @@ function confirmDelete() {
                 <h2 class="text-lg font-bold text-gray-900 text-center mb-1">Remove Device?</h2>
                 <p class="text-sm text-gray-500 text-center mb-4">
                     <span class="font-semibold text-gray-700">{{ deleteTarget.shop }}</span>
-                    ({{ deleteTarget.mac }}) will be removed from the registry.
+                    (<code class="text-xs">{{ deleteTarget.key }}</code>) will be removed from the registry.
                 </p>
 
                 <label class="flex items-center gap-2 mb-5 cursor-pointer select-none">
@@ -341,15 +300,14 @@ function confirmDelete() {
                 </label>
 
                 <div class="flex gap-3">
-                    <button
-                        @click="confirmDelete"
-                        :disabled="deleteBusy"
-                        class="flex-1 bg-red-600 hover:bg-red-700 text-white py-2.5 rounded-lg text-sm font-semibold disabled:opacity-50 transition-colors"
-                    >{{ deleteBusy ? 'Removing…' : 'Remove' }}</button>
-                    <button
-                        @click="deleteTarget = null"
-                        class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 py-2.5 rounded-lg text-sm font-semibold transition-colors"
-                    >Cancel</button>
+                    <button @click="confirmDelete" :disabled="deleteBusy"
+                        class="flex-1 bg-red-600 hover:bg-red-700 text-white py-2.5 rounded-lg text-sm font-semibold disabled:opacity-50 transition-colors">
+                        {{ deleteBusy ? 'Removing…' : 'Remove' }}
+                    </button>
+                    <button @click="deleteTarget = null"
+                        class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 py-2.5 rounded-lg text-sm font-semibold transition-colors">
+                        Cancel
+                    </button>
                 </div>
             </div>
         </div>
