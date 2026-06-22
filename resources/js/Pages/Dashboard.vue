@@ -84,14 +84,12 @@ const statCards = [
                 :key="card.valueKey"
                 class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden"
             >
-                <div class="p-4">
-                    <div class="flex items-center justify-between mb-3">
-                        <div :class="[card.bg, 'w-12 h-12 rounded-lg flex items-center justify-center']">
+                <div class="p-5">
+                    <div class="flex items-center gap-4 mb-3">
+                        <div :class="[card.bg, 'w-14 h-14 rounded-xl flex-shrink-0 flex items-center justify-center']">
                             <span v-html="card.icon"></span>
                         </div>
-                    </div>
-                    <div>
-                        <p class="stat-card-value font-bold text-gray-900">
+                        <p class="stat-card-value font-bold text-gray-900 text-xl truncate">
                             <template v-if="card.isCurrency">
                                 {{ formatCurrency(props[card.valueKey]) }}
                             </template>
@@ -99,58 +97,79 @@ const statCards = [
                                 {{ props[card.valueKey] }}
                             </template>
                         </p>
-                        <p class="stat-card-label font-semibold text-gray-700 mt-1">{{ t(card.labelKey) }}</p>
                     </div>
+                    <p class="stat-card-label font-semibold text-gray-600 text-base">{{ t(card.labelKey) }}</p>
                 </div>
             </div>
         </div>
 
         <!-- Quick Actions -->
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-            <Link
-                :href="route('sales.create')"
-                class="flex flex-col items-center justify-center text-white rounded-xl p-4 transition-colors min-h-[80px]"
-                style="background-color:#2563EB;"
-                @mouseover="e => e.currentTarget.style.backgroundColor='#1d4ed8'"
-                @mouseleave="e => e.currentTarget.style.backgroundColor='#2563EB'"
-            >
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-                </svg>
-                <span class="text-sm font-medium">{{ t('btn.new_sale') }}</span>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+            <!-- New Sale -->
+            <Link :href="route('sales.create')" class="quick-action-card group" style="--from:#2563EB;--to:#1d4ed8;">
+                <div class="quick-action-glow" style="background:radial-gradient(circle at 70% 30%, rgba(255,255,255,0.18) 0%, transparent 70%);"></div>
+                <div class="quick-action-icon-wrap">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="quick-action-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-1.5 6h13M10 19a1 1 0 100 2 1 1 0 000-2zm7 0a1 1 0 100 2 1 1 0 000-2z" />
+                    </svg>
+                </div>
+                <span class="quick-action-plus">+</span>
+                <span class="quick-action-label">{{ t('btn.new_sale') }}</span>
+                <div class="quick-action-arrow">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                    </svg>
+                </div>
             </Link>
-            <Link
-                :href="route('products.create')"
-                class="flex flex-col items-center justify-center bg-purple-600 hover:bg-purple-700 text-white rounded-xl p-4 transition-colors min-h-[80px]"
-            >
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-                </svg>
-                <span class="text-sm font-medium">{{ t('btn.new_product') }}</span>
+
+            <!-- New Product -->
+            <Link :href="route('products.create')" class="quick-action-card group" style="--from:#7C3AED;--to:#6D28D9;">
+                <div class="quick-action-glow" style="background:radial-gradient(circle at 70% 30%, rgba(255,255,255,0.18) 0%, transparent 70%);"></div>
+                <div class="quick-action-icon-wrap">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="quick-action-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                    </svg>
+                </div>
+                <span class="quick-action-plus">+</span>
+                <span class="quick-action-label">{{ t('btn.new_product') }}</span>
+                <div class="quick-action-arrow">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                    </svg>
+                </div>
             </Link>
-            <Link
-                :href="route('purchases.create')"
-                class="flex flex-col items-center justify-center text-white rounded-xl p-4 transition-colors min-h-[80px]"
-                style="background-color:#16A34A;"
-                @mouseover="e => e.currentTarget.style.backgroundColor='#15803d'"
-                @mouseleave="e => e.currentTarget.style.backgroundColor='#16A34A'"
-            >
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-                </svg>
-                <span class="text-sm font-medium">{{ t('btn.new_purchase') }}</span>
+
+            <!-- New Purchase -->
+            <Link :href="route('purchases.create')" class="quick-action-card group" style="--from:#059669;--to:#047857;">
+                <div class="quick-action-glow" style="background:radial-gradient(circle at 70% 30%, rgba(255,255,255,0.18) 0%, transparent 70%);"></div>
+                <div class="quick-action-icon-wrap">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="quick-action-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                    </svg>
+                </div>
+                <span class="quick-action-plus">+</span>
+                <span class="quick-action-label">{{ t('btn.new_purchase') }}</span>
+                <div class="quick-action-arrow">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                    </svg>
+                </div>
             </Link>
-            <Link
-                :href="route('reports.index')"
-                class="flex flex-col items-center justify-center text-white rounded-xl p-4 transition-colors min-h-[80px]"
-                style="background-color:#F59E0B;"
-                @mouseover="e => e.currentTarget.style.backgroundColor='#d97706'"
-                @mouseleave="e => e.currentTarget.style.backgroundColor='#F59E0B'"
-            >
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-                <span class="text-sm font-medium">{{ t('btn.report') }}</span>
+
+            <!-- Reports -->
+            <Link :href="route('reports.index')" class="quick-action-card group" style="--from:#D97706;--to:#B45309;">
+                <div class="quick-action-glow" style="background:radial-gradient(circle at 70% 30%, rgba(255,255,255,0.18) 0%, transparent 70%);"></div>
+                <div class="quick-action-icon-wrap">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="quick-action-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                </div>
+                <span class="quick-action-label">{{ t('btn.report') }}</span>
+                <div class="quick-action-arrow">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                    </svg>
+                </div>
             </Link>
         </div>
 
@@ -217,3 +236,83 @@ const statCards = [
         </div>
     </AuthenticatedLayout>
 </template>
+
+<style scoped>
+.quick-action-card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 1.25rem 1rem;
+    min-height: 110px;
+    border-radius: 1rem;
+    background: linear-gradient(135deg, var(--from), var(--to));
+    color: #fff;
+    text-decoration: none;
+    overflow: hidden;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.quick-action-card:hover {
+    transform: translateY(-3px) scale(1.02);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.22);
+}
+.quick-action-card:active {
+    transform: translateY(0) scale(0.98);
+}
+.quick-action-glow {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+}
+.quick-action-icon-wrap {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(4px);
+    border: 1px solid rgba(255,255,255,0.3);
+    transition: background 0.2s;
+}
+.quick-action-card:hover .quick-action-icon-wrap {
+    background: rgba(255,255,255,0.3);
+}
+.quick-action-icon {
+    width: 24px;
+    height: 24px;
+    color: #fff;
+}
+.quick-action-plus {
+    position: absolute;
+    top: 10px;
+    right: 14px;
+    font-size: 1.4rem;
+    font-weight: 300;
+    opacity: 0.7;
+    line-height: 1;
+}
+.quick-action-label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    text-align: center;
+    line-height: 1.3;
+}
+.quick-action-arrow {
+    position: absolute;
+    bottom: 10px;
+    right: 12px;
+    opacity: 0;
+    transform: translateX(-4px);
+    transition: opacity 0.2s, transform 0.2s;
+}
+.quick-action-card:hover .quick-action-arrow {
+    opacity: 0.7;
+    transform: translateX(0);
+}
+</style>

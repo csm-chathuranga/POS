@@ -1,5 +1,6 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
+import ConfirmModal from '@/Components/ConfirmModal.vue';
 import { Head, Link, router } from '@inertiajs/vue3';
 import { ref, watch, inject } from 'vue';
 
@@ -24,10 +25,18 @@ function formatCurrency(value) {
     return 'Rs. ' + Number(value || 0).toLocaleString('en-LK', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
-function deleteCustomer(id) {
-    if (confirm(t('cust.no_customers'))) {
-        router.delete(route('customers.destroy', id));
-    }
+const deleteTarget = ref(null);
+const deleting = ref(false);
+
+function promptDelete(id, name) {
+    deleteTarget.value = { id, name };
+}
+
+function doDelete() {
+    deleting.value = true;
+    router.delete(route('customers.destroy', deleteTarget.value.id), {
+        onFinish: () => { deleting.value = false; deleteTarget.value = null; },
+    });
 }
 </script>
 
@@ -92,7 +101,7 @@ function deleteCustomer(id) {
                         {{ t('btn.edit') }}
                     </Link>
                     <button
-                        @click="deleteCustomer(customer.id)"
+                        @click="promptDelete(customer.id, customer.name)"
                         class="flex-1 bg-red-50 hover:bg-red-100 text-red-600 py-2 rounded-lg text-sm font-medium transition-colors min-h-[44px]"
                     >
                         {{ t('btn.delete') }}
@@ -139,7 +148,7 @@ function deleteCustomer(id) {
                                     {{ t('btn.edit') }}
                                 </Link>
                                 <button
-                                    @click="deleteCustomer(customer.id)"
+                                    @click="promptDelete(customer.id, customer.name)"
                                     class="text-red-600 hover:text-red-800 text-sm font-medium px-3 py-1.5 rounded hover:bg-red-50 min-h-[36px]"
                                 >
                                     {{ t('btn.delete') }}
@@ -169,4 +178,14 @@ function deleteCustomer(id) {
             </template>
         </div>
     </AuthenticatedLayout>
+
+    <ConfirmModal
+        :show="!!deleteTarget"
+        title="Delete Customer"
+        :message="`Are you sure you want to delete &quot;${deleteTarget?.name}&quot;? This cannot be undone.`"
+        confirm-label="Delete Customer"
+        :busy="deleting"
+        @confirm="doDelete"
+        @cancel="deleteTarget = null"
+    />
 </template>

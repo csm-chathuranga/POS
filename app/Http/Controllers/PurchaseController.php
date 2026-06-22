@@ -73,7 +73,9 @@ class PurchaseController extends Controller
             'items'                  => 'required|array|min:1',
             'items.*.product_id'     => 'required|exists:products,id',
             'items.*.qty'            => 'required|numeric|min:0.01',
-            'items.*.cost_price'     => 'required|numeric|min:0',
+            'items.*.cost_price'      => 'required|numeric|min:0',
+            'items.*.selling_price'  => 'required|numeric|min:0',
+            'items.*.wholesale_price'=> 'required|numeric|min:0',
             'items.*.total'          => 'required|numeric|min:0',
             'total'                  => 'required|numeric|min:0',
             'paid'                   => 'nullable|numeric|min:0',
@@ -119,8 +121,12 @@ class PurchaseController extends Controller
                 $stockBefore = $product->stock_qty;
                 $product->increment('stock_qty', $item['qty']);
 
-                // Update cost price if provided
-                $product->update(['cost_price' => $item['cost_price']]);
+                // Update prices from purchase
+                $product->update([
+                    'cost_price'      => $item['cost_price'],
+                    'selling_price'   => $item['selling_price'],
+                    'wholesale_price' => $item['wholesale_price'],
+                ]);
 
                 StockMovement::create([
                     'product_id'   => $product->id,
@@ -202,8 +208,9 @@ class PurchaseController extends Controller
     public function destroy(string $id)
     {
         $purchase = Purchase::findOrFail($id);
+        $purchase->items()->delete();
         $purchase->delete();
 
-        return redirect()->route('purchases.index')->with('success', 'Purchase deleted successfully.');
+        return redirect()->route('purchases.index')->with('success', 'Purchase ' . $purchase->grn_no . ' deleted successfully.');
     }
 }

@@ -21,7 +21,7 @@ const form = useForm({
     selling_price:   props.product.selling_price || '',
     wholesale_price: props.product.wholesale_price || '',
     stock_qty:       props.product.stock_qty ?? 0,
-    alert_qty:       props.product.alert_qty ?? 5,
+    alert_qty:       props.product.alert_qty ?? 1,
     unit:            props.product.unit || 'pcs',
     description:     props.product.description || '',
     active:          props.product.active ?? true,
@@ -68,7 +68,7 @@ function submit() {
             </div>
         </template>
 
-        <div class="max-w-4xl">
+        <div>
             <form @submit.prevent="submit" class="space-y-5">
 
                 <!-- ── Row 1: Basic Info + Prices ── -->

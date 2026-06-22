@@ -44,6 +44,41 @@ class ProductController extends Controller
             ->with(['flash' => session('flash')]);
     }
 
+    public function quickCreate(Request $request)
+    {
+        $validated = $request->validate([
+            'name'            => 'required|string|max:255',
+            'name_si'         => 'nullable|string|max:255',
+            'barcode'         => 'nullable|string|max:100|unique:products,barcode',
+            'cost_price'      => 'nullable|numeric|min:0',
+            'selling_price'   => 'required|numeric|min:0',
+            'wholesale_price' => 'nullable|numeric|min:0',
+            'unit'            => 'nullable|string|max:50',
+        ]);
+
+        if (empty($validated['barcode'])) {
+            $validated['barcode'] = strtoupper(Str::slug($validated['name'], '') . '-' . strtoupper(Str::random(6)));
+        }
+
+        $product = Product::create(array_merge($validated, [
+            'stock_qty' => 0,
+            'alert_qty' => 1,
+            'active'    => true,
+        ]));
+
+        return response()->json([
+            'id'              => $product->id,
+            'name'            => $product->name,
+            'name_si'         => $product->name_si,
+            'barcode'         => $product->barcode,
+            'cost_price'      => (float) $product->cost_price,
+            'selling_price'   => (float) $product->selling_price,
+            'wholesale_price' => (float) $product->wholesale_price,
+            'unit'            => $product->unit,
+            'stock_qty'       => (float) $product->stock_qty,
+        ]);
+    }
+
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -83,6 +118,21 @@ class ProductController extends Controller
 
         foreach ($variants as $v) {
             $product->variants()->create($v);
+        }
+
+        // Return JSON for quick-create AJAX calls from purchase form
+        if ($request->boolean('quick_create')) {
+            return response()->json([
+                'id'              => $product->id,
+                'name'            => $product->name,
+                'name_si'         => $product->name_si,
+                'barcode'         => $product->barcode,
+                'cost_price'      => (float) $product->cost_price,
+                'selling_price'   => (float) $product->selling_price,
+                'wholesale_price' => (float) $product->wholesale_price,
+                'unit'            => $product->unit,
+                'stock_qty'       => (float) $product->stock_qty,
+            ]);
         }
 
         return redirect()->route('products.index')->with('success', 'Product created successfully.');

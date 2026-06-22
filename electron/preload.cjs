@@ -24,9 +24,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
      */
     openPrinterDialog: () => ipcRenderer.invoke('open-printer-dialog'),
 
-    /** Open the license key change dialog from within the app */
-    changeLicenseKey: () => ipcRenderer.invoke('activation:change-key'),
-
     /** Export SQLite database to a user-chosen file */
     exportDatabase: () => ipcRenderer.invoke('db:export'),
 
@@ -36,6 +33,5 @@ contextBridge.exposeInMainWorld('electronAPI', {
     /** Run Laravel migrations on the current database */
     runMigrations: () => ipcRenderer.invoke('db:migrate'),
 
-    /** Returns the stored license key for axios request headers */
-    getLicenseKey: () => ipcRenderer.invoke('get-license-key'),
+
 });

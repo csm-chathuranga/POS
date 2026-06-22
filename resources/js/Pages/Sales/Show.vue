@@ -17,7 +17,7 @@ const shopAddress = computed(() => props.settings.shop_address || '');
 const shopPhone   = computed(() => props.settings.shop_phone   || '');
 const footer      = computed(() => props.settings.receipt_footer || '');
 const currency    = computed(() => props.settings.currency     || 'Rs.');
-const logoUrl     = computed(() => props.settings.logo_url     || null);
+const logoUrl     = computed(() => props.settings.logo         || null);
 
 const paymentLabel = computed(() => {
     const map = { cash: tBill('lbl.cash'), card: tBill('lbl.card'), qr: 'QR', credit: tBill('lbl.credit') };
@@ -172,7 +172,7 @@ onMounted(async () => {
                 <div class="items-section divider" style="border-top:1px solid #CBD5E1; margin:10px 0;"></div>
 
                 <!-- Items -->
-                <table class="items-section" style="width:100%; table-layout:fixed; border-collapse:collapse; font-size:12px; line-height:2; color:#0F172A; font-weight:800;">
+                <table class="items-section" style="width:100%; table-layout:fixed; border-collapse:collapse; font-size:10px; line-height:2; color:#0F172A; font-weight:800;">
                     <thead>
                         <tr style="border-top:2px solid #0F172A; border-bottom:2px solid #0F172A;">
                             <th style="text-align:left; width:12px; padding:2px 2px 2px 0; font-weight:800;">#</th>

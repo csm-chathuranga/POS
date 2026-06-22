@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, provide, inject, onMounted, onUnmounted } from 'vue';
+import { ref, computed, watch, provide, inject, onMounted, onUnmounted } from 'vue';
 import { Link, usePage, router } from '@inertiajs/vue3';
 
 const page = usePage();
@@ -63,45 +63,75 @@ function onGlobalKeydown(e) {
 }
 
 let removeNavListener;
+let removeFinishListener;
 onMounted(() => {
     window.addEventListener('keydown', onGlobalKeydown);
     applySidebarForRoute();
-    removeNavListener = router.on('navigate', applySidebarForRoute);
+    checkFlash();
+    removeNavListener    = router.on('navigate', () => { applySidebarForRoute(); checkFlash(); });
+    removeFinishListener = router.on('finish',   () => { lastFlashKey = null; checkFlash(); });
 });
 onUnmounted(() => {
     window.removeEventListener('keydown', onGlobalKeydown);
     removeNavListener?.();
+    removeFinishListener?.();
 });
 
+const ALL_ROLES    = ['admin', 'manager', 'cashier'];
+const MANAGER_PLUS = ['admin', 'manager'];
+
 const mainNavItems = [
-    { labelKey: 'nav.dashboard',   routeName: 'dashboard',       icon: `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>` },
-    { labelKey: 'nav.sales',       routeName: 'sales.create',    icon: `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>` },
-    { labelKey: 'nav.products',    routeName: 'products.index',  icon: `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>` },
-    { labelKey: 'nav.purchases',   routeName: 'purchases.index', icon: `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" /></svg>` },
-    { labelKey: 'nav.suppliers',   routeName: 'suppliers.index', icon: `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-2 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>` },
-    { labelKey: 'nav.customers',   routeName: 'customers.index', icon: `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>` },
-    { labelKey: 'nav.reports',     routeName: 'reports.index',   icon: `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>` },
-    { labelKey: 'nav.credit_book', routeName: 'naya-potha.index',icon: `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" /></svg>` },
+    { labelKey: 'nav.dashboard',   routeName: 'dashboard',       roles: ALL_ROLES,    icon: `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>` },
+    { labelKey: 'nav.sales',       routeName: 'sales.create',    roles: ALL_ROLES,    icon: `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>` },
+    { labelKey: 'nav.products',    routeName: 'products.index',  roles: MANAGER_PLUS, icon: `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>` },
+    { labelKey: 'nav.purchases',   routeName: 'purchases.index', roles: MANAGER_PLUS, icon: `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" /></svg>` },
+    { labelKey: 'nav.suppliers',   routeName: 'suppliers.index', roles: MANAGER_PLUS, icon: `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-2 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>` },
+    { labelKey: 'nav.customers',   routeName: 'customers.index', roles: ALL_ROLES,    icon: `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>` },
+    { labelKey: 'nav.reports',     routeName: 'reports.index',   roles: MANAGER_PLUS, icon: `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>` },
+    { labelKey: 'nav.credit_book', routeName: 'naya-potha.index',roles: ALL_ROLES,    icon: `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" /></svg>` },
 ];
+
+const visibleNavItems = computed(() =>
+    mainNavItems.filter(item => item.roles.includes(user.value?.role))
+);
 
 const adminNavItems = [
     { labelKey: 'nav.settings',  routeName: 'settings.index',  icon: `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>` },
     { labelKey: 'nav.users',     routeName: 'users.index',     icon: `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>` },
 ];
 
-const mobileNavItems = [
-    { labelKey: 'nav.dashboard', routeName: 'dashboard',       icon: `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>` },
-    { labelKey: 'nav.sales',     routeName: 'sales.create',    icon: `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>` },
-    { labelKey: 'nav.products',  routeName: 'products.index',  icon: `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>` },
-    { labelKey: 'nav.purchases', routeName: 'purchases.index', icon: `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" /></svg>` },
-    { labelKey: 'nav.reports',   routeName: 'reports.index',   icon: `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>` },
-];
+const mobileNavItems = computed(() =>
+    mainNavItems
+        .filter(item => item.roles.includes(user.value?.role))
+        .slice(0, 5)
+        .map(item => ({ ...item, icon: item.icon.replace('h-5 w-5', 'h-6 w-6') }))
+);
 
 function isActive(routeName) {
     try { return route().current(routeName); } catch { return false; }
 }
 
-const flashVisible = ref(true);
+// ── Global flash toast ────────────────────────────────────────────────────────
+const toast = ref(null);
+let toastTimer = null;
+let lastFlashKey = null;
+
+function showToast(type, message) {
+    toast.value = { type, message };
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => { toast.value = null; }, 3500);
+}
+
+function checkFlash() {
+    const f = page.props.flash;
+    if (f?.success) {
+        const key = 'success:' + f.success;
+        if (key !== lastFlashKey) { lastFlashKey = key; showToast('success', f.success); }
+    } else if (f?.error) {
+        const key = 'error:' + f.error;
+        if (key !== lastFlashKey) { lastFlashKey = key; showToast('error', f.error); }
+    }
+}
 
 const reloading = ref(false);
 function reloadApp() {
@@ -148,17 +178,24 @@ function reloadApp() {
             >
                 <Link :href="route('dashboard')" class="flex items-center gap-2 min-w-0">
                     <img
-                        src="/lumac-load.jpeg"
-                        alt="LUMAC POS"
-                        class="w-8 h-8 rounded-lg object-cover flex-shrink-0"
+                        v-if="page.props.appSettings?.logo"
+                        :src="page.props.appSettings.logo"
+                        alt="Logo"
+                        class="w-8 h-8 rounded-lg object-contain flex-shrink-0"
                     />
-                    <span v-if="!sidebarCollapsed" class="font-bold text-base text-white truncate">Lumac POS</span>
+                    <div
+                        v-else
+                        class="w-8 h-8 rounded-lg flex-shrink-0 flex items-center justify-center bg-blue-600 text-white font-bold text-sm"
+                    >P</div>
+                    <span v-if="!sidebarCollapsed" class="font-bold text-base text-white truncate">
+                        {{ page.props.appSettings?.shop_name || 'POS' }}
+                    </span>
                 </Link>
             </div>
 
             <!-- Nav -->
             <nav class="flex-1 py-3 space-y-0.5" :class="[sidebarCollapsed ? 'px-2 overflow-hidden' : 'px-3 overflow-y-auto overflow-x-hidden']">
-                <template v-for="item in mainNavItems" :key="item.routeName">
+                <template v-for="item in visibleNavItems" :key="item.routeName">
                     <Link
                         :href="route(item.routeName)"
                         :title="sidebarCollapsed ? t(item.labelKey) : ''"
@@ -307,35 +344,29 @@ function reloadApp() {
                 </div>
             </header>
 
-            <!-- Flash -->
-            <div v-if="flashVisible && (flash.success || flash.error)" class="px-4 md:px-6 pt-4 print:hidden">
-                <div v-if="flash.success" class="flex items-center justify-between bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-lg">
-                    <div class="flex items-center">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-green-500" viewBox="0 0 20 20" fill="currentColor">
-                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-                        </svg>
-                        <span class="text-sm font-medium">{{ flash.success }}</span>
-                    </div>
-                    <button @click="flashVisible = false" class="text-green-600 hover:text-green-800">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                            <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
-                        </svg>
-                    </button>
-                </div>
-                <div v-if="flash.error" class="flex items-center justify-between bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg">
-                    <div class="flex items-center">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-red-500" viewBox="0 0 20 20" fill="currentColor">
-                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
-                        </svg>
-                        <span class="text-sm font-medium">{{ flash.error }}</span>
-                    </div>
-                    <button @click="flashVisible = false" class="text-red-600 hover:text-red-800">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                            <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+            <!-- Global flash toast -->
+            <Transition name="global-toast">
+                <div
+                    v-if="toast"
+                    class="fixed top-5 right-5 z-[9999] flex items-center gap-3 px-4 py-3 rounded-xl shadow-xl text-sm font-semibold max-w-sm print:hidden"
+                    :class="toast.type === 'success'
+                        ? 'bg-green-600 text-white'
+                        : 'bg-red-600 text-white'"
+                >
+                    <svg v-if="toast.type === 'success'" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
+                    <svg v-else xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                    <span class="flex-1">{{ toast.message }}</span>
+                    <button @click="toast = null" class="opacity-75 hover:opacity-100 ml-1">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
                         </svg>
                     </button>
                 </div>
-            </div>
+            </Transition>
 
             <main class="flex-1 p-4 md:p-6 pb-20 md:pb-6 print:p-0 dark:bg-slate-900 dark:text-slate-100">
                 <slot />
@@ -359,7 +390,7 @@ function reloadApp() {
             </div>
             <nav class="flex-1 overflow-y-auto py-3 px-3 space-y-0.5">
                 <Link
-                    v-for="item in mainNavItems"
+                    v-for="item in visibleNavItems"
                     :key="item.routeName"
                     :href="route(item.routeName)"
                     @click="sidebarOpen = false"
@@ -448,4 +479,8 @@ function reloadApp() {
 /* Printer-saved toast */
 .printer-toast-enter-active, .printer-toast-leave-active { transition: all 0.25s ease; }
 .printer-toast-enter-from, .printer-toast-leave-to { opacity: 0; transform: translateY(12px); }
+
+/* Global flash toast */
+.global-toast-enter-active, .global-toast-leave-active { transition: all 0.3s cubic-bezier(0.34,1.56,0.64,1); }
+.global-toast-enter-from, .global-toast-leave-to { opacity: 0; transform: translateX(24px) scale(0.95); }
 </style>

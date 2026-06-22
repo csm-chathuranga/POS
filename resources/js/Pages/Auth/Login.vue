@@ -1,12 +1,15 @@
 <script setup>
 import GuestLayout from '@/Layouts/GuestLayout.vue';
 import InputError from '@/Components/InputError.vue';
-import { Head, useForm } from '@inertiajs/vue3';
+import { Head, useForm, usePage } from '@inertiajs/vue3';
+import { computed, inject } from 'vue';
 
 defineProps({
     canResetPassword: { type: Boolean },
     status: { type: String },
 });
+
+const t = inject('t');
 
 const form = useForm({
     email: '',
@@ -25,6 +28,11 @@ function fillDemo(email) {
     form.password = 'password';
 }
 
+const demoMode = computed(() => {
+    const v = usePage().props.appSettings?.demo_mode;
+    return v === '1' || v === true;
+});
+
 const demoUsers = [
     { label: 'Admin',    role: 'සියලු අයිතිවාසිකම්', email: 'admin@lmucpos.lk',    color: '#2563EB' },
     { label: 'Manager',  role: 'කළමනාකරණ',            email: 'manager@lmucpos.lk',  color: '#7C3AED' },
@@ -34,18 +42,18 @@ const demoUsers = [
 
 <template>
     <GuestLayout>
-        <Head title="පිවිසෙන්න" />
+        <Head :title="t('auth.title')" />
 
         <div v-if="status" class="mb-4 text-sm font-medium" style="color:#16A34A;">
             {{ status }}
         </div>
 
-        <h2 class="text-lg font-bold mb-5" style="color:#0F172A;">පිවිසෙන්න</h2>
+        <h2 class="text-lg font-bold mb-5" style="color:#0F172A;">{{ t('auth.title') }}</h2>
 
         <form @submit.prevent="submit" class="space-y-4">
             <!-- Email -->
             <div>
-                <label class="block text-sm font-medium mb-1" style="color:#334155;">විද්‍යුත් තැපෑල</label>
+                <label class="block text-sm font-medium mb-1" style="color:#334155;">{{ t('auth.email') }}</label>
                 <input
                     id="email"
                     v-model="form.email"
@@ -61,7 +69,7 @@ const demoUsers = [
 
             <!-- Password -->
             <div>
-                <label class="block text-sm font-medium mb-1" style="color:#334155;">මුරපදය</label>
+                <label class="block text-sm font-medium mb-1" style="color:#334155;">{{ t('auth.password') }}</label>
                 <input
                     id="password"
                     v-model="form.password"
@@ -82,13 +90,13 @@ const demoUsers = [
                 :class="form.processing ? 'opacity-60' : ''"
                 style="background-color:#2563EB;"
             >
-                {{ form.processing ? 'පිවිසෙමින්...' : 'පිවිසෙන්න' }}
+                {{ form.processing ? t('auth.submitting') : t('auth.submit') }}
             </button>
         </form>
 
         <!-- Demo credentials -->
-        <div class="mt-6">
-            <p class="text-xs font-semibold uppercase tracking-wider mb-2" style="color:#94A3B8;">Demo ගිණුම් (click to fill)</p>
+        <div v-if="demoMode" class="mt-6">
+            <p class="text-xs font-semibold uppercase tracking-wider mb-2" style="color:#94A3B8;">{{ t('auth.demo_title') }}</p>
             <div class="space-y-2">
                 <button
                     v-for="u in demoUsers"
@@ -110,7 +118,7 @@ const demoUsers = [
                     </div>
                 </button>
             </div>
-            <p class="text-xs text-center mt-2" style="color:#94A3B8;">මුරපදය: <span class="font-mono font-semibold" style="color:#64748B;">password</span></p>
+            <p class="text-xs text-center mt-2" style="color:#94A3B8;">{{ t('auth.demo_password') }}: <span class="font-mono font-semibold" style="color:#64748B;">password</span></p>
         </div>
     </GuestLayout>
 </template>

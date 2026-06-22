@@ -3,7 +3,7 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
 import { ref, computed, inject, onMounted, onUnmounted, nextTick } from 'vue';
 import axios from 'axios';
-import { getProducts } from '@/stores/productCache';
+import { getProducts, invalidateProducts } from '@/stores/productCache';
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 const props = defineProps({
@@ -61,9 +61,12 @@ const productsReady  = ref(false);
 const cart             = ref([]);
 const selectedCustomer = ref(null);
 const priceMode        = ref('retail'); // 'retail' | 'wholesale'
-const paymentMethod    = ref('cash');
-const cashPaid         = ref('');
-const shakePaid        = ref(false);
+const paymentMethod      = ref('cash');
+const cashPaid           = ref('');
+const cardReceiptNo      = ref('');
+const splitCashAmt       = ref('');
+const splitCardReceiptNo = ref('');
+const shakePaid          = ref(false);
 const billDiscount     = ref('');   // bill-level discount (Rs.)
 const discountType     = ref('amount'); // 'amount' | 'percent'
 const holdNote         = ref('');
@@ -150,14 +153,17 @@ async function saveQuickCustomer() {
 
 // ─── Inertia form ─────────────────────────────────────────────────────────────
 const form = useForm({
-    items:          [],
-    customer_id:    null,
-    payment_method: 'cash',
-    paid:           0,
-    subtotal:       0,
-    discount:       0,
-    tax:            0,
-    total:          0,
+    items:           [],
+    customer_id:     null,
+    payment_method:  'cash',
+    card_receipt_no: '',
+    split_cash:      0,
+    split_card:      0,
+    paid:            0,
+    subtotal:        0,
+    discount:        0,
+    tax:             0,
+    total:           0,
 });
 
 // ─── Computed totals ──────────────────────────────────────────────────────────
@@ -170,14 +176,16 @@ const lineDiscount = computed(() =>
 const billDiscountAmt = computed(() => {
     const v = parseFloat(billDiscount.value) || 0;
     if (discountType.value === 'percent') {
-        return Math.min((subtotal.value - lineDiscount.value) * v / 100, subtotal.value - lineDiscount.value);
+        const capped = Math.min(v, 70);
+        return Math.min((subtotal.value - lineDiscount.value) * capped / 100, subtotal.value - lineDiscount.value);
     }
     return Math.min(v, subtotal.value - lineDiscount.value);
 });
 const totalDiscount = computed(() => lineDiscount.value + billDiscountAmt.value);
 const tax     = computed(() => 0);
 const total   = computed(() => Math.max(0, subtotal.value - totalDiscount.value + tax.value));
-const balance = computed(() => (parseFloat(cashPaid.value) || 0) - total.value);
+const balance       = computed(() => (parseFloat(cashPaid.value) || 0) - total.value);
+const splitCardAmt  = computed(() => Math.max(0, total.value - (parseFloat(splitCashAmt.value) || 0)));
 
 // ─── Dropdown items: popular when query empty, search results otherwise ───────
 const dropdownItems = computed(() =>
@@ -443,6 +451,12 @@ function setPriceMode(mode) {
 }
 
 function addToCart(product, initialQty = null) {
+    // Block out-of-stock items
+    if ((product.stock_qty ?? 0) <= 0) {
+        errorMsg.value = t('err.out_of_stock');
+        refocusSearch();
+        return;
+    }
     // Show size picker if product has sizes defined
     if (product.sizes?.length > 0) {
         sizePickerProduct.value = product;
@@ -470,7 +484,8 @@ function addToCart(product, initialQty = null) {
 
     if (existing) {
         if (!isWeightUnit) {
-            existing.qty += 1;
+            const maxQty = existing.stock_qty > 0 ? existing.stock_qty : Infinity;
+            existing.qty = Math.min(existing.qty + 1, maxQty);
             recalcLine(existing);
         }
         nextTick(() => {
@@ -517,11 +532,24 @@ function removeFromCart(index) {
     cart.value.splice(index, 1);
 }
 
-function updateQty(item, val) {
+function updateQty(item, val, inputEl = null) {
     const n = parseFloat(val);
-    if (!isNaN(n) && n > 0) {
-        item.qty = n;
-        recalcLine(item);
+    if (isNaN(n)) return;
+
+    const max = item.stock_qty > 0 ? item.stock_qty : Infinity;
+    const clamped = Math.max(1, Math.min(n, max));
+
+    if (n > max) {
+        errorMsg.value = `"${item.name}" — only ${item.stock_qty} in stock.`;
+    }
+
+    item.qty = clamped;
+    recalcLine(item);
+
+    // If the reactive value didn't change (already at max), Vue won't re-render
+    // the uncontrolled input, so we force it manually.
+    if (inputEl) {
+        nextTick(() => { inputEl.value = clamped; });
     }
 }
 
@@ -550,10 +578,17 @@ function setPaymentMethod(method) {
     if (method !== 'credit') {
         selectedCustomer.value = null;
     }
+    if (method === 'card') {
+        cardReceiptNo.value = '';
+        nextTick(() => document.getElementById('card-receipt-input')?.focus());
+    }
     if (method === 'cash') {
-        nextTick(() => {
-            document.getElementById('cash-paid-input')?.focus();
-        });
+        nextTick(() => document.getElementById('cash-paid-input')?.focus());
+    }
+    if (method === 'split') {
+        splitCashAmt.value       = '';
+        splitCardReceiptNo.value = '';
+        nextTick(() => document.getElementById('split-cash-input')?.focus());
     }
 }
 
@@ -578,6 +613,21 @@ function submitSale() {
         }
         if (paid < total.value) { errorMsg.value = t('err.insufficient_cash'); return; }
     }
+    if (paymentMethod.value === 'split') {
+        const sc = parseFloat(splitCashAmt.value) || 0;
+        if (sc <= 0) {
+            nextTick(() => {
+                const el = document.getElementById('split-cash-input');
+                if (el) { el.focus(); el.select(); }
+            });
+            errorMsg.value = 'කරුණාකර බෙදීමේ මුදල් ප්‍රමාණය ඇතුළු කරන්න.';
+            return;
+        }
+        if (sc >= total.value) {
+            errorMsg.value = 'Split cash must be less than total. Use Cash payment instead.';
+            return;
+        }
+    }
     submitting.value = true;
     form.items          = cart.value.map(i => ({
         product_id: i.product_id,
@@ -588,8 +638,15 @@ function submitSale() {
         discount:   i.discount,
         total:      i.total,
     }));
-    form.customer_id    = selectedCustomer.value?.id || null;
-    form.payment_method = paymentMethod.value;
+    form.customer_id     = selectedCustomer.value?.id || null;
+    form.payment_method  = paymentMethod.value;
+    form.card_receipt_no = paymentMethod.value === 'card'
+        ? cardReceiptNo.value
+        : paymentMethod.value === 'split'
+            ? splitCardReceiptNo.value
+            : '';
+    form.split_cash      = paymentMethod.value === 'split' ? (parseFloat(splitCashAmt.value) || 0) : 0;
+    form.split_card      = paymentMethod.value === 'split' ? splitCardAmt.value : 0;
     form.paid           = paymentMethod.value === 'cash'
         ? parseFloat(cashPaid.value) || 0
         : paymentMethod.value === 'credit'
@@ -601,6 +658,15 @@ function submitSale() {
     form.total          = total.value;
 
     form.post(route('sales.store'), {
+        onSuccess: () => {
+            // Bust the cache so the next POS session loads fresh stock_qty from server
+            invalidateProducts();
+            // Optimistically deduct sold quantities from in-memory list for current session
+            cart.value.forEach(item => {
+                const p = allProducts.value.find(p => p.id === item.product_id);
+                if (p) p.stock_qty = Math.max(0, (p.stock_qty || 0) - item.qty);
+            });
+        },
         onError: (errors) => {
             submitting.value = false;
             errorMsg.value   = Object.values(errors)[0] || t('err.generic');
@@ -670,6 +736,7 @@ function handleGlobalKeyboard(e) {
         case 'F2':     e.preventDefault(); setPaymentMethod('cash'); break;
         case 'F3':     e.preventDefault(); setPaymentMethod('card'); break;
         case 'F4':     e.preventDefault(); setPaymentMethod('credit'); break;
+        case 'F5':     e.preventDefault(); setPaymentMethod('split'); break;
         case 'F5':     e.preventDefault(); holdBill();               break;
         case 'F10':    e.preventDefault(); submitSale();             break;
         case 'Escape':
@@ -750,7 +817,21 @@ const focusedPriceIdx = ref(null);
                 </Link>
                 <h1 class="text-xl font-bold text-gray-800 dark:text-slate-100">{{ t('page.new_sale') }} / POS Billing</h1>
 
-                <span class="text-xs text-gray-400 dark:text-slate-500 hidden sm:block ml-auto">F1=Search · F2=Cash · F3=Card · F4=Credit · F5=Hold · F10=Complete</span>
+                <div class="hidden sm:flex items-center gap-1.5 ml-auto flex-wrap">
+                    <template v-for="hint in [
+                        { key: 'F1', label: 'Search' },
+                        { key: 'F2', label: 'Cash' },
+                        { key: 'F3', label: 'Card' },
+                        { key: 'F4', label: 'Credit' },
+                        { key: 'F5', label: 'Split' },
+                        { key: 'F10', label: 'Complete' },
+                    ]" :key="hint.key">
+                        <span class="inline-flex items-center gap-1 rounded-md border border-gray-200 dark:border-slate-600 bg-gray-50 dark:bg-slate-700 px-2 py-0.5">
+                            <kbd class="text-[10px] font-bold text-blue-600 dark:text-blue-400">{{ hint.key }}</kbd>
+                            <span class="text-[10px] text-gray-500 dark:text-slate-400">{{ hint.label }}</span>
+                        </span>
+                    </template>
+                </div>
 
                 <!-- Dark mode toggle -->
                 <button
@@ -900,19 +981,29 @@ const focusedPriceIdx = ref(null);
                         <button
                             type="button"
                             @click="setPriceMode('retail')"
-                            class="h-full px-4 text-sm font-semibold transition-colors"
+                            class="h-full px-4 text-sm font-semibold transition-colors flex items-center gap-1.5"
                             :class="priceMode === 'retail'
                                 ? 'bg-blue-600 text-white'
                                 : 'bg-gray-50 text-gray-500 hover:bg-blue-50 hover:text-blue-600 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600'"
-                        >{{ t('lbl.retail') }}</button>
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                            </svg>
+                            {{ t('lbl.retail') }}
+                        </button>
                         <button
                             type="button"
                             @click="setPriceMode('wholesale')"
-                            class="h-full px-4 text-sm font-semibold transition-colors border-l border-gray-200 dark:border-slate-600"
+                            class="h-full px-4 text-sm font-semibold transition-colors border-l border-gray-200 dark:border-slate-600 flex items-center gap-1.5"
                             :class="priceMode === 'wholesale'
                                 ? 'bg-green-600 text-white'
                                 : 'bg-gray-50 text-gray-500 hover:bg-green-50 hover:text-green-600 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600'"
-                        >{{ t('lbl.wholesale') }}</button>
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                            </svg>
+                            {{ t('lbl.wholesale') }}
+                        </button>
                     </div>
                     </div>
                 </div>
@@ -973,8 +1064,9 @@ const focusedPriceIdx = ref(null);
                                         <div class="flex items-center gap-1">
                                             <button
                                                 type="button"
+                                                :disabled="item.qty <= 1"
                                                 @click="updateQty(item, (parseFloat(item.qty)||1) - 1)"
-                                                class="w-8 h-8 lg:w-9 lg:h-9 flex items-center justify-center rounded-md border border-gray-300 dark:border-slate-600 text-gray-600 dark:text-slate-300 hover:bg-red-50 hover:border-red-300 hover:text-red-600 transition-colors text-base lg:text-lg font-bold flex-shrink-0"
+                                                class="w-8 h-8 lg:w-9 lg:h-9 flex items-center justify-center rounded-md border border-gray-300 dark:border-slate-600 text-gray-600 dark:text-slate-300 hover:bg-red-50 hover:border-red-300 hover:text-red-600 transition-colors text-base lg:text-lg font-bold flex-shrink-0 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:border-gray-300 disabled:hover:text-gray-600"
                                             >−</button>
                                             <input
                                                 type="number"
@@ -982,15 +1074,16 @@ const focusedPriceIdx = ref(null);
                                                 step="0.01"
                                                 :value="item.qty ?? ''"
                                                 :placeholder="['kg','g'].includes(item.unit) ? '0' : '1'"
-                                                @input="e => updateQty(item, e.target.value)"
+                                                @input="e => updateQty(item, e.target.value, e.target)"
                                                 @keydown="onQtyKeydown($event, item)"
                                                 @focus="resetQtyState()"
                                                 class="cart-qty-input w-14 lg:w-18 text-center border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-gray-100 rounded-lg py-1.5 px-1 focus:outline-none focus:ring-2 focus:ring-blue-300 dark:focus:ring-blue-800 text-sm lg:text-base font-medium"
                                             />
                                             <button
                                                 type="button"
+                                                :disabled="item.stock_qty > 0 && item.qty >= item.stock_qty"
                                                 @click="updateQty(item, (parseFloat(item.qty)||0) + 1)"
-                                                class="w-8 h-8 lg:w-9 lg:h-9 flex items-center justify-center rounded-md border border-gray-300 dark:border-slate-600 text-gray-600 dark:text-slate-300 hover:bg-green-50 hover:border-green-300 hover:text-green-600 transition-colors text-base lg:text-lg font-bold flex-shrink-0"
+                                                class="w-8 h-8 lg:w-9 lg:h-9 flex items-center justify-center rounded-md border border-gray-300 dark:border-slate-600 text-gray-600 dark:text-slate-300 hover:bg-green-50 hover:border-green-300 hover:text-green-600 transition-colors text-base lg:text-lg font-bold flex-shrink-0 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:border-gray-300 disabled:hover:text-gray-600"
                                             >+</button>
                                         </div>
                                     </td>
@@ -1108,9 +1201,11 @@ const focusedPriceIdx = ref(null);
                                 v-model="billDiscount"
                                 type="number"
                                 min="0"
+                                :max="discountType === 'percent' ? 70 : undefined"
                                 step="0.01"
                                 :placeholder="discountType === 'percent' ? '%' : 'Rs'"
                                 :disabled="cart.length === 0"
+                                @input="() => { if (discountType === 'percent' && parseFloat(billDiscount) > 70) billDiscount = '70' }"
                                 class="w-32 border border-orange-300 dark:border-slate-600 dark:bg-slate-700 dark:text-gray-100 dark:placeholder-slate-500 rounded-lg px-2 py-1.5 text-sm text-right focus:outline-none focus:ring-2 focus:ring-orange-300 dark:focus:ring-orange-800 disabled:bg-gray-50 dark:disabled:bg-slate-800 disabled:text-gray-400"
                             />
                             <button
@@ -1156,53 +1251,158 @@ const focusedPriceIdx = ref(null);
                 <!-- Payment method buttons -->
                 <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-100 dark:border-slate-700 p-4">
                     <p class="text-xs lg:text-sm font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider mb-3">{{ t('lbl.payment_method') }}</p>
-                    <div class="grid grid-cols-3 gap-2">
+                    <div class="grid grid-cols-2 gap-2">
                         <!-- Cash F2 -->
                         <button
                             type="button"
                             @click="setPaymentMethod('cash')"
-                            class="flex flex-col items-center justify-center gap-1 rounded-xl border-2 py-2 lg:py-3 min-h-[50px] lg:min-h-[60px] transition-all font-semibold text-sm lg:text-base"
+                            class="flex items-center justify-center gap-2 rounded-xl border-2 px-3 py-2.5 min-h-[48px] transition-all font-semibold text-sm"
                             :class="paymentMethod === 'cash'
                                 ? 'border-green-500 bg-green-500 text-white shadow-md shadow-green-200'
                                 : 'border-green-200 bg-green-50 text-green-700 hover:border-green-400 hover:bg-green-100 dark:border-green-900 dark:bg-green-950 dark:text-green-400 dark:hover:bg-green-900'"
                         >
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
                             </svg>
-                            <span class="text-xs lg:text-sm">{{ t('pos.cash_btn') }}</span>
+                            {{ t('pos.cash_btn') }}
                         </button>
 
                         <!-- Card F3 -->
                         <button
                             type="button"
                             @click="setPaymentMethod('card')"
-                            class="flex flex-col items-center justify-center gap-1 rounded-xl border-2 py-2 lg:py-3 min-h-[50px] lg:min-h-[60px] transition-all font-semibold text-sm lg:text-base"
+                            class="flex items-center justify-center gap-2 rounded-xl border-2 px-3 py-2.5 min-h-[48px] transition-all font-semibold text-sm"
                             :class="paymentMethod === 'card'
                                 ? 'border-blue-500 bg-blue-500 text-white shadow-md shadow-blue-200'
                                 : 'border-blue-200 bg-blue-50 text-blue-700 hover:border-blue-400 hover:bg-blue-100 dark:border-blue-900 dark:bg-blue-950 dark:text-blue-400 dark:hover:bg-blue-900'"
                         >
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
                             </svg>
-                            <span class="text-xs lg:text-sm">{{ t('pos.card_btn') }}</span>
+                            {{ t('pos.card_btn') }}
                         </button>
 
                         <!-- Credit F4 -->
                         <button
                             type="button"
                             @click="setPaymentMethod('credit')"
-                            class="flex flex-col items-center justify-center gap-1 rounded-xl border-2 py-2 lg:py-3 min-h-[50px] lg:min-h-[60px] transition-all font-semibold text-sm lg:text-base"
+                            class="flex items-center justify-center gap-2 rounded-xl border-2 px-3 py-2.5 min-h-[48px] transition-all font-semibold text-sm"
                             :class="paymentMethod === 'credit'
                                 ? 'border-red-500 bg-red-500 text-white shadow-md shadow-red-200'
                                 : 'border-red-200 bg-red-50 text-red-700 hover:border-red-400 hover:bg-red-100 dark:border-red-900 dark:bg-red-950 dark:text-red-400 dark:hover:bg-red-900'"
                         >
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                             </svg>
-                            <span class="text-xs lg:text-sm">{{ t('pos.credit_btn') }}</span>
+                            {{ t('pos.credit_btn') }}
+                        </button>
+
+                        <!-- Split F5 -->
+                        <button
+                            type="button"
+                            @click="setPaymentMethod('split')"
+                            class="flex items-center justify-center gap-2 rounded-xl border-2 px-3 py-2.5 min-h-[48px] transition-all font-semibold text-sm"
+                            :class="paymentMethod === 'split'
+                                ? 'border-indigo-500 bg-indigo-500 text-white shadow-md shadow-indigo-200'
+                                : 'border-indigo-200 bg-indigo-50 text-indigo-700 hover:border-indigo-400 hover:bg-indigo-100 dark:border-indigo-900 dark:bg-indigo-950 dark:text-indigo-400 dark:hover:bg-indigo-900'"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                            </svg>
+                            Split (F5)
                         </button>
                     </div>
 
+                </div>
+
+                <!-- Card receipt number -->
+                <div v-if="paymentMethod === 'card'" class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-blue-200 dark:border-blue-900 p-4">
+                    <label class="block text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">
+                        Card Receipt / Reference No.
+                    </label>
+                    <div class="relative">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                        </svg>
+                        <input
+                            id="card-receipt-input"
+                            v-model="cardReceiptNo"
+                            type="text"
+                            placeholder="e.g. TXN123456"
+                            class="w-full pl-9 pr-4 py-2.5 border border-blue-300 dark:border-blue-700 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white dark:bg-slate-700 text-gray-800 dark:text-slate-100"
+                        />
+                    </div>
+                </div>
+
+                <!-- Split payment section (cash + card) -->
+                <div v-if="paymentMethod === 'split'" class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-indigo-200 dark:border-indigo-900 p-4 space-y-3">
+                    <p class="text-xs font-semibold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider">Split: Cash + Card</p>
+
+                    <!-- Cash portion -->
+                    <div>
+                        <div class="flex items-center justify-between mb-1.5">
+                            <label class="text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">මුදල් (Cash)</label>
+                            <button
+                                type="button"
+                                @click="splitCashAmt = (total / 2).toFixed(2)"
+                                class="text-xs font-bold px-2 py-1 rounded-lg bg-indigo-100 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-200 dark:hover:bg-indigo-800 transition-colors"
+                            >½ බෙදන්න</button>
+                        </div>
+                        <input
+                            id="split-cash-input"
+                            v-model="splitCashAmt"
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            placeholder="0.00"
+                            class="w-full border-2 border-indigo-300 dark:border-indigo-700 rounded-xl px-3 py-2 text-lg lg:text-xl font-bold focus:outline-none focus:ring-2 focus:ring-indigo-400 dark:bg-slate-700 dark:placeholder-slate-500 text-indigo-800 dark:text-indigo-200"
+                        />
+                        <div class="flex flex-wrap gap-1 mt-1.5">
+                            <button
+                                v-for="amt in [100, 500, 1000, 2000, 5000]"
+                                :key="amt"
+                                type="button"
+                                @click="splitCashAmt = amt"
+                                class="px-2 py-0.5 rounded text-xs font-semibold border transition-colors"
+                                :class="Number(splitCashAmt) === amt
+                                    ? 'border-indigo-500 bg-indigo-500 text-white'
+                                    : 'border-gray-200 bg-gray-50 text-gray-600 hover:border-indigo-300 hover:bg-indigo-50 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-300'"
+                            >{{ amt }}</button>
+                        </div>
+                    </div>
+
+                    <!-- Card portion (auto-computed) -->
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">කාඩ් (Card)</label>
+                        <div class="flex items-center justify-between bg-indigo-50 dark:bg-indigo-950 border border-indigo-200 dark:border-indigo-800 rounded-xl px-4 py-2.5">
+                            <span class="text-sm text-indigo-600 dark:text-indigo-400 font-medium">Auto</span>
+                            <span class="text-xl font-bold text-indigo-700 dark:text-indigo-300">{{ fmt(splitCardAmt) }}</span>
+                        </div>
+                    </div>
+
+                    <!-- Card receipt for split -->
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Card Receipt / Reference No.</label>
+                        <div class="relative">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                            </svg>
+                            <input
+                                v-model="splitCardReceiptNo"
+                                type="text"
+                                placeholder="e.g. TXN123456"
+                                class="w-full pl-9 pr-4 py-2.5 border border-indigo-300 dark:border-indigo-700 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white dark:bg-slate-700 text-gray-800 dark:text-slate-100"
+                            />
+                        </div>
+                    </div>
+
+                    <!-- Summary row -->
+                    <div v-if="splitCashAmt" class="flex items-center justify-between rounded-lg px-3 py-1.5 bg-indigo-50 dark:bg-indigo-950 border border-indigo-200 dark:border-indigo-800">
+                        <span class="text-xs font-semibold text-indigo-600 dark:text-indigo-400">Cash + Card</span>
+                        <span class="text-base font-bold text-indigo-700 dark:text-indigo-300">
+                            {{ fmt(parseFloat(splitCashAmt) || 0) }} + {{ fmt(splitCardAmt) }}
+                        </span>
+                    </div>
                 </div>
 
                 <!-- Customer + Cash paid inline (cash/credit) -->

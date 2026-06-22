@@ -1,7 +1,8 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
+import ConfirmModal from '@/Components/ConfirmModal.vue';
 import { Head, Link, router } from '@inertiajs/vue3';
-import { inject } from 'vue';
+import { inject, ref } from 'vue';
 
 const t = inject('t');
 
@@ -9,10 +10,18 @@ const props = defineProps({
     categories: { type: Array, default: () => [] },
 });
 
-function deleteCategory(id) {
-    if (confirm(t('btn.delete') + '?')) {
-        router.delete(route('categories.destroy', id));
-    }
+const deleteTarget = ref(null);
+const deleting = ref(false);
+
+function promptDelete(id, name) {
+    deleteTarget.value = { id, name };
+}
+
+function doDelete() {
+    deleting.value = true;
+    router.delete(route('categories.destroy', deleteTarget.value.id), {
+        onFinish: () => { deleting.value = false; deleteTarget.value = null; },
+    });
 }
 </script>
 
@@ -67,7 +76,7 @@ function deleteCategory(id) {
                                     {{ t('btn.edit') }}
                                 </Link>
                                 <button
-                                    @click="deleteCategory(category.id)"
+                                    @click="promptDelete(category.id, category.name)"
                                     class="text-red-600 hover:text-red-800 text-sm font-medium px-3 py-1.5 rounded hover:bg-red-50 min-h-[36px]"
                                 >
                                     {{ t('btn.delete') }}
@@ -79,4 +88,14 @@ function deleteCategory(id) {
             </table>
         </div>
     </AuthenticatedLayout>
+
+    <ConfirmModal
+        :show="!!deleteTarget"
+        title="Delete Category"
+        :message="`Are you sure you want to delete &quot;${deleteTarget?.name}&quot;? This cannot be undone.`"
+        confirm-label="Delete Category"
+        :busy="deleting"
+        @confirm="doDelete"
+        @cancel="deleteTarget = null"
+    />
 </template>

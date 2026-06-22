@@ -1,7 +1,8 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
-import { Head, Link, router } from '@inertiajs/vue3';
-import { ref, watch, inject, nextTick, onMounted, onUnmounted } from 'vue';
+import ConfirmModal from '@/Components/ConfirmModal.vue';
+import { Head, Link, router, usePage } from '@inertiajs/vue3';
+import { ref, watch, inject, nextTick, computed, onMounted, onUnmounted } from 'vue';
 import JsBarcode from 'jsbarcode';
 
 const props = defineProps({
@@ -42,36 +43,79 @@ function formatCurrency(value) {
     return 'Rs. ' + Number(value).toLocaleString('en-LK', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
-function deleteProduct(id) {
-    if (confirm(t('btn.delete') + '?')) {
-        router.delete(route('products.destroy', id));
-    }
+const deleteTarget = ref(null);
+const deleting = ref(false);
+
+function promptDelete(id, name) {
+    deleteTarget.value = { id, name };
 }
 
-const barcodeSvg = ref(null);
-const barcodeProduct = ref(null);
-
-function printBarcode(product) {
-    barcodeProduct.value = product;
-    nextTick(async () => {
-        try {
-            JsBarcode(barcodeSvg.value, product.barcode, {
-                format: 'CODE128',
-                displayValue: false,
-                width: 1,
-                height: 18,
-                margin: 0,
-            });
-        } catch {}
-
-        if (window.electronAPI?.printBarcode) {
-            const printer = localStorage.getItem('pos_printer') || '';
-            await window.electronAPI.printBarcode(printer);
-        } else {
-            window.print();
-        }
-        barcodeProduct.value = null;
+function doDelete() {
+    deleting.value = true;
+    router.delete(route('products.destroy', deleteTarget.value.id), {
+        onFinish: () => { deleting.value = false; deleteTarget.value = null; },
     });
+}
+
+// Barcode modal state
+const barcodeModal    = ref(false);
+const barcodeProduct  = ref(null);
+const barcodeQty      = ref(1);
+const modalBarcodeSvg = ref(null);
+const printBarcodeSvg = ref(null);
+const printing        = ref(false);
+
+const LABEL_SIZES = {
+    '20x30': { w: '20mm', h: '30mm' },
+    '40x25': { w: '40mm', h: '25mm' },
+    '50x30': { w: '50mm', h: '30mm' },
+    '58x40': { w: '58mm', h: '40mm' },
+};
+
+const appSettings  = computed(() => usePage().props.appSettings || {});
+const labelSize    = computed(() => appSettings.value.barcode_label_size || '40x25');
+const showPrice    = computed(() => appSettings.value.barcode_show_price !== '0' && appSettings.value.barcode_show_price !== false);
+const currentSize  = computed(() => LABEL_SIZES[labelSize.value] || LABEL_SIZES['40x25']);
+
+function openBarcodeModal(product) {
+    barcodeProduct.value = product;
+    barcodeQty.value = 1;
+    barcodeModal.value = true;
+    nextTick(() => renderBarcode(modalBarcodeSvg.value));
+}
+
+function closeBarcodeModal() {
+    barcodeModal.value = false;
+    barcodeProduct.value = null;
+}
+
+function renderBarcode(el) {
+    if (!el || !barcodeProduct.value?.barcode) return;
+    try {
+        JsBarcode(el, barcodeProduct.value.barcode, {
+            format: 'CODE128',
+            displayValue: true,
+            fontSize: 9,
+            textMargin: 2,
+            width: 1.4,
+            height: 28,
+            margin: 2,
+        });
+    } catch {}
+}
+
+async function doPrint() {
+    printing.value = true;
+    await nextTick();
+    renderBarcode(printBarcodeSvg.value);
+    await nextTick();
+    if (window.electronAPI?.printBarcode) {
+        const printer = localStorage.getItem('pos_printer') || '';
+        await window.electronAPI.printBarcode(printer);
+    } else {
+        window.print();
+    }
+    printing.value = false;
 }
 </script>
 
@@ -179,7 +223,7 @@ function printBarcode(product) {
                 <div class="flex gap-2">
                     <button
                         v-if="product.barcode"
-                        @click="printBarcode(product)"
+                        @click="openBarcodeModal(product)"
                         class="bg-purple-50 hover:bg-purple-100 text-purple-600 py-2 px-3 rounded-lg text-sm font-medium transition-colors min-h-[44px] flex items-center justify-center"
                         title="Print Barcode"
                     >
@@ -197,7 +241,7 @@ function printBarcode(product) {
                         {{ t('btn.edit') }}
                     </Link>
                     <button
-                        @click="deleteProduct(product.id)"
+                        @click="promptDelete(product.id, product.name)"
                         class="flex-1 bg-red-50 hover:bg-red-100 text-red-600 py-2 rounded-lg text-sm font-medium transition-colors min-h-[44px] flex items-center justify-center gap-1.5"
                     >
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -283,7 +327,7 @@ function printBarcode(product) {
                                 <div class="flex items-center justify-end gap-2">
                                     <button
                                         v-if="product.barcode"
-                                        @click="printBarcode(product)"
+                                        @click="openBarcodeModal(product)"
                                         class="text-purple-600 hover:text-purple-800 px-2 py-1.5 rounded hover:bg-purple-50 min-h-[36px] flex items-center"
                                         title="Print Barcode"
                                     >
@@ -301,7 +345,7 @@ function printBarcode(product) {
                                         {{ t('btn.edit') }}
                                     </Link>
                                     <button
-                                        @click="deleteProduct(product.id)"
+                                        @click="promptDelete(product.id, product.name)"
                                         class="text-red-600 hover:text-red-800 text-sm font-medium px-2 py-1.5 rounded hover:bg-red-50 min-h-[36px] flex items-center gap-1"
                                     >
                                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -339,34 +383,222 @@ function printBarcode(product) {
         </div>
     </AuthenticatedLayout>
 
-    <!-- Teleported to body so it's outside #app, allowing @media print to isolate it -->
+    <ConfirmModal
+        :show="!!deleteTarget"
+        title="Delete Product"
+        :message="`Are you sure you want to delete &quot;${deleteTarget?.name}&quot;? This cannot be undone.`"
+        confirm-label="Delete Product"
+        :busy="deleting"
+        @confirm="doDelete"
+        @cancel="deleteTarget = null"
+    />
+
+    <!-- Barcode Print Modal -->
     <Teleport to="body">
-        <div v-if="barcodeProduct" id="barcode-print-area">
-            <svg ref="barcodeSvg"></svg>
-            <p class="barcode-name">{{ barcodeProduct.name }}</p>
-            <p v-if="barcodeProduct.name_si" class="barcode-name-si">{{ barcodeProduct.name_si }}</p>
+        <!-- Backdrop -->
+        <div v-if="barcodeModal" class="barcode-modal-backdrop" @click.self="closeBarcodeModal">
+            <div class="barcode-modal">
+                <!-- Header -->
+                <div class="barcode-modal-header">
+                    <div class="flex items-center gap-2">
+                        <div class="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                            </svg>
+                        </div>
+                        <div>
+                            <h3 class="font-semibold text-gray-900 text-sm">Print Barcode Label</h3>
+                            <p class="text-xs text-gray-500">{{ barcodeProduct?.name }}</p>
+                        </div>
+                    </div>
+                    <button @click="closeBarcodeModal" class="text-gray-400 hover:text-gray-600 p-1 rounded">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+
+                <div class="barcode-modal-body">
+                    <!-- Preview -->
+                    <div class="barcode-preview-wrap">
+                        <p class="barcode-section-label">Preview</p>
+                        <div class="barcode-label-preview">
+                            <svg ref="modalBarcodeSvg"></svg>
+                            <p class="bc-name">{{ barcodeProduct?.name }}</p>
+                            <p v-if="barcodeProduct?.name_si" class="bc-name-si">{{ barcodeProduct?.name_si }}</p>
+                            <p v-if="showPrice" class="bc-price">Rs. {{ Number(barcodeProduct?.selling_price || 0).toFixed(2) }}</p>
+                        </div>
+                        <p class="text-xs text-gray-400 mt-2 text-center">
+                            {{ labelSize }} mm · {{ showPrice ? 'with price' : 'no price' }}
+                            · <Link :href="route('settings.index')" class="text-purple-600 hover:underline">change in Settings</Link>
+                        </p>
+                    </div>
+
+                    <!-- Copies only -->
+                    <div class="barcode-options">
+                        <div class="bc-option-group">
+                            <label class="barcode-section-label">Copies</label>
+                            <div class="bc-qty-row">
+                                <button @click="barcodeQty = Math.max(1, barcodeQty - 1)" class="bc-qty-btn">−</button>
+                                <input v-model.number="barcodeQty" type="number" min="1" max="999" class="bc-qty-input" />
+                                <button @click="barcodeQty = Math.min(999, barcodeQty + 1)" class="bc-qty-btn">+</button>
+                            </div>
+                            <div class="bc-quick-qty">
+                                <button v-for="n in [1,5,10,20]" :key="n" @click="barcodeQty = n"
+                                    :class="['bc-quick-btn', barcodeQty === n ? 'bc-quick-btn--active' : '']">{{ n }}</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Footer -->
+                <div class="barcode-modal-footer">
+                    <button @click="closeBarcodeModal" class="bc-btn-cancel">Cancel</button>
+                    <button @click="doPrint" :disabled="printing" class="bc-btn-print">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                        </svg>
+                        {{ printing ? 'Printing...' : `Print ${barcodeQty} Label${barcodeQty > 1 ? 's' : ''}` }}
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Hidden print-only area (rendered when printing) -->
+        <div v-if="printing" id="barcode-print-area"
+            :style="`--lw:${currentSize.w};--lh:${currentSize.h}`">
+            <template v-for="n in barcodeQty" :key="n">
+                <div class="bc-label-page">
+                    <svg ref="printBarcodeSvg"></svg>
+                    <p class="bc-print-name">{{ barcodeProduct?.name }}</p>
+                    <p v-if="barcodeProduct?.name_si" class="bc-print-name-si">{{ barcodeProduct?.name_si }}</p>
+                    <p v-if="showPrice" class="bc-print-price">Rs. {{ Number(barcodeProduct?.selling_price || 0).toFixed(2) }}</p>
+                </div>
+            </template>
         </div>
     </Teleport>
 </template>
 
 <style>
+/* ── Modal ── */
+.barcode-modal-backdrop {
+    position: fixed; inset: 0; z-index: 9999;
+    background: rgba(0,0,0,0.45);
+    display: flex; align-items: center; justify-content: center;
+    padding: 1rem;
+}
+.barcode-modal {
+    background: #fff; border-radius: 1rem;
+    width: 100%; max-width: 480px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+    display: flex; flex-direction: column;
+    overflow: hidden;
+}
+.barcode-modal-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid #f3f4f6;
+}
+.barcode-modal-body {
+    padding: 1.25rem;
+    display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem;
+}
+@media (max-width: 480px) {
+    .barcode-modal-body { grid-template-columns: 1fr; }
+}
+.barcode-modal-footer {
+    padding: 1rem 1.25rem;
+    border-top: 1px solid #f3f4f6;
+    display: flex; justify-content: flex-end; gap: 0.75rem;
+}
+
+/* ── Preview ── */
+.barcode-preview-wrap { display: flex; flex-direction: column; gap: 0.5rem; }
+.barcode-section-label { font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: #6b7280; margin-bottom: 0.25rem; }
+.barcode-label-preview {
+    background: #fff;
+    border: 1.5px dashed #d1d5db;
+    border-radius: 0.5rem;
+    padding: 0.75rem 0.5rem;
+    display: flex; flex-direction: column; align-items: center;
+    gap: 3px;
+    min-height: 90px;
+}
+.barcode-label-preview svg { max-width: 100%; height: auto; }
+.bc-name { font-size: 8pt; font-weight: 700; text-align: center; color: #111; line-height: 1.2; }
+.bc-name-si { font-size: 7pt; font-weight: 600; text-align: center; color: #374151; }
+.bc-price { font-size: 9pt; font-weight: 800; color: #16a34a; text-align: center; }
+
+/* ── Options ── */
+.barcode-options { display: flex; flex-direction: column; gap: 1rem; }
+.bc-option-group { display: flex; flex-direction: column; gap: 0.4rem; }
+.bc-size-grid { display: flex; flex-direction: column; gap: 0.3rem; }
+.bc-size-btn {
+    padding: 0.35rem 0.6rem; border-radius: 0.5rem; border: 1.5px solid #e5e7eb;
+    font-size: 0.75rem; font-weight: 500; color: #374151; background: #f9fafb;
+    cursor: pointer; text-align: left; transition: all 0.15s;
+}
+.bc-size-btn--active { border-color: #7c3aed; background: #f5f3ff; color: #6d28d9; font-weight: 600; }
+.bc-qty-row { display: flex; align-items: center; gap: 0.5rem; }
+.bc-qty-btn {
+    width: 32px; height: 32px; border-radius: 0.5rem; border: 1.5px solid #e5e7eb;
+    background: #f9fafb; font-size: 1.1rem; cursor: pointer; display: flex;
+    align-items: center; justify-content: center; font-weight: 600; color: #374151;
+    transition: background 0.15s;
+}
+.bc-qty-btn:hover { background: #f3f4f6; }
+.bc-qty-input {
+    width: 56px; text-align: center; border: 1.5px solid #e5e7eb;
+    border-radius: 0.5rem; padding: 0.3rem; font-size: 0.875rem; font-weight: 600;
+    color: #111; outline: none;
+}
+.bc-qty-input:focus { border-color: #7c3aed; }
+.bc-quick-qty { display: flex; gap: 0.3rem; margin-top: 0.3rem; }
+.bc-quick-btn {
+    flex: 1; padding: 0.25rem; border-radius: 0.4rem; border: 1.5px solid #e5e7eb;
+    font-size: 0.75rem; font-weight: 500; background: #f9fafb; cursor: pointer;
+    color: #374151; transition: all 0.15s;
+}
+.bc-quick-btn--active { border-color: #7c3aed; background: #f5f3ff; color: #6d28d9; }
+.bc-toggle-row { display: flex; align-items: center; gap: 0.5rem; cursor: pointer; }
+
+/* ── Footer buttons ── */
+.bc-btn-cancel {
+    padding: 0.5rem 1rem; border-radius: 0.5rem; border: 1.5px solid #e5e7eb;
+    background: #fff; color: #374151; font-size: 0.875rem; font-weight: 500;
+    cursor: pointer; transition: background 0.15s;
+}
+.bc-btn-cancel:hover { background: #f9fafb; }
+.bc-btn-print {
+    display: flex; align-items: center; gap: 0.4rem;
+    padding: 0.5rem 1.25rem; border-radius: 0.5rem; border: none;
+    background: #7c3aed; color: #fff; font-size: 0.875rem; font-weight: 600;
+    cursor: pointer; transition: background 0.15s;
+}
+.bc-btn-print:hover:not(:disabled) { background: #6d28d9; }
+.bc-btn-print:disabled { opacity: 0.6; cursor: not-allowed; }
+
+/* ── Print area ── */
 #barcode-print-area { display: none; }
 @media print {
-    @page { size: 30mm 20mm; margin: 0; }
+    @page { size: var(--lw, 40mm) var(--lh, 25mm); margin: 0; }
     body > * { display: none !important; }
     #barcode-print-area {
-        display: flex !important;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        width: 30mm;
-        height: 20mm;
-        padding: 1mm 1mm 1mm;
+        display: block !important;
+    }
+    .bc-label-page {
+        width: var(--lw, 40mm);
+        height: var(--lh, 25mm);
+        display: flex; flex-direction: column;
+        align-items: center; justify-content: center;
+        padding: 1mm;
         font-family: sans-serif;
         overflow: hidden;
+        page-break-after: always;
     }
-    #barcode-print-area svg { display: block; width: 18mm !important; height: auto !important; }
-    #barcode-print-area .barcode-name { margin: 1mm 0 0; font-size: 7pt; font-weight: bold; text-align: center; line-height: 1.1; max-width: 28mm; overflow: hidden; white-space: nowrap; }
-    #barcode-print-area .barcode-name-si { margin: 0.5mm 0 0; font-size: 5.5pt; font-weight: bold; text-align: center; line-height: 1.1; max-width: 28mm; overflow: hidden; white-space: nowrap; }
+    .bc-label-page svg { display: block; max-width: calc(var(--lw, 40mm) - 4mm) !important; height: auto !important; }
+    .bc-print-name { margin: 0.5mm 0 0; font-size: 7pt; font-weight: 700; text-align: center; line-height: 1.2; max-width: calc(var(--lw, 40mm) - 2mm); overflow: hidden; white-space: nowrap; }
+    .bc-print-name-si { font-size: 6pt; font-weight: 600; text-align: center; line-height: 1.2; max-width: calc(var(--lw, 40mm) - 2mm); overflow: hidden; white-space: nowrap; }
+    .bc-print-price { margin: 0.5mm 0 0; font-size: 8pt; font-weight: 800; color: #000; text-align: center; }
 }
 </style>

@@ -41,6 +41,91 @@ npm run electron:dev
 
 ---
 
+## Building the Electron App
+
+### Prerequisites
+
+- Node.js 18+
+- PHP 8.1 (for Vite build only — bundled PHP is used at runtime)
+- A `php-bundle/` folder containing the bundled PHP 8.1.33 runtime (placed at project root)
+- `build-resources/` folder containing `icon.ico`, `installer-header.bmp`, `license.txt`
+
+---
+
+### 1. Standard Build (offline, bundled PHP + Laravel backend)
+
+This is the full desktop app — ships with PHP, Laravel, and SQLite. No internet required.
+
+```bash
+# 1. Build frontend assets
+npm run build
+
+# 2. Package as Windows installer
+electron-builder --win --x64
+
+# Or both in one command:
+npm run dist
+```
+
+Output: `dist-electron/Lumac POS Setup x.x.x.exe`
+
+---
+
+### 2. Live URL Build (thin client — no backend bundled)
+
+Use this when the Laravel backend is hosted on a server. The Electron app simply loads the remote URL — no PHP or backend files are bundled. The installer is much smaller.
+
+```bash
+# Package (no backend, no PHP)
+npm run dist:live
+```
+
+Output: `dist-electron-live/Lumac POS Live Setup x.x.x.exe`
+
+**Passing the live URL at runtime:**
+
+The URL is read in this priority order:
+
+| Source | Example |
+|---|---|
+| CLI argument | `"Lumac POS Live.exe" --live-url=https://pos.myshop.lk` |
+| Environment variable | `set LIVE_URL=https://pos.myshop.lk` |
+| Fallback | Local PHP server on port 8000 |
+
+To test locally before building:
+```bash
+# Windows
+set LIVE_URL=https://pos.myshop.lk
+npm run electron:live
+
+# Or pass directly
+electron electron/main.cjs --live-url=https://pos.myshop.lk
+```
+
+---
+
+### Build Output Comparison
+
+| Build | Command | Includes | Size (approx) |
+|---|---|---|---|
+| Standard | `npm run dist` | PHP + Laravel + SQLite | ~150 MB |
+| Live URL | `npm run dist:live` | Electron only | ~5 MB |
+
+---
+
+### Development (no build)
+
+```bash
+# Start Laravel dev server + Electron together
+npm run electron:dev
+
+# Or separately
+php artisan serve
+electron electron/main.cjs
+```
+
+---
+
 ## License Key System
 
 The app uses an **offline cryptographic license system** — no internet or server required at any point.

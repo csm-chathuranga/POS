@@ -1,7 +1,7 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
-import { Head, useForm, usePage } from '@inertiajs/vue3';
-import { computed, ref, watch, inject, onMounted } from 'vue';
+import { Head, useForm } from '@inertiajs/vue3';
+import { ref, inject, onMounted } from 'vue';
 import { getPrinters, isElectronRuntime } from '@/utils/printClient.js';
 import { SIDEBAR_PRESETS, PRIMARY_PRESETS, useTheme } from '@/composables/useTheme.js';
 
@@ -17,6 +17,13 @@ const LANGS = [
     { code: 'si', label: 'සිංහල' },
     { code: 'en', label: 'English' },
     { code: 'ta', label: 'தமிழ்' },
+];
+
+const BARCODE_SIZES = [
+    { id: '20x30', label: '20 × 30 mm', desc: 'Small sticker' },
+    { id: '40x25', label: '40 × 25 mm', desc: 'Standard label' },
+    { id: '50x30', label: '50 × 30 mm', desc: 'Medium label' },
+    { id: '58x40', label: '58 × 40 mm', desc: 'Large label' },
 ];
 
 const props = defineProps({
@@ -54,24 +61,6 @@ onMounted(() => {
     loadPrinters();
 });
 
-const flash = computed(() => usePage().props.flash);
-
-const toast = ref(null);
-let toastTimer = null;
-
-watch(() => flash.value?.success, (msg) => {
-    if (!msg) return;
-    toast.value = { type: 'success', message: msg };
-    clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => { toast.value = null; }, 3000);
-});
-
-watch(() => flash.value?.error, (msg) => {
-    if (!msg) return;
-    toast.value = { type: 'error', message: msg };
-    clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => { toast.value = null; }, 4000);
-});
 
 const form = useForm({
     settings: {
@@ -84,29 +73,34 @@ const form = useForm({
         receipt_footer: props.settings.receipt_footer || '',
         ui_language:    props.settings.ui_language    || 'si',
         bill_language:  props.settings.bill_language  || 'si',
-        sidebar_theme:  props.settings.sidebar_theme  || 'slate',
-        primary_color:  props.settings.primary_color  || 'blue',
+        sidebar_theme:      props.settings.sidebar_theme      || 'slate',
+        primary_color:      props.settings.primary_color      || 'blue',
+        barcode_label_size: props.settings.barcode_label_size || '40x25',
+        barcode_show_price: props.settings.barcode_show_price === '1' || props.settings.barcode_show_price === true || props.settings.barcode_show_price === undefined,
+        logo:           props.settings.logo || '',
+        demo_mode:      props.settings.demo_mode === '1' || props.settings.demo_mode === true,
     },
-    logo_file:   null,
-    remove_logo: false,
 });
 
 // Logo preview
-const logoPreview   = ref(props.settings.logo_url || null);
-const logoInput     = ref(null);
+const logoPreview = ref(props.settings.logo || null);
+const logoInput   = ref(null);
 
 function onLogoChange(e) {
     const file = e.target.files[0];
     if (!file) return;
-    form.logo_file   = file;
-    form.remove_logo = false;
-    logoPreview.value = URL.createObjectURL(file);
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+        form.settings.logo = ev.target.result;
+        logoPreview.value  = ev.target.result;
+    };
+    reader.readAsDataURL(file);
+    if (logoInput.value) logoInput.value.value = '';
 }
 
 function removeLogo() {
-    form.logo_file    = null;
-    form.remove_logo  = true;
-    logoPreview.value = null;
+    form.settings.logo = '';
+    logoPreview.value  = null;
     if (logoInput.value) logoInput.value.value = '';
 }
 
@@ -132,9 +126,8 @@ function selectPrimaryColor(id) {
 }
 
 function save() {
-    form.post(route('settings.update'), {
+    form.post('/settings', {
         preserveScroll: true,
-        forceFormData:  true,
     });
 }
 
@@ -186,29 +179,15 @@ async function runMigrations() {
             <h1 class="text-xl font-bold" style="color:#0F172A;">{{ t('page.settings') }}</h1>
         </template>
 
-        <!-- Toast -->
-        <Transition name="toast">
-            <div
-                v-if="toast"
-                class="fixed top-5 right-5 z-50 flex items-center gap-3 px-4 py-3 rounded-xl shadow-lg text-sm font-semibold"
-                :style="toast.type === 'success' ? 'background:#16A34A;color:#fff;' : 'background:#DC2626;color:#fff;'"
-            >
-                <svg v-if="toast.type === 'success'" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                </svg>
-                <svg v-else xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-                {{ toast.message }}
-                <button type="button" @click="toast = null" class="ml-2 opacity-75 hover:opacity-100">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                </button>
-            </div>
-        </Transition>
+        <form @submit.prevent="save" novalidate class="max-w-5xl">
 
-        <form @submit.prevent="save" class="max-w-5xl">
+            <!-- Validation error summary -->
+            <div v-if="form.hasErrors" class="mb-4 px-4 py-3 rounded-lg text-sm" style="background:#FEF2F2; border:1px solid #FCA5A5; color:#DC2626;">
+                <p class="font-semibold mb-1">Please fix the following errors:</p>
+                <ul class="list-disc list-inside space-y-0.5">
+                    <li v-for="(msg, field) in form.errors" :key="field">{{ msg }}</li>
+                </ul>
+            </div>
 
             <!-- ── 2-column grid ── -->
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-5 items-start">
@@ -252,7 +231,7 @@ async function runMigrations() {
                                     <p class="text-xs" style="color:#94A3B8;">PNG / JPG · max 2 MB</p>
                                 </div>
                             </div>
-                            <p v-if="form.errors.logo_file" class="mt-1 text-xs" style="color:#DC2626;">{{ form.errors.logo_file }}</p>
+                            <p v-if="form.errors['settings.logo']" class="mt-1 text-xs" style="color:#DC2626;">{{ form.errors['settings.logo'] }}</p>
                         </div>
 
                         <!-- Shop Name -->
@@ -276,9 +255,33 @@ async function runMigrations() {
                             </div>
                             <div>
                                 <label class="block mb-1 text-sm font-medium" style="color:#334155;">{{ t('set.email') }}</label>
-                                <input v-model="form.settings.shop_email" type="email" class="w-full rounded-lg px-3 py-2 text-sm outline-none" style="border:1px solid #E2E8F0; color:#0F172A;" placeholder="info@store.lk" />
+                                <input v-model="form.settings.shop_email" type="text" class="w-full rounded-lg px-3 py-2 text-sm outline-none" style="border:1px solid #E2E8F0; color:#0F172A;" placeholder="info@store.lk" />
                             </div>
                         </div>
+                    </div>
+
+                    <!-- Demo Mode card -->
+                    <div class="bg-white rounded-xl shadow-sm p-5" style="border:1px solid #E2E8F0;">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm font-semibold" style="color:#0F172A;">Demo Mode</p>
+                                <p class="text-xs mt-0.5" style="color:#94A3B8;">Show demo credentials on the login page. Disable for live deployment.</p>
+                            </div>
+                            <button
+                                type="button"
+                                @click="form.settings.demo_mode = !form.settings.demo_mode"
+                                class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors flex-shrink-0"
+                                :style="form.settings.demo_mode ? 'background:#F59E0B;' : 'background:#D1D5DB;'"
+                            >
+                                <span
+                                    class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform shadow"
+                                    :class="form.settings.demo_mode ? 'translate-x-6' : 'translate-x-1'"
+                                ></span>
+                            </button>
+                        </div>
+                        <p v-if="form.settings.demo_mode" class="mt-2 text-xs font-medium px-2 py-1 rounded" style="background:#FEF3C7; color:#92400E;">
+                            Demo credentials are visible on the login page
+                        </p>
                     </div>
 
                     <!-- Receipt Settings card -->
@@ -416,6 +419,52 @@ async function runMigrations() {
                             </p>
                         </div>
                     </div>
+
+                    <!-- Barcode Label card -->
+                    <div class="bg-white rounded-xl shadow-sm p-5 space-y-4" style="border:1px solid #E2E8F0;">
+                        <h2 class="font-semibold text-[15px]" style="color:#0F172A; border-bottom:1px solid #E2E8F0; padding-bottom:10px;">
+                            🏷 Barcode Label
+                        </h2>
+
+                        <!-- Label Size -->
+                        <div>
+                            <label class="block mb-2 text-xs font-semibold uppercase tracking-wide" style="color:#64748B;">Label Size</label>
+                            <div class="grid grid-cols-2 gap-2">
+                                <button
+                                    v-for="s in BARCODE_SIZES"
+                                    :key="s.id"
+                                    type="button"
+                                    @click="form.settings.barcode_label_size = s.id"
+                                    class="px-3 py-2.5 rounded-lg border-2 text-sm font-medium transition-colors text-left"
+                                    :style="form.settings.barcode_label_size === s.id
+                                        ? 'border-color:#7C3AED; background:#F5F3FF; color:#6D28D9;'
+                                        : 'border-color:#E2E8F0; background:#F8FAFC; color:#334155;'"
+                                >
+                                    <span class="font-semibold">{{ s.label }}</span>
+                                    <span class="block text-xs mt-0.5 opacity-60">{{ s.desc }}</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Show Price toggle -->
+                        <div class="flex items-center justify-between py-1">
+                            <div>
+                                <p class="text-sm font-medium" style="color:#334155;">Show Price on Label</p>
+                                <p class="text-xs mt-0.5" style="color:#94A3B8;">Print selling price below the barcode</p>
+                            </div>
+                            <button
+                                type="button"
+                                @click="form.settings.barcode_show_price = !form.settings.barcode_show_price"
+                                class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors"
+                                :style="form.settings.barcode_show_price ? 'background:#7C3AED;' : 'background:#D1D5DB;'"
+                            >
+                                <span
+                                    class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform shadow"
+                                    :class="form.settings.barcode_show_price ? 'translate-x-6' : 'translate-x-1'"
+                                ></span>
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -450,25 +499,6 @@ async function runMigrations() {
                 <p v-if="selectedPrinter" class="mt-2 text-xs" style="color:#64748B;">
                     Selected: <strong>{{ selectedPrinter }}</strong>
                 </p>
-            </div>
-
-            <!-- License key (Electron only) -->
-            <div v-if="isElectron" class="mt-5 p-4 rounded-xl flex items-center justify-between gap-4" style="background:#F8FAFC; border:1px solid #E2E8F0;">
-                <div>
-                    <p class="text-sm font-semibold" style="color:#0F172A;">License Key</p>
-                    <p class="text-xs mt-0.5" style="color:#64748B;">Received a new license key after payment? Enter it here.</p>
-                </div>
-                <button
-                    type="button"
-                    @click="electronAPI?.changeLicenseKey()"
-                    class="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold text-white shrink-0"
-                    style="background:#2563EB;"
-                >
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
-                    </svg>
-                    Enter New Key
-                </button>
             </div>
 
             <!-- Database backup / restore (Electron only) -->
@@ -537,7 +567,3 @@ async function runMigrations() {
     </AuthenticatedLayout>
 </template>
 
-<style scoped>
-.toast-enter-active, .toast-leave-active { transition: all 0.3s ease; }
-.toast-enter-from, .toast-leave-to { opacity: 0; transform: translateY(-12px); }
-</style>

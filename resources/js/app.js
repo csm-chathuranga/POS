@@ -5,8 +5,8 @@ import { createApp, h } from 'vue';
 import { createInertiaApp } from '@inertiajs/vue3';
 import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
 import { ZiggyVue } from '../../vendor/tightenco/ziggy';
-import { useLocale } from './composables/useLocale';
-import { useTheme } from './composables/useTheme';
+import { useLocale, initLocale } from './composables/useLocale';
+import { useTheme, initTheme } from './composables/useTheme';
 
 const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
 
@@ -14,6 +14,9 @@ createInertiaApp({
     title: (title) => `${title} - ${appName}`,
     resolve: (name) => resolvePageComponent(`./Pages/${name}.vue`, import.meta.glob('./Pages/**/*.vue')),
     setup({ el, App, props, plugin }) {
+        const dbSettings = props.initialPage?.props?.appSettings || {};
+        initLocale(dbSettings);
+        initTheme(dbSettings);
         const { locale, t, toggleLocale, setLocale, billLocale, tBill, setBillLocale } = useLocale();
         const { applyTheme, setSidebarPreset, setPrimaryPreset, sidebarPreset, primaryPreset } = useTheme();
         applyTheme();

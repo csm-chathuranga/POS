@@ -49,6 +49,18 @@ function setPrimaryPreset(id) {
     applyTheme();
 }
 
+export function initTheme(dbSettings) {
+    if (dbSettings?.sidebar_theme && SIDEBAR_PRESETS.find(p => p.id === dbSettings.sidebar_theme)) {
+        sidebarPreset.value = dbSettings.sidebar_theme;
+        localStorage.setItem('sidebarPreset', dbSettings.sidebar_theme);
+    }
+    if (dbSettings?.primary_color && PRIMARY_PRESETS.find(p => p.id === dbSettings.primary_color)) {
+        primaryPreset.value = dbSettings.primary_color;
+        localStorage.setItem('primaryPreset', dbSettings.primary_color);
+    }
+    applyTheme();
+}
+
 export function useTheme() {
     return {
         sidebarPreset: readonly(sidebarPreset),

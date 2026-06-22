@@ -39,10 +39,17 @@ class User extends Authenticatable
      *
      * @var array<string, string>
      */
+    protected $appends = ['role'];
+
     protected $casts = [
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
     ];
+
+    public function getRoleAttribute(): ?string
+    {
+        return $this->getRoleNames()->first();
+    }
 
     public function sales()
     {

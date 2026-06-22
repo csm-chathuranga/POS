@@ -20,7 +20,7 @@ const form = useForm({
     selling_price:   '',
     wholesale_price: '',
     stock_qty:       0,
-    alert_qty:       5,
+    alert_qty:       1,
     unit:            'pcs',
     description:     '',
     active:          true,

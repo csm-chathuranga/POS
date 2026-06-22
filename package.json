@@ -12,7 +12,9 @@
         "electron": "electron electron/main.cjs",
         "electron:dev": "concurrently \"php artisan serve\" \"electron electron/main.cjs\"",
         "dist": "npm run build && electron-builder --win --x64",
-        "dist:dir": "electron-builder --win --x64 --dir"
+        "dist:dir": "electron-builder --win --x64 --dir",
+        "electron:live": "electron electron/main.cjs --live-url=%LIVE_URL%",
+        "dist:live": "electron-builder --win --x64 --config electron-builder.live.json"
     },
     "build": {
         "appId": "lk.lumac.pos",

@@ -144,7 +144,10 @@ class SaleController extends Controller
             'items.*.unit_price'     => 'required|numeric|min:0',
             'items.*.discount'       => 'nullable|numeric|min:0',
             'items.*.total'          => 'required|numeric|min:0',
-            'payment_method'         => 'required|string',
+            'payment_method'         => 'required|string|in:cash,card,credit,split',
+            'card_receipt_no'        => 'nullable|string|max:100',
+            'split_cash'             => 'nullable|numeric|min:0',
+            'split_card'             => 'nullable|numeric|min:0',
             'subtotal'               => 'required|numeric|min:0',
             'discount'               => 'nullable|numeric|min:0',
             'tax'                    => 'nullable|numeric|min:0',
@@ -188,6 +191,18 @@ class SaleController extends Controller
                     ? ProductVariant::lockForUpdate()->findOrFail($item['variant_id'])
                     : null;
 
+                // Validate stock availability inside the lock so concurrent sales can't race
+                $soldQty      = (float) $item['qty'];
+                $availableQty = $variant ? (float) $variant->stock_qty : (float) $product->stock_qty;
+                if ($availableQty < $soldQty) {
+                    $label = $variant
+                        ? $product->name . ' – ' . $variant->label
+                        : $product->name;
+                    throw \Illuminate\Validation\ValidationException::withMessages([
+                        'items' => "Insufficient stock for \"{$label}\". Available: {$availableQty}, requested: {$soldQty}.",
+                    ]);
+                }
+
                 SaleItem::create([
                     'sale_id'      => $sale->id,
                     'product_id'   => $product->id,
@@ -226,13 +241,30 @@ class SaleController extends Controller
                 ]);
             }
 
-            // Record payment
-            Payment::create([
-                'sale_id'   => $sale->id,
-                'method'    => $request->payment_method,
-                'amount'    => $request->paid,
-                'reference' => null,
-            ]);
+            // Record payment(s)
+            if ($request->payment_method === 'split') {
+                $splitCash = (float) ($request->split_cash ?? 0);
+                $splitCard = (float) ($request->split_card ?? 0);
+                Payment::create([
+                    'sale_id'   => $sale->id,
+                    'method'    => 'cash',
+                    'amount'    => $splitCash,
+                    'reference' => null,
+                ]);
+                Payment::create([
+                    'sale_id'   => $sale->id,
+                    'method'    => 'card',
+                    'amount'    => $splitCard,
+                    'reference' => $request->card_receipt_no ?: null,
+                ]);
+            } else {
+                Payment::create([
+                    'sale_id'   => $sale->id,
+                    'method'    => $request->payment_method,
+                    'amount'    => $request->paid,
+                    'reference' => $request->payment_method === 'card' ? $request->card_receipt_no : null,
+                ]);
+            }
 
             // Handle credit sales
             if ($request->payment_method === 'credit' && $request->customer_id) {
@@ -260,14 +292,6 @@ class SaleController extends Controller
         ])->findOrFail($id);
 
         $settings = \App\Models\Setting::all()->pluck('value', 'key')->toArray();
-
-        if (!empty($settings['logo'])) {
-            $settings['logo_url'] = \Illuminate\Support\Facades\Storage::disk('public')->exists($settings['logo'])
-                ? \Illuminate\Support\Facades\Storage::url($settings['logo'])
-                : null;
-        } else {
-            $settings['logo_url'] = null;
-        }
 
         return Inertia::render('Sales/Show', [
             'sale'     => $sale,

@@ -18,7 +18,7 @@ Route::get('/', function () {
     return redirect()->route('login');
 });
 
-Route::middleware(['auth', 'verified'])->group(function () {
+Route::middleware(['auth'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
     // Profile
@@ -43,12 +43,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::resource('sales', SaleController::class)->only(['index', 'create', 'store', 'show']);
     Route::post('/sales/hold', [SaleController::class, 'holdBill'])->name('sales.hold');
     Route::get('/sales/held', [SaleController::class, 'getHeldBills'])->name('sales.held');
-    Route::get('/api/products/search', [ProductController::class, 'search'])->name('products.search');
+    Route::get('/api/products/search',  [ProductController::class, 'search'])->name('products.search');
     Route::get('/api/products/all',     [ProductController::class, 'all'])->name('products.all');
     Route::get('/api/products/version', [ProductController::class, 'version'])->name('products.version');
 
     // Purchases / GRN
-    Route::resource('purchases', PurchaseController::class)->only(['index', 'create', 'store', 'show']);
+    Route::resource('purchases', PurchaseController::class)->only(['index', 'create', 'store', 'show', 'destroy']);
 
     // Reports
     Route::prefix('reports')->name('reports.')->group(function () {
@@ -63,7 +63,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // Settings (admin only)
     Route::get('/settings', [SettingController::class, 'index'])->name('settings.index');
-    Route::post('/settings', [SettingController::class, 'update'])->name('settings.update');
+    Route::post('/settings', [SettingController::class, 'update'])->name('settings.save');
+    Route::post('/api/settings', [SettingController::class, 'update'])->name('settings.update');
 
     // Users & Permissions (admin only)
     Route::resource('users', UserController::class);

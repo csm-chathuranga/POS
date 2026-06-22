@@ -1,5 +1,6 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
+import ConfirmModal from '@/Components/ConfirmModal.vue';
 import { Head, useForm, router } from '@inertiajs/vue3';
 import { ref } from 'vue';
 
@@ -13,21 +14,45 @@ function submit() {
     form.post(route('licenses.store'), { onSuccess: () => form.reset() });
 }
 
-function upgradeLicense(id) {
-    if (confirm('Upgrade this license to paid (no expiry)?')) {
-        router.post(route('licenses.upgrade', id));
-    }
-}
+// Pending action modal: { id, type: 'upgrade'|'reset'|'delete' }
+const pendingAction = ref(null);
+const actionBusy = ref(false);
 
-function resetLicense(id) {
-    if (confirm('Reset this license? The machine will need to re-activate.')) {
-        router.patch(route('licenses.update', id), { is_active: true });
-    }
-}
+const ACTION_CONFIG = {
+    upgrade: {
+        title: 'Upgrade License',
+        message: 'Upgrade this license to paid (no expiry)? This cannot be reversed.',
+        confirmLabel: 'Upgrade',
+        variant: 'primary',
+    },
+    reset: {
+        title: 'Reset License',
+        message: 'Reset this license? The machine will need to re-activate.',
+        confirmLabel: 'Reset',
+        variant: 'warning',
+    },
+    delete: {
+        title: 'Delete License',
+        message: 'Delete this license key permanently? This cannot be undone.',
+        confirmLabel: 'Delete',
+        variant: 'danger',
+    },
+};
 
-function deleteLicense(id) {
-    if (confirm('Delete this license key permanently?')) {
-        router.delete(route('licenses.destroy', id));
+function upgradeLicense(id) { pendingAction.value = { id, type: 'upgrade' }; }
+function resetLicense(id)   { pendingAction.value = { id, type: 'reset' };   }
+function deleteLicense(id)  { pendingAction.value = { id, type: 'delete' };  }
+
+function doAction() {
+    actionBusy.value = true;
+    const id = pendingAction.value.id;
+    const done = () => { actionBusy.value = false; pendingAction.value = null; };
+    if (pendingAction.value.type === 'upgrade') {
+        router.post(route('licenses.upgrade', id), {}, { onFinish: done });
+    } else if (pendingAction.value.type === 'reset') {
+        router.patch(route('licenses.update', id), { is_active: true }, { onFinish: done });
+    } else {
+        router.delete(route('licenses.destroy', id), { onFinish: done });
     }
 }
 
@@ -170,4 +195,16 @@ function copyKey(key) {
             </table>
         </div>
     </AuthenticatedLayout>
+
+    <ConfirmModal
+        v-if="pendingAction"
+        :show="!!pendingAction"
+        :title="ACTION_CONFIG[pendingAction.type].title"
+        :message="ACTION_CONFIG[pendingAction.type].message"
+        :confirm-label="ACTION_CONFIG[pendingAction.type].confirmLabel"
+        :variant="ACTION_CONFIG[pendingAction.type].variant"
+        :busy="actionBusy"
+        @confirm="doAction"
+        @cancel="pendingAction = null"
+    />
 </template>

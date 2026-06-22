@@ -27,6 +27,14 @@ const translations = {
         'nav.devices':     'උපකරණ',
 
         // Buttons
+        'auth.title':         'පිවිසෙන්න',
+        'auth.email':         'විද්‍යුත් තැපෑල',
+        'auth.password':      'මුරපදය',
+        'auth.submit':        'පිවිසෙන්න',
+        'auth.submitting':    'පිවිසෙමින්...',
+        'auth.demo_title':    'Demo ගිණුම් (click to fill)',
+        'auth.demo_password': 'මුරපදය',
+
         'btn.save':        'සුරකින්න',
         'btn.cancel':      'අවලංගු',
         'btn.delete':      'මකන්න',
@@ -368,6 +376,7 @@ const translations = {
         'err.zero_total':      'මුළු මුදල් ශුන්‍ය විය නොහැක.',
         'err.credit_needs_customer':'ණය විකුණුමකට ගනුදෙනුකරු අවශ්‍ය.',
         'err.insufficient_cash':'ගෙවූ මුදල ප්‍රමාණවත් නොවේ.',
+        'err.out_of_stock':    'මෙම භාණ්ඩය තොගයේ නොමැත.',
         'err.generic':         'දෝෂයකි.',
 
         // Credit book modal extras
@@ -405,6 +414,14 @@ const translations = {
         'nav.users':       'Users',
         'nav.licenses':    'Licenses',
         'nav.devices':     'Devices',
+
+        'auth.title':         'Sign In',
+        'auth.email':         'Email',
+        'auth.password':      'Password',
+        'auth.submit':        'Sign In',
+        'auth.submitting':    'Signing in...',
+        'auth.demo_title':    'Demo accounts (click to fill)',
+        'auth.demo_password': 'Password',
 
         'btn.save':        'Save',
         'btn.cancel':      'Cancel',
@@ -726,6 +743,7 @@ const translations = {
         'err.zero_total':      'Total cannot be zero.',
         'err.credit_needs_customer':'Credit sale requires a customer.',
         'err.insufficient_cash':'Insufficient payment amount.',
+        'err.out_of_stock':    'This item is out of stock.',
         'err.generic':         'An error occurred.',
 
         'credit.empty':          'No credit balances',
@@ -762,6 +780,14 @@ const translations = {
         'nav.users':       'பயனர்கள்',
         'nav.licenses':    'உரிமங்கள்',
         'nav.devices':     'சாதனங்கள்',
+
+        'auth.title':         'உள்நுழைக',
+        'auth.email':         'மின்னஞ்சல்',
+        'auth.password':      'கடவுச்சொல்',
+        'auth.submit':        'உள்நுழைக',
+        'auth.submitting':    'உள்நுழைகிறது...',
+        'auth.demo_title':    'Demo கணக்குகள் (நிரப்ப கிளிக் செய்யவும்)',
+        'auth.demo_password': 'கடவுச்சொல்',
 
         'btn.save':        'சேமி',
         'btn.cancel':      'ரத்து',
@@ -1083,6 +1109,7 @@ const translations = {
         'err.zero_total':      'மொத்தம் பூஜ்யமாக இருக்க முடியாது.',
         'err.credit_needs_customer':'கடன் விற்பனைக்கு வாடிக்கையாளர் தேவை.',
         'err.insufficient_cash':'கட்டண தொகை போதுமானதில்லை.',
+        'err.out_of_stock':    'இந்த பொருள் கையிருப்பில் இல்லை.',
         'err.generic':         'பிழை ஏற்பட்டது.',
 
         'credit.empty':          'கடன் இருப்பு இல்லை',
@@ -1130,6 +1157,17 @@ function setBillLocale(lang) {
     if (LOCALES.includes(lang)) {
         billLocale.value = lang;
         localStorage.setItem('billLocale', lang);
+    }
+}
+
+export function initLocale(dbSettings) {
+    if (dbSettings?.ui_language && LOCALES.includes(dbSettings.ui_language)) {
+        locale.value = dbSettings.ui_language;
+        localStorage.setItem('locale', dbSettings.ui_language);
+    }
+    if (dbSettings?.bill_language && LOCALES.includes(dbSettings.bill_language)) {
+        billLocale.value = dbSettings.bill_language;
+        localStorage.setItem('billLocale', dbSettings.bill_language);
     }
 }
 

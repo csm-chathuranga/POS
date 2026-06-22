@@ -1,7 +1,9 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
-import { Head, Link, useForm } from '@inertiajs/vue3';
+import { Head, Link, useForm, router } from '@inertiajs/vue3';
 import { computed, ref, inject, nextTick } from 'vue';
+import axios from 'axios';
+import { invalidateProducts } from '@/stores/productCache';
 
 const t = inject('t');
 
@@ -9,6 +11,11 @@ const props = defineProps({
     suppliers: { type: Array, default: () => [] },
     products: { type: Array, default: () => [] },
 });
+
+// Extra products created via quick-add modal during this session
+const quickAddedProducts = ref([]);
+// Computed so adding to quickAddedProducts always invalidates filteredProducts/getSelectedProduct
+const localProducts = computed(() => [...props.products, ...quickAddedProducts.value]);
 
 const today = new Date().toISOString().slice(0, 10);
 
@@ -18,7 +25,7 @@ const form = useForm({
     note: '',
     total: 0,
     items: [
-        { product_id: '', qty: 1, cost_price: 0, total: 0 }
+        { product_id: '', qty: 1, cost_price: 0, selling_price: 0, wholesale_price: 0, total: 0 }
     ],
 });
 
@@ -26,10 +33,86 @@ const form = useForm({
 const searchQueries = ref(['']);
 const openIndex = ref(null);
 
+// Quick-add product modal
+const showNewProductModal  = ref(false);
+const newProductRowIndex   = ref(null);
+const newProductSaving     = ref(false);
+const newProductError      = ref('');
+const newProductForm       = ref({
+    name: '', name_si: '', barcode: '',
+    cost_price: '', selling_price: '', wholesale_price: '', unit: 'pcs',
+});
+
+function openNewProductModal(index, barcode = '') {
+    newProductRowIndex.value = index;
+    newProductError.value    = '';
+    newProductForm.value     = { name: '', name_si: '', barcode, cost_price: '', selling_price: '', wholesale_price: '', unit: 'pcs' };
+    showNewProductModal.value = true;
+    nextTick(() => document.getElementById('new-product-name')?.focus());
+}
+
+function modalFocusNext(currentId) {
+    const order = ['new-product-name', 'new-product-name-si', 'new-product-barcode', 'new-product-unit',
+                   'new-product-cost', 'new-product-selling', 'new-product-wholesale'];
+    const idx = order.indexOf(currentId);
+    if (idx !== -1 && idx < order.length - 1) {
+        nextTick(() => document.getElementById(order[idx + 1])?.focus());
+    } else {
+        saveNewProduct();
+    }
+}
+
+async function saveNewProduct() {
+    newProductError.value = '';
+    if (!newProductForm.value.name.trim()) { newProductError.value = 'Product name is required.'; return; }
+    if (!newProductForm.value.selling_price) { newProductError.value = 'Selling price is required.'; return; }
+    newProductSaving.value = true;
+    try {
+        // Get CSRF token from cookie for plain axios requests
+        const token = document.cookie.split(';').map(c => c.trim())
+            .find(c => c.startsWith('XSRF-TOKEN='))?.split('=')[1];
+        const res = await axios.post('/products', { ...newProductForm.value, quick_create: true }, {
+            headers: {
+                'X-XSRF-TOKEN': token ? decodeURIComponent(token) : '',
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'application/json',
+            },
+        });
+        const product = res.data;
+        const rowIndex = newProductRowIndex.value;
+        // Close modal first
+        showNewProductModal.value = false;
+        await nextTick();
+        // Add to local computed list
+        quickAddedProducts.value = [...quickAddedProducts.value, product];
+        await nextTick();
+        // Pre-fill search with product name and open the dropdown for this row
+        searchQueries.value[rowIndex] = product.name;
+        openIndex.value = rowIndex;
+        // Focus the search input
+        const searchId = `search-${rowIndex}`;
+        const searchEl = document.getElementById(searchId);
+        if (searchEl) { searchEl.focus(); searchEl.select(); }
+        // Reload products prop in background
+        router.reload({ only: ['products'], preserveState: true, preserveScroll: true });
+    } catch (err) {
+        const errors = err.response?.data?.errors;
+        if (errors) {
+            newProductError.value = Object.values(errors).flat().join(' ');
+        } else if (err.response?.data?.message) {
+            newProductError.value = err.response.data.message;
+        } else {
+            newProductError.value = `Error ${err.response?.status ?? ''}: ${err.message}`;
+        }
+    } finally {
+        newProductSaving.value = false;
+    }
+}
+
 function filteredProducts(index) {
     const q = (searchQueries.value[index] || '').toLowerCase().trim();
-    if (!q) return props.products.slice(0, 50);
-    return props.products.filter(p =>
+    if (!q) return localProducts.value.slice(0, 50);
+    return localProducts.value.filter(p =>
         (p.name && p.name.toLowerCase().includes(q)) ||
         (p.name_si && p.name_si.includes(searchQueries.value[index].trim())) ||
         (p.barcode && p.barcode.toLowerCase().includes(q)) ||
@@ -38,8 +121,14 @@ function filteredProducts(index) {
 }
 
 function selectProduct(index, product) {
-    form.items[index].product_id = product.id;
-    form.items[index].cost_price = product.cost_price || 0;
+    // Splice for full Vue reactivity on Inertia form items
+    form.items.splice(index, 1, {
+        ...form.items[index],
+        product_id:      product.id,
+        cost_price:      product.cost_price      || 0,
+        selling_price:   product.selling_price   || 0,
+        wholesale_price: product.wholesale_price || 0,
+    });
     searchQueries.value[index] = product.name;
     openIndex.value = null;
 }
@@ -62,6 +151,32 @@ function clearProduct(index) {
     });
 }
 
+function onSearchKeydown(index, e) {
+    if (e.key === 'Enter') {
+        e.preventDefault();
+        const q = (searchQueries.value[index] || '').trim();
+        if (!q) return;
+        // Exact barcode match first
+        let match = localProducts.value.find(p => p.barcode && p.barcode.toLowerCase() === q.toLowerCase());
+        // Fall back to single result
+        if (!match) {
+            const results = filteredProducts(index);
+            if (results.length === 1) match = results[0];
+        }
+        if (match) {
+            selectProduct(index, match);
+            nextTick(() => {
+                const row = document.querySelectorAll('.purchase-qty-input')[index];
+                if (row) { row.focus(); row.select(); }
+            });
+        } else {
+            // No product found — open quick-add modal with the scanned barcode
+            openIndex.value = null;
+            openNewProductModal(index, q);
+        }
+    }
+}
+
 function onSearchBlur(index) {
     // Delay close so click on dropdown item registers first
     setTimeout(() => {
@@ -69,7 +184,7 @@ function onSearchBlur(index) {
         // If user blurred without selecting, restore the product name or clear
         const item = form.items[index];
         if (item.product_id) {
-            const product = props.products.find(p => p.id == item.product_id);
+            const product = localProducts.value.find(p => p.id == item.product_id);
             if (product) searchQueries.value[index] = product.name;
         } else {
             searchQueries.value[index] = '';
@@ -78,11 +193,11 @@ function onSearchBlur(index) {
 }
 
 function getSelectedProduct(index) {
-    return props.products.find(p => p.id == form.items[index].product_id) || null;
+    return localProducts.value.find(p => p.id == form.items[index].product_id) || null;
 }
 
 function addRow() {
-    form.items.push({ product_id: '', qty: 1, cost_price: 0, total: 0 });
+    form.items.push({ product_id: '', qty: 1, cost_price: 0, selling_price: 0, wholesale_price: 0, total: 0 });
     searchQueries.value.push('');
 }
 
@@ -109,7 +224,9 @@ function submit() {
         item.total = Number(item.qty || 0) * Number(item.cost_price || 0);
     });
     form.total = grandTotal.value;
-    form.post(route('purchases.store'));
+    form.post(route('purchases.store'), {
+        onSuccess: () => invalidateProducts(),
+    });
 }
 </script>
 
@@ -128,7 +245,7 @@ function submit() {
             </div>
         </template>
 
-        <div class="max-w-4xl">
+        <div>
             <form @submit.prevent="submit" class="space-y-4">
 
                 <!-- Header Card -->
@@ -142,7 +259,7 @@ function submit() {
                                 class="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[44px]"
                                 :class="{ 'border-red-500': form.errors.supplier_id }"
                             >
-                                <option value="">{{ t('lbl.select_customer') }}</option>
+                                <option value="">{{ t('pur.select_supplier') }}</option>
                                 <option v-for="supplier in suppliers" :key="supplier.id" :value="supplier.id">
                                     {{ supplier.name }}{{ supplier.company ? ` - ${supplier.company}` : '' }}
                                 </option>
@@ -150,7 +267,7 @@ function submit() {
                             <p v-if="form.errors.supplier_id" class="text-red-500 text-xs mt-1">{{ form.errors.supplier_id }}</p>
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">{{ t('lbl.date') }} <span class="text-red-500">*</span></label>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">{{ t('lbl.date_time') }} <span class="text-red-500">*</span></label>
                             <input
                                 v-model="form.purchase_date"
                                 type="date"
@@ -190,9 +307,11 @@ function submit() {
                     <!-- Desktop layout -->
                     <div class="hidden md:block">
                         <div class="grid grid-cols-12 gap-2 mb-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                            <div class="col-span-5">{{ t('th.product') }}</div>
-                            <div class="col-span-2 text-center">{{ t('th.qty') }}</div>
-                            <div class="col-span-3">{{ t('th.cost') }} (Rs.)</div>
+                            <div class="col-span-3">{{ t('th.product') }}</div>
+                            <div class="col-span-1 text-center">{{ t('th.qty') }}</div>
+                            <div class="col-span-2">{{ t('th.cost') }} (Rs.)</div>
+                            <div class="col-span-2">Selling (Rs.)</div>
+                            <div class="col-span-2">Wholesale (Rs.)</div>
                             <div class="col-span-2 text-right">{{ t('lbl.total') }}</div>
                         </div>
 
@@ -202,7 +321,7 @@ function submit() {
                             class="grid grid-cols-12 gap-2 mb-2 items-start"
                         >
                             <!-- Product search -->
-                            <div class="col-span-5 relative">
+                            <div class="col-span-3 relative">
                                 <!-- Selected product display -->
                                 <div v-if="item.product_id && openIndex !== index"
                                     class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm min-h-[44px] flex items-center justify-between cursor-pointer hover:border-blue-400 bg-white"
@@ -232,11 +351,12 @@ function submit() {
                                         v-model="searchQueries[index]"
                                         type="text"
                                         autocomplete="off"
-                                        placeholder="Search product..."
+                                        placeholder="Search or scan barcode..."
                                         class="w-full border border-gray-300 rounded-lg pl-9 pr-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[44px]"
                                         :class="{ 'border-red-500': form.errors[`items.${index}.product_id`] }"
                                         @focus="openSearch(index)"
                                         @blur="onSearchBlur(index)"
+                                        @keydown="onSearchKeydown(index, $event)"
                                     />
                                 </div>
 
@@ -269,32 +389,52 @@ function submit() {
                                 </p>
                             </div>
 
-                            <div class="col-span-2">
+                            <div class="col-span-1">
                                 <input
                                     v-model="item.qty"
                                     type="number"
                                     min="1"
-                                    class="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm text-center focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[44px]"
+                                    class="purchase-qty-input w-full border border-gray-300 rounded-lg px-2 py-2.5 text-sm text-center focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[44px]"
                                 />
                             </div>
-                            <div class="col-span-3">
+                            <div class="col-span-2">
                                 <input
                                     v-model="item.cost_price"
                                     type="number"
                                     step="0.01"
                                     min="0"
-                                    class="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[44px]"
+                                    class="w-full border border-gray-300 rounded-lg px-2 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[44px]"
                                 />
                             </div>
-                            <div class="col-span-1 text-right font-medium text-gray-700 text-sm pt-3">
-                                {{ formatCurrency(item.qty * item.cost_price) }}
+                            <div class="col-span-2">
+                                <input
+                                    v-model="item.selling_price"
+                                    type="number"
+                                    step="0.01"
+                                    min="0"
+                                    required
+                                    class="w-full border border-gray-300 rounded-lg px-2 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 min-h-[44px]"
+                                    :class="{ 'border-red-500': form.errors[`items.${index}.selling_price`] }"
+                                />
                             </div>
-                            <div class="col-span-1 flex justify-end pt-2">
+                            <div class="col-span-2">
+                                <input
+                                    v-model="item.wholesale_price"
+                                    type="number"
+                                    step="0.01"
+                                    min="0"
+                                    required
+                                    class="w-full border border-gray-300 rounded-lg px-2 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 min-h-[44px]"
+                                    :class="{ 'border-red-500': form.errors[`items.${index}.wholesale_price`] }"
+                                />
+                            </div>
+                            <div class="col-span-2 flex items-center justify-end gap-3 pt-1">
+                                <span class="font-medium text-gray-700 text-sm flex-1 text-right">{{ formatCurrency(item.qty * item.cost_price) }}</span>
                                 <button
                                     type="button"
                                     @click="removeRow(index)"
                                     :disabled="form.items.length === 1"
-                                    class="text-red-400 hover:text-red-600 disabled:opacity-30 p-1"
+                                    class="text-red-400 hover:text-red-600 disabled:opacity-30 p-1 flex-shrink-0"
                                 >
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -393,17 +533,39 @@ function submit() {
                                         v-model="item.qty"
                                         type="number"
                                         min="1"
-                                        class="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[44px]"
+                                        class="purchase-qty-input w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[44px]"
                                     />
                                 </div>
                                 <div>
-                                    <label class="block text-xs text-gray-500 mb-1">{{ t('th.cost') }}</label>
+                                    <label class="block text-xs text-gray-500 mb-1">{{ t('th.cost') }} (Rs.)</label>
                                     <input
                                         v-model="item.cost_price"
                                         type="number"
                                         step="0.01"
                                         min="0"
                                         class="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[44px]"
+                                    />
+                                </div>
+                                <div>
+                                    <label class="block text-xs text-gray-500 mb-1">Selling (Rs.) <span class="text-red-500">*</span></label>
+                                    <input
+                                        v-model="item.selling_price"
+                                        type="number"
+                                        step="0.01"
+                                        min="0"
+                                        required
+                                        class="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 min-h-[44px]"
+                                    />
+                                </div>
+                                <div>
+                                    <label class="block text-xs text-gray-500 mb-1">Wholesale (Rs.) <span class="text-red-500">*</span></label>
+                                    <input
+                                        v-model="item.wholesale_price"
+                                        type="number"
+                                        step="0.01"
+                                        min="0"
+                                        required
+                                        class="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 min-h-[44px]"
                                     />
                                 </div>
                             </div>
@@ -444,5 +606,129 @@ function submit() {
                 </div>
             </form>
         </div>
+        <!-- Quick Add Product Modal -->
+        <Teleport to="body">
+            <div v-if="showNewProductModal" class="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+                <!-- Backdrop -->
+                <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" @click="showNewProductModal = false"></div>
+
+                <!-- Panel -->
+                <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-md" @click.stop>
+                    <!-- Header -->
+                    <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+                        <div class="flex items-center gap-2">
+                            <div class="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                                </svg>
+                            </div>
+                            <h3 class="text-base font-bold text-gray-800">Add New Product</h3>
+                        </div>
+                        <button type="button" @click="showNewProductModal = false" class="text-gray-400 hover:text-gray-600 p-1">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+                    </div>
+
+                    <!-- Body -->
+                    <div class="px-6 py-5 space-y-4">
+                        <p v-if="newProductForm.barcode" class="text-xs text-blue-600 bg-blue-50 rounded-lg px-3 py-2 font-mono">
+                            Barcode: {{ newProductForm.barcode }}
+                        </p>
+
+                        <p v-if="newProductError" class="text-xs text-red-600 bg-red-50 rounded-lg px-3 py-2">{{ newProductError }}</p>
+
+                        <div class="grid grid-cols-2 gap-3">
+                            <div class="col-span-2">
+                                <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Product Name <span class="text-red-500">*</span></label>
+                                <input
+                                    id="new-product-name"
+                                    v-model="newProductForm.name"
+                                    type="text"
+                                    placeholder="English name"
+                                    class="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    @keydown.enter.prevent="modalFocusNext('new-product-name')"
+                                />
+                            </div>
+                            <div class="col-span-2">
+                                <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">සිංහල නම</label>
+                                <input
+                                    id="new-product-name-si"
+                                    v-model="newProductForm.name_si"
+                                    type="text"
+                                    placeholder="Sinhala name (optional)"
+                                    class="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    @keydown.enter.prevent="modalFocusNext('new-product-name-si')"
+                                />
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Barcode</label>
+                                <input
+                                    id="new-product-barcode"
+                                    v-model="newProductForm.barcode"
+                                    type="text"
+                                    class="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    @keydown.enter.prevent="modalFocusNext('new-product-barcode')"
+                                />
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Unit</label>
+                                <select id="new-product-unit" v-model="newProductForm.unit"
+                                    class="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    @keydown.enter.prevent="modalFocusNext('new-product-unit')"
+                                >
+                                    <option>pcs</option>
+                                    <option>kg</option>
+                                    <option>g</option>
+                                    <option>L</option>
+                                    <option>ml</option>
+                                    <option>box</option>
+                                    <option>pack</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Cost (Rs.)</label>
+                                <input id="new-product-cost" v-model="newProductForm.cost_price" type="number" step="0.01" min="0" placeholder="0.00"
+                                    class="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    @keydown.enter.prevent="modalFocusNext('new-product-cost')" />
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Selling (Rs.) <span class="text-red-500">*</span></label>
+                                <input id="new-product-selling" v-model="newProductForm.selling_price" type="number" step="0.01" min="0" placeholder="0.00"
+                                    class="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                                    @keydown.enter.prevent="modalFocusNext('new-product-selling')" />
+                            </div>
+                            <div class="col-span-2">
+                                <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Wholesale (Rs.)</label>
+                                <input id="new-product-wholesale" v-model="newProductForm.wholesale_price" type="number" step="0.01" min="0" placeholder="0.00"
+                                    class="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+                                    @keydown.enter.prevent="modalFocusNext('new-product-wholesale')" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Footer -->
+                    <div class="flex gap-3 px-6 py-4 border-t border-gray-100">
+                        <button
+                            type="button"
+                            @click="saveNewProduct"
+                            :disabled="newProductSaving"
+                            class="flex-1 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-semibold py-2.5 rounded-xl text-sm transition-colors flex items-center justify-center gap-2"
+                        >
+                            <svg v-if="newProductSaving" class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                            </svg>
+                            {{ newProductSaving ? 'Saving...' : 'Save Product' }}
+                        </button>
+                        <button type="button" @click="showNewProductModal = false"
+                            class="px-5 py-2.5 rounded-xl border border-gray-200 text-gray-600 hover:bg-gray-50 text-sm font-semibold transition-colors">
+                            Cancel
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </Teleport>
     </AuthenticatedLayout>
 </template>
