@@ -12,6 +12,7 @@ const props = defineProps({
     settings: { type: Object, default: () => ({}) },
 });
 
+
 const shopName    = computed(() => props.settings.shop_name    || 'LUMAC POS');
 const shopAddress = computed(() => props.settings.shop_address || '');
 const shopPhone   = computed(() => props.settings.shop_phone   || '');
