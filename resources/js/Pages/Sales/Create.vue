@@ -203,7 +203,8 @@ const customWeightInput = ref(null);
 let blockNextDropdownOpen = false; // prevents dropdown reopening after outside click
 
 function selectSize(size) {
-    const p = sizePickerProduct.value;
+    const p   = sizePickerProduct.value;
+    const qty = parseFloat(sizePickerQty.value) || null;
     showSizePicker.value    = false;
     sizePickerProduct.value = null;
     sizeActiveIndex.value   = 0;
@@ -217,7 +218,7 @@ function selectSize(size) {
         wholesale_price: size.price,
         unit:            'pcs',
         sizes:           [],
-    });
+    }, qty, false);
 }
 
 function addCustomWeight() {
@@ -264,36 +265,42 @@ const keyIntervals   = ref([]);
 const isScanMode     = ref(false);
 
 // ─── Barcode scan detection (qty field) ───────────────────────────────────────
-// Barcode scanners fire chars < 60ms apart. We buffer them and redirect to cart
-// when Enter arrives, rather than letting the barcode corrupt the qty value.
+// All digit keys are intercepted so @input never fires during a scan.
+// A 80ms timer reveals the char if no second fast char arrives (manual typing).
 let qtyBuffer      = '';
 let qtyLastKeyTime = 0;
 let qtyIsScanning  = false;
 let qtySavedQty    = null;
+let qtyScanTimer   = null;
 
 function resetQtyState() {
     qtyBuffer      = '';
     qtyLastKeyTime = 0;
     qtyIsScanning  = false;
     qtySavedQty    = null;
+    if (qtyScanTimer) { clearTimeout(qtyScanTimer); qtyScanTimer = null; }
 }
 
 function onQtyKeydown(e, item) {
     if (e.key === 'Enter') {
         e.preventDefault();
+        if (qtyScanTimer) { clearTimeout(qtyScanTimer); qtyScanTimer = null; }
+
         if (qtyIsScanning && qtyBuffer.length >= 3) {
-            const barcode = qtyBuffer;
+            // Scanner confirmed — restore qty and add the scanned product
+            const barcode  = qtyBuffer;
+            const savedQty = qtySavedQty;
             resetQtyState();
-            // Restore qty that the scanner's first char corrupted
-            if (qtySavedQty !== null) {
-                item.qty = qtySavedQty;
-                recalcLine(item);
-                e.target.value = qtySavedQty ?? '';
-                qtySavedQty = null;
-            }
+            if (savedQty !== null) { item.qty = savedQty; e.target.value = savedQty; recalcLine(item); }
             const hit = allProducts.value.find(p => p.barcode === barcode);
-            if (hit) addToCart(hit);
-            else refocusSearch();
+            if (hit) addToCart(hit, null, false);
+            refocusSearch();
+        } else if (!qtyIsScanning && qtyBuffer.length > 0) {
+            // Manual qty typed — apply the buffered value as the new qty
+            const newQty = parseFloat(qtyBuffer);
+            resetQtyState();
+            if (!isNaN(newQty) && newQty > 0) updateQty(item, newQty, e.target);
+            refocusSearch();
         } else {
             resetQtyState();
             refocusSearch();
@@ -301,23 +308,45 @@ function onQtyKeydown(e, item) {
         return;
     }
 
-    if (e.key.length !== 1) return;
+    if (e.key === 'Backspace') {
+        if (!qtyIsScanning && qtyBuffer.length > 0) {
+            e.preventDefault();
+            qtyBuffer      = qtyBuffer.slice(0, -1);
+            e.target.value = qtyBuffer || '';
+        } else {
+            resetQtyState(); // discard scan buffer on backspace
+        }
+        return;
+    }
+
+    // Only intercept printable digit / decimal chars
+    if (e.key.length !== 1 || !/[0-9.]/.test(e.key)) return;
+
+    e.preventDefault(); // always intercept — prevents @input from corrupting item.qty
 
     const now      = Date.now();
     const interval = qtyLastKeyTime > 0 ? now - qtyLastKeyTime : 9999;
     qtyLastKeyTime = now;
 
+    if (qtyScanTimer) { clearTimeout(qtyScanTimer); qtyScanTimer = null; }
+
     if (interval < 60 && qtyBuffer.length > 0) {
-        // Fast subsequent char → scanner; intercept so it doesn't go into the input
+        // Fast char after buffered content → scanner confirmed
         qtyIsScanning = true;
         qtyBuffer    += e.key;
-        e.preventDefault();
     } else {
-        // First char or manual typing — save current qty before it gets overwritten
-        qtySavedQty  = item.qty;
-        qtyBuffer    = e.key;
+        // First char, or slow manual char
+        if (qtyBuffer.length === 0) qtySavedQty = item.qty; // save original on first char
         qtyIsScanning = false;
-        // Let this char through to the input normally
+        qtyBuffer    += e.key;
+
+        // Show the typed char(s) after 80ms if no fast second char arrives (manual typing)
+        const el   = e.target;
+        const snap = qtyBuffer;
+        qtyScanTimer = setTimeout(() => {
+            qtyScanTimer = null;
+            if (!qtyIsScanning && qtyBuffer === snap) el.value = qtyBuffer;
+        }, 80);
     }
 }
 
@@ -412,7 +441,8 @@ async function onSearchEnter(e) {
         searchResults.value = [];
         showDropdown.value  = false;
         const hit = allProducts.value.find(p => p.barcode === q);
-        if (hit) addToCart(hit);
+        if (hit) addToCart(hit, null, false); // false = don't move focus to qty after scan
+        refocusSearch();
         return;
     }
 
@@ -450,7 +480,7 @@ function setPriceMode(mode) {
     });
 }
 
-function addToCart(product, initialQty = null) {
+function addToCart(product, initialQty = null, focusQty = true) {
     // Show size picker first — stock lives on variants, not the parent
     if (product.sizes?.length > 0) {
         sizePickerProduct.value = product;
@@ -489,11 +519,13 @@ function addToCart(product, initialQty = null) {
             existing.qty = Math.min(existing.qty + 1, maxQty);
             recalcLine(existing);
         }
-        nextTick(() => {
-            const idx = cart.value.indexOf(existing);
-            const inputs = document.querySelectorAll('.cart-qty-input');
-            if (inputs[idx]) { inputs[idx].focus(); inputs[idx].select(); }
-        });
+        if (focusQty) {
+            nextTick(() => {
+                const idx = cart.value.indexOf(existing);
+                const inputs = document.querySelectorAll('.cart-qty-input');
+                if (inputs[idx]) { inputs[idx].focus(); inputs[idx].select(); }
+            });
+        }
     } else {
         const wsPrice = parseFloat(product.wholesale_price) || 0;
         const unitPrice = priceMode.value === 'wholesale' && wsPrice > 0
@@ -517,7 +549,7 @@ function addToCart(product, initialQty = null) {
             alert_qty:       product.alert_qty || 5,
         });
         if (startQty !== null) recalcLine(cart.value[cart.value.length - 1]);
-        nextTick(() => {
+        if (focusQty) nextTick(() => {
             const inputs = document.querySelectorAll('.cart-qty-input');
             const last = inputs[inputs.length - 1];
             if (last) { last.focus(); last.select(); }
@@ -833,6 +865,18 @@ const focusedPriceIdx = ref(null);
                         </span>
                     </template>
                 </div>
+
+                <!-- Day End Report -->
+                <Link
+                    :href="route('reports.day-end')"
+                    class="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold bg-indigo-600 hover:bg-indigo-700 text-white transition-colors"
+                    title="Day End Report"
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    Day End
+                </Link>
 
                 <!-- Dark mode toggle -->
                 <button

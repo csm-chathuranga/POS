@@ -1,6 +1,6 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
-import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
+import { Head, Link, useForm, usePage, router } from '@inertiajs/vue3';
 import { ref, computed, watch, inject } from 'vue';
 
 const t = inject('t');
@@ -8,7 +8,12 @@ const t = inject('t');
 const props = defineProps({
     customers:   { type: Array, default: () => [] },
     totalCredit: { type: Number, default: 0 },
+    history:     { type: Boolean, default: false },
 });
+
+function switchTab(toHistory) {
+    router.get(route('naya-potha.index'), toHistory ? { history: 1 } : {}, { preserveScroll: false });
+}
 
 const flash = computed(() => usePage().props.flash);
 const toast = ref(null);
@@ -107,13 +112,43 @@ function totalInvoiced(customer) {
             </div>
         </Transition>
 
+        <!-- Active / History tabs -->
+        <div class="mb-5 flex gap-1 p-1 rounded-xl w-fit" style="background:#F1F5F9;">
+            <button
+                type="button"
+                @click="switchTab(false)"
+                class="px-5 py-2 rounded-lg text-sm font-semibold transition-all"
+                :style="!history
+                    ? 'background:white; color:#DC2626; box-shadow:0 1px 3px rgba(0,0,0,.1);'
+                    : 'color:#64748B;'"
+            >
+                <span class="flex items-center gap-1.5">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
+                    ක්‍රියාත්මක ණය
+                </span>
+            </button>
+            <button
+                type="button"
+                @click="switchTab(true)"
+                class="px-5 py-2 rounded-lg text-sm font-semibold transition-all"
+                :style="history
+                    ? 'background:white; color:#7C3AED; box-shadow:0 1px 3px rgba(0,0,0,.1);'
+                    : 'color:#64748B;'"
+            >
+                <span class="flex items-center gap-1.5">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                    පැරණි වාර්තා
+                </span>
+            </button>
+        </div>
+
         <!-- Summary cards -->
         <div class="mb-5 grid grid-cols-2 sm:grid-cols-3 gap-4">
             <div class="bg-white rounded-xl p-4 shadow-sm" style="border:1px solid #E2E8F0;">
-                <p class="text-xs text-slate-500 mb-1">{{ t('credit.customers') }}</p>
-                <p class="text-2xl font-bold" style="color:#DC2626;">{{ customers.length }}</p>
+                <p class="text-xs text-slate-500 mb-1">{{ history ? 'ගෙවූ ගනුදෙනුකරුවන්' : t('credit.customers') }}</p>
+                <p class="text-2xl font-bold" :style="history ? 'color:#7C3AED;' : 'color:#DC2626;'">{{ customers.length }}</p>
             </div>
-            <div class="bg-white rounded-xl p-4 shadow-sm" style="border:1px solid #E2E8F0;">
+            <div v-if="!history" class="bg-white rounded-xl p-4 shadow-sm" style="border:1px solid #E2E8F0;">
                 <p class="text-xs text-slate-500 mb-1">{{ t('credit.balance_label') }}</p>
                 <p class="text-2xl font-bold" style="color:#DC2626;">{{ fmt(totalCredit) }}</p>
             </div>
@@ -139,8 +174,8 @@ function totalInvoiced(customer) {
             <svg xmlns="http://www.w3.org/2000/svg" class="h-14 w-14 mx-auto mb-3" style="color:#CBD5E1;" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
             </svg>
-            <p class="text-slate-500 font-medium">{{ t('credit.empty') }}</p>
-            <p class="text-slate-400 text-sm mt-1">{{ t('credit.all_paid') }}</p>
+            <p class="text-slate-500 font-medium">{{ history ? 'පැරණි ණය වාර්තා නොමැත' : t('credit.empty') }}</p>
+            <p class="text-slate-400 text-sm mt-1">{{ history ? 'ණය ගෙවූ ගනුදෙනුකරුවන් මෙහි දිස්වේ' : t('credit.all_paid') }}</p>
         </div>
 
         <!-- No search results -->
@@ -171,8 +206,8 @@ function totalInvoiced(customer) {
                         <button type="button" @click="openReport(c)" class="px-3 py-1.5 rounded-lg text-xs font-semibold" style="background:#EFF6FF; color:#2563EB; border:1px solid #BFDBFE;">
                             {{ t('btn.report') }}
                         </button>
-                        <!-- Settle -->
-                        <button type="button" @click="openSettle(c)" class="px-3 py-1.5 rounded-lg text-xs font-semibold text-white" style="background-color:#16A34A;">
+                        <!-- Settle (active mode only) -->
+                        <button v-if="!history" type="button" @click="openSettle(c)" class="px-3 py-1.5 rounded-lg text-xs font-semibold text-white" style="background-color:#16A34A;">
                             {{ t('credit.settle_btn') }}
                         </button>
                         <!-- Expand toggle -->
@@ -451,6 +486,7 @@ function totalInvoiced(customer) {
                     <!-- Footer -->
                     <div class="px-6 py-4 flex gap-3" style="border-top:1px solid #E2E8F0;">
                         <button
+                            v-if="!history"
                             type="button"
                             @click="openSettle(reportCustomer); reportCustomer = null"
                             class="flex-1 text-white font-semibold py-2.5 rounded-xl text-sm"

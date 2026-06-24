@@ -22,6 +22,10 @@ function fmt(val) {
     });
 }
 
+function fmtQty(val) {
+    return parseFloat(Number(val || 0).toFixed(3)).toString();
+}
+
 function formatDate(dateStr) {
     if (!dateStr) return '';
     return new Date(dateStr).toLocaleDateString('en-LK', {
@@ -148,7 +152,7 @@ async function printReceipt() {
             <div v-for="item in items" :key="item.id || item.product_id" class="receipt-item">
                 <div class="receipt-item-name">{{ item.name }}</div>
                 <div class="receipt-item-row">
-                    <span class="receipt-col-qty">{{ item.qty }}</span>
+                    <span class="receipt-col-qty">{{ fmtQty(item.qty) }}</span>
                     <span class="receipt-col-price">{{ fmt(item.unit_price) }}</span>
                     <span class="receipt-col-total">{{ fmt(item.total ?? (item.qty * item.unit_price)) }}</span>
                 </div>

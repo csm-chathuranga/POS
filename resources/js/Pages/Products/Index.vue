@@ -66,6 +66,10 @@ function formatCurrency(value) {
     return 'Rs. ' + Number(value).toLocaleString('en-LK', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
+function fmtQty(val) {
+    return parseFloat(Number(val || 0).toFixed(3)).toString();
+}
+
 const deleteTarget = ref(null);
 const deleting = ref(false);
 
@@ -132,14 +136,19 @@ async function doPrint() {
     await nextTick();
     renderBarcode(printBarcodeSvg.value);
     await nextTick();
-    if (window.electronAPI?.printBarcode) {
-        const printer = localStorage.getItem('pos_printer') || usePage().props.appSettings?.printer_name || '';
-        console.log('[Barcode Print] printer:', printer || '(default)');
-        await window.electronAPI.printBarcode(printer);
-    } else {
-        window.print();
+    document.documentElement.classList.add('barcode-printing');
+    try {
+        if (window.electronAPI?.printBarcode) {
+            const printer = localStorage.getItem('pos_printer') || usePage().props.appSettings?.printer_name || '';
+            console.log('[Barcode Print] printer:', printer || '(default)');
+            await window.electronAPI.printBarcode(printer);
+        } else {
+            window.print();
+        }
+    } finally {
+        document.documentElement.classList.remove('barcode-printing');
+        printing.value = false;
     }
-    printing.value = false;
 }
 </script>
 
@@ -276,7 +285,7 @@ async function doPrint() {
                     <div>
                         <p class="text-gray-400 text-xs">{{ t('th.stock') }}</p>
                         <p class="font-medium" :class="product.stock_qty <= product.alert_qty ? 'text-red-600' : 'text-gray-700'">
-                            {{ product.stock_qty }} {{ product.unit }}
+                            {{ fmtQty(product.stock_qty) }} {{ product.unit }}
                         </p>
                     </div>
                 </div>
@@ -372,7 +381,7 @@ async function doPrint() {
                                     class="font-medium"
                                     :class="product.stock_qty <= product.alert_qty ? 'text-red-600' : 'text-gray-700'"
                                 >
-                                    {{ product.stock_qty }} {{ product.unit }}
+                                    {{ fmtQty(product.stock_qty) }} {{ product.unit }}
                                 </span>
                             </td>
                             <td class="px-4 py-3">
@@ -641,12 +650,11 @@ async function doPrint() {
 /* ── Print area ── */
 #barcode-print-area { display: none; }
 @media print {
-    @page { size: var(--lw, 40mm) var(--lh, 25mm); margin: 0; }
-    body > * { display: none !important; }
-    #barcode-print-area {
-        display: block !important;
-    }
-    .bc-label-page {
+    html:not(.barcode-printing) #barcode-print-area { display: none !important; }
+
+    html.barcode-printing body > * { display: none !important; }
+    html.barcode-printing #barcode-print-area { display: block !important; }
+    html.barcode-printing .bc-label-page {
         width: var(--lw, 40mm);
         height: var(--lh, 25mm);
         display: flex; flex-direction: column;
@@ -656,9 +664,14 @@ async function doPrint() {
         overflow: hidden;
         page-break-after: always;
     }
-    .bc-label-page svg { display: block; max-width: calc(var(--lw, 40mm) - 4mm) !important; height: auto !important; }
-    .bc-print-name { margin: 0.5mm 0 0; font-size: 7pt; font-weight: 700; text-align: center; line-height: 1.2; max-width: calc(var(--lw, 40mm) - 2mm); overflow: hidden; white-space: nowrap; }
-    .bc-print-name-si { font-size: 6pt; font-weight: 600; text-align: center; line-height: 1.2; max-width: calc(var(--lw, 40mm) - 2mm); overflow: hidden; white-space: nowrap; }
-    .bc-print-price { margin: 0.5mm 0 0; font-size: 8pt; font-weight: 800; color: #000; text-align: center; }
+    html.barcode-printing .bc-label-page svg { display: block; max-width: calc(var(--lw, 40mm) - 4mm) !important; height: auto !important; }
+    html.barcode-printing .bc-print-name { margin: 0.5mm 0 0; font-size: 7pt; font-weight: 700; text-align: center; line-height: 1.2; max-width: calc(var(--lw, 40mm) - 2mm); overflow: hidden; white-space: nowrap; }
+    html.barcode-printing .bc-print-name-si { font-size: 6pt; font-weight: 600; text-align: center; line-height: 1.2; max-width: calc(var(--lw, 40mm) - 2mm); overflow: hidden; white-space: nowrap; }
+    html.barcode-printing .bc-print-price { margin: 0.5mm 0 0; font-size: 8pt; font-weight: 800; color: #000; text-align: center; }
 }
+
+@media print {
+    html.barcode-printing { --lw: 40mm; --lh: 25mm; }
+}
+/* @page size is set per-print via Electron pageSize option; no global @page rule here */
 </style>

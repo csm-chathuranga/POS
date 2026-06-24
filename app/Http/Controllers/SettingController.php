@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Setting;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 
@@ -52,6 +53,7 @@ class SettingController extends Controller
             Setting::set($key, is_bool($value) ? ($value ? '1' : '0') : ($value ?? ''));
         }
 
+        Cache::forget('app_settings');
         Log::info('[Settings] all keys saved');
 
         return redirect()->back()->with('success', 'Settings saved successfully.');

@@ -162,6 +162,7 @@ const translations = {
         'dash.view_all':       'සියල්ල බලන්න',
 
         // Reports
+        'rep.day_end':         'දවස් අවසාන වාර්තාව',
         'rep.today':           'අද විකුණුම්',
         'rep.monthly':         'මාසික විකුණුම්',
         'rep.top_products':    'වැඩියෙන් විකිණෙන',
@@ -545,6 +546,7 @@ const translations = {
         'dash.no_sales':       'No sales yet',
         'dash.view_all':       'View All',
 
+        'rep.day_end':         'Day End Report',
         'rep.today':           "Today's Sales",
         'rep.monthly':         'Monthly Sales',
         'rep.top_products':    'Top Selling',
@@ -911,6 +913,7 @@ const translations = {
         'dash.no_sales':       'விற்பனை இல்லை',
         'dash.view_all':       'அனைத்தும் பார்',
 
+        'rep.day_end':         'நாள் இறுதி அறிக்கை',
         'rep.today':           'இன்றைய விற்பனை',
         'rep.monthly':         'மாத விற்பனை',
         'rep.top_products':    'சிறந்த பொருட்கள்',

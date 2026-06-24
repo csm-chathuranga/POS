@@ -128,27 +128,44 @@ class CustomerController extends Controller
      */
     public function nayaPotha(Request $request)
     {
-        $customers = Customer::where('credit_balance', '>', 0)
-            ->with([
-                'sales' => function ($q) {
-                    $q->where('status', 'completed')
-                      ->where('balance', '>', 0)
-                      ->orderByDesc('created_at')
-                      ->select('id', 'customer_id', 'invoice_no', 'total', 'paid', 'balance', 'created_at');
-                },
-                'creditPayments' => function ($q) {
-                    $q->orderByDesc('created_at')
-                      ->select('id', 'customer_id', 'amount', 'note', 'created_at');
-                },
-            ])
-            ->orderByDesc('credit_balance')
-            ->get();
+        $history = $request->boolean('history');
 
-        $totalCredit = $customers->sum('credit_balance');
+        $with = [
+            'sales' => function ($q) use ($history) {
+                $q->where('status', 'completed')
+                  ->when(!$history, fn($q) => $q->where('balance', '>', 0))
+                  ->orderByDesc('created_at')
+                  ->select('id', 'customer_id', 'invoice_no', 'total', 'paid', 'balance', 'created_at');
+            },
+            'creditPayments' => function ($q) {
+                $q->orderByDesc('created_at')
+                  ->select('id', 'customer_id', 'amount', 'note', 'created_at');
+            },
+        ];
+
+        if ($history) {
+            // Customers with zero balance who have credit history
+            $customers = Customer::where('credit_balance', '<=', 0)
+                ->where(function ($q) {
+                    $q->whereHas('creditPayments')
+                      ->orWhereHas('sales', fn($q) => $q->where('status', 'completed'));
+                })
+                ->with($with)
+                ->orderByDesc('updated_at')
+                ->get();
+        } else {
+            $customers = Customer::where('credit_balance', '>', 0)
+                ->with($with)
+                ->orderByDesc('credit_balance')
+                ->get();
+        }
+
+        $totalCredit = $history ? 0 : $customers->sum('credit_balance');
 
         return Inertia::render('NayaPotha/Index', [
             'customers'   => $customers,
             'totalCredit' => $totalCredit,
+            'history'     => $history,
         ])->with(['flash' => session('flash')]);
     }
 

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules\Password;
 use Inertia\Inertia;
@@ -133,6 +134,7 @@ class UserController extends Controller
             $user->syncRoles($validated['role'] ? [$validated['role']] : []);
         }
 
+        Cache::forget('user_auth_' . $user->id);
         return redirect()->route('users.index')->with('success', 'User updated successfully.');
     }
 
@@ -142,6 +144,7 @@ class UserController extends Controller
     public function destroy(string $id)
     {
         $user = User::findOrFail($id);
+        Cache::forget('user_auth_' . $user->id);
         $user->delete();
 
         return redirect()->route('users.index')->with('success', 'User deleted successfully.');

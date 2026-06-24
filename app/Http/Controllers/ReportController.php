@@ -19,6 +19,47 @@ class ReportController extends Controller
     }
 
     /**
+     * Day-end summary — printable thermal receipt report for today.
+     */
+    public function dayEnd(Request $request)
+    {
+        $date  = $request->filled('date') ? Carbon::parse($request->date) : Carbon::today();
+
+        $sales = Sale::with(['payments', 'user'])
+            ->whereDate('created_at', $date)
+            ->where('status', '!=', 'held')
+            ->orderBy('id')
+            ->get();
+
+        $byPaymentMethod = DB::table('payments')
+            ->join('sales', 'payments.sale_id', '=', 'sales.id')
+            ->whereDate('sales.created_at', $date)
+            ->where('sales.status', '!=', 'held')
+            ->select('payments.method', DB::raw('SUM(payments.amount) as total'), DB::raw('COUNT(DISTINCT payments.sale_id) as count'))
+            ->groupBy('payments.method')
+            ->get();
+
+        $settings = \App\Models\Setting::all()->pluck('value', 'key')->toArray();
+
+        $summary = [
+            'total_bills'    => $sales->count(),
+            'total_revenue'  => $sales->sum('total'),
+            'total_discount' => $sales->sum('discount'),
+            'total_tax'      => $sales->sum('tax'),
+            'total_paid'     => $sales->sum('paid'),
+            'total_balance'  => $sales->sum('balance'),
+        ];
+
+        return Inertia::render('Reports/DayEnd', [
+            'summary'         => $summary,
+            'byPaymentMethod' => $byPaymentMethod,
+            'sales'           => $sales,
+            'date'            => $date->toDateString(),
+            'settings'        => $settings,
+        ]);
+    }
+
+    /**
      * Today's sales summary grouped by payment method.
      */
     public function todaySales(Request $request)

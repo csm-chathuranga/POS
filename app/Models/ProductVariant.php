@@ -24,7 +24,7 @@ class ProductVariant extends Model
         'wholesale_price'   => 'decimal:2',
         'stock_qty'         => 'decimal:3',
         'alert_qty'         => 'decimal:3',
-        'conversion_factor' => 'decimal:6',
+        'conversion_factor' => 'decimal:3',
     ];
 
     public function product()

@@ -20,7 +20,10 @@ const footer      = computed(() => props.settings.receipt_footer || '');
 const currency    = computed(() => props.settings.currency     || 'Rs.');
 const logoUrl     = computed(() => props.settings.logo         || null);
 
+const isSplit = computed(() => (props.sale.payments?.length ?? 0) > 1);
+
 const paymentLabel = computed(() => {
+    if (isSplit.value) return tBill('lbl.cash') + ' + ' + tBill('lbl.card');
     const map = { cash: tBill('lbl.cash'), card: tBill('lbl.card'), qr: 'QR', credit: tBill('lbl.credit') };
     return props.sale.payments?.[0]
         ? (map[props.sale.payments[0].method] || props.sale.payments[0].method)
@@ -39,6 +42,12 @@ function fmtTime(d) {
 
 function n(val) {
     return Number(val || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function fmtQty(val) {
+    const num = Number(val || 0);
+    // Show up to 3 decimal places but strip trailing zeros (1.000→1, 1.500→1.5)
+    return parseFloat(num.toFixed(3)).toString();
 }
 
 const profit = computed(() => {
@@ -191,7 +200,7 @@ onMounted(async () => {
                                         <span v-if="item.product?.name_si"> / {{ item.product.name_si }}</span>
                                     </div>
                                     <div style="margin-top:1px;">
-                                        {{ item.qty }} &times; {{ n(item.unit_price) }}
+                                        {{ fmtQty(item.qty) }} &times; {{ n(item.unit_price) }}
                                         <span v-if="Number(item.discount) > 0"> (ලද වට්ටම: &minus;{{ n(item.discount) }})</span>
                                     </div>
                                 </td>
@@ -217,7 +226,19 @@ onMounted(async () => {
                         <td class="meta-label" style="padding-top:6px;">{{ tBill('lbl.total') }}</td>
                         <td class="meta-value" style="padding-top:6px;">{{ currency }} {{ n(sale.total) }}</td>
                     </tr>
-                    <tr style="color:#0F172A; font-weight:800;">
+                    <!-- Split: show cash and card separately -->
+                    <template v-if="isSplit">
+                        <tr style="color:#0F172A; font-weight:800;">
+                            <td class="meta-label">{{ tBill('th.paid') }} ({{ tBill('lbl.cash') }})</td>
+                            <td class="meta-value">{{ n(sale.payments[0]?.amount) }}</td>
+                        </tr>
+                        <tr style="color:#0F172A; font-weight:800;">
+                            <td class="meta-label">{{ tBill('th.paid') }} ({{ tBill('lbl.card') }})</td>
+                            <td class="meta-value">{{ n(sale.payments[1]?.amount) }}</td>
+                        </tr>
+                    </template>
+                    <!-- Single payment -->
+                    <tr v-else style="color:#0F172A; font-weight:800;">
                         <td class="meta-label">{{ tBill('th.paid') }} ({{ paymentLabel }})</td>
                         <td class="meta-value">{{ n(sale.payments?.[0]?.amount) }}</td>
                     </tr>

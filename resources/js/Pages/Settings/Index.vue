@@ -19,6 +19,7 @@ const LANGS = [
     { code: 'ta', label: 'தமிழ்' },
 ];
 
+
 const BARCODE_SIZES = [
     { id: '20x30', label: '20 × 30 mm', desc: 'Small sticker' },
     { id: '40x25', label: '40 × 25 mm', desc: 'Standard label' },

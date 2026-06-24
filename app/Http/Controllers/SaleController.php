@@ -192,15 +192,36 @@ class SaleController extends Controller
                     : null;
 
                 // Validate stock availability inside the lock so concurrent sales can't race
-                $soldQty      = (float) $item['qty'];
-                $availableQty = $variant ? (float) $variant->stock_qty : (float) $product->stock_qty;
-                if ($availableQty < $soldQty) {
-                    $label = $variant
-                        ? $product->name . ' – ' . $variant->label
-                        : $product->name;
-                    throw \Illuminate\Validation\ValidationException::withMessages([
-                        'items' => "Insufficient stock for \"{$label}\". Available: {$availableQty}, requested: {$soldQty}.",
-                    ]);
+                $soldQty = (float) $item['qty'];
+
+                if ($variant) {
+                    // Variant stock is tracked on the parent product in base units.
+                    // Convert sold qty to base units using conversion_factor (default 1).
+                    $factor        = max((float) ($variant->conversion_factor ?? 1), 0.000001);
+                    $productQtyOut = $soldQty * $factor;
+                    $availableQty  = (float) $product->stock_qty;
+
+                    if ($availableQty < $productQtyOut) {
+                        $label = $product->name . ' – ' . $variant->label;
+                        throw \Illuminate\Validation\ValidationException::withMessages([
+                            'items' => "Insufficient stock for \"{$label}\". Available: {$availableQty}, requested: {$productQtyOut}.",
+                        ]);
+                    }
+
+                    $stockBefore = $product->stock_qty;
+                    $product->decrement('stock_qty', $productQtyOut);
+                } else {
+                    $productQtyOut = $soldQty;
+                    $availableQty  = (float) $product->stock_qty;
+
+                    if ($availableQty < $productQtyOut) {
+                        throw \Illuminate\Validation\ValidationException::withMessages([
+                            'items' => "Insufficient stock for \"{$product->name}\". Available: {$availableQty}, requested: {$productQtyOut}.",
+                        ]);
+                    }
+
+                    $stockBefore = $product->stock_qty;
+                    $product->decrement('stock_qty', $productQtyOut);
                 }
 
                 SaleItem::create([
@@ -214,20 +235,6 @@ class SaleController extends Controller
                     'discount'     => $item['discount'] ?? 0,
                     'total'        => $item['total'],
                 ]);
-
-                if ($variant) {
-                    // qty sold in variant units; product stock is in base units
-                    $factor          = max((float) ($variant->conversion_factor ?? 1), 0.000001);
-                    $productQtyOut   = $item['qty'] * $factor;
-
-                    $stockBefore = $product->stock_qty;
-                    $variant->decrement('stock_qty', $item['qty']);
-                    $product->decrement('stock_qty', $productQtyOut);
-                } else {
-                    $productQtyOut = $item['qty'];
-                    $stockBefore   = $product->stock_qty;
-                    $product->decrement('stock_qty', $productQtyOut);
-                }
 
                 StockMovement::create([
                     'product_id'   => $product->id,
