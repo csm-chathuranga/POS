@@ -137,7 +137,7 @@ onMounted(async () => {
 
         <!-- Receipt centred on screen -->
         <div id="receipt-wrapper" class="flex flex-col items-center py-6 gap-4">
-            <div id="receipt-card" class="bg-white rounded-xl shadow-sm p-8" style="border:1px solid #E2E8F0; width:340px;">
+            <div id="receipt-card" class="bg-white rounded-xl shadow-sm p-6" style="border:1px solid #E2E8F0; width:340px;">
 
                 <!-- Shop header -->
                 <div class="text-center mb-4">
@@ -148,15 +148,15 @@ onMounted(async () => {
                         class="receipt-logo mx-auto mb-2 object-contain"
                         style="max-height:64px; max-width:180px;"
                     />
-                    <p class="shop-title font-extrabold text-[13px]" style="color:#0F172A; letter-spacing:0.01em;">{{ shopName }}</p>
-                    <p v-if="shopAddress" class="text-[12px] font-bold" style="color:#0F172A;">{{ shopAddress }}</p>
-                    <p v-if="shopPhone" class="text-[12px] font-bold" style="color:#0F172A;">{{ shopPhone }}</p>
+                    <p class="shop-title font-extrabold" style="font-size:16px; color:#0F172A; letter-spacing:0.01em;">{{ shopName }}</p>
+                    <p v-if="shopAddress" class="font-bold" style="font-size:16px; color:#0F172A;">{{ shopAddress }}</p>
+                    <p v-if="shopPhone" class="font-bold" style="font-size:16px; color:#0F172A;">{{ shopPhone }}</p>
                 </div>
 
                 <div class="divider" style="border-top:1px solid #CBD5E1; margin:10px 0;"></div>
 
                 <!-- Invoice meta -->
-                <table class="meta-table" style="width:100%; border-collapse:collapse; font-size:11px; font-weight:900; color:#0F172A; margin-bottom:4px;">
+                <table class="meta-table" style="width:100%; border-collapse:collapse; font-size:12px; font-weight:900; color:#0F172A; margin-bottom:4px;">
                     <tr>
                         <td class="meta-label">{{ tBill('th.invoice') }}</td>
                         <td class="meta-value font-extrabold">{{ sale.invoice_no }}</td>
@@ -182,7 +182,7 @@ onMounted(async () => {
                 <div class="items-section divider" style="border-top:1px solid #CBD5E1; margin:10px 0;"></div>
 
                 <!-- Items -->
-                <table class="items-section" style="width:100%; table-layout:fixed; border-collapse:collapse; font-size:10px; line-height:2; color:#0F172A; font-weight:800;">
+                <table class="items-section" style="width:100%; table-layout:fixed; border-collapse:collapse; font-size:12px; line-height:2; color:#0F172A; font-weight:800;">
                     <thead>
                         <tr style="border-top:2px solid #0F172A; border-bottom:2px solid #0F172A;">
                             <th style="text-align:left; width:12px; padding:2px 2px 2px 0; font-weight:800;">#</th>
@@ -366,7 +366,7 @@ onMounted(async () => {
     }
 
     #receipt-card .shop-title {
-        font-size: 13px !important;
+        font-size: 16px !important;
         font-weight: 800 !important;
     }
 

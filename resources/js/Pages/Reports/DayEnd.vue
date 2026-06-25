@@ -247,22 +247,25 @@ async function printReport() {
         width: 100%;
         max-width: 100%;
         font-family: 'Courier New', Courier, monospace;
-        font-size: 11px;
-        line-height: 1.45;
+        font-size: 12px;
+        font-weight: 800;
+        line-height: 1.5;
         color: #111;
         background: #fff;
         padding: 8px 6px;
         margin: 0 auto;
     }
 
+    /* All text 800 weight */
+    .receipt-root * { font-weight: 800 !important; }
+
     .receipt-center   { text-align: center; margin: 2px 0; }
-    .receipt-small    { font-size: 10px; color: #444; }
-    .receipt-label    { color: #555; padding-right: 4px; font-size: 11px; }
-    .receipt-value    { font-weight: bold; font-size: 11px; }
+    .receipt-small    { font-size: 12px; }
+    .receipt-label    { color: #333; padding-right: 4px; font-size: 12px; }
+    .receipt-value    { font-size: 12px; }
 
     .receipt-shop-name {
-        font-size: 15px;
-        font-weight: bold;
+        font-size: 16px;
         letter-spacing: 1px;
         text-transform: uppercase;
         margin-bottom: 2px;
@@ -273,29 +276,27 @@ async function printReport() {
         margin: 5px 0;
     }
     .receipt-divider-dashed {
-        border-top: 1px dashed #999;
+        border-top: 1px dashed #666;
         margin: 3px 0;
     }
 
     .receipt-table {
         width: 100%;
         border-collapse: collapse;
-        font-size: 11px;
+        font-size: 12px;
     }
     .receipt-table td { padding: 1px 0; }
 
     .receipt-items-header {
         display: flex;
-        font-weight: bold;
-        font-size: 9px;
+        font-size: 12px;
         text-transform: uppercase;
     }
 
     .receipt-grand-total {
         display: flex;
         justify-content: space-between;
-        font-size: 14px;
-        font-weight: bold;
+        font-size: 15px;
         padding: 3px 0;
     }
 

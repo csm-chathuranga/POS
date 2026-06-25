@@ -243,7 +243,7 @@ async function printReceipt() {
     max-width: 302px;          /* 80mm at 96 dpi */
     width: 100%;
     font-family: 'Courier New', Courier, monospace;
-    font-size: 11px;
+    font-size: 12px;
     line-height: 1.45;
     color: #111;
     background: #fff;
@@ -253,13 +253,13 @@ async function printReceipt() {
 
 /* ─── Typography helpers ───────────────────────────────────────────── */
 .receipt-center   { text-align: center; }
-.receipt-small    { font-size: 10px; color: #444; }
+.receipt-small    { font-size: 11px; color: #444; }
 .receipt-label    { color: #555; padding-right: 4px; }
 .receipt-value    { font-weight: bold; }
 
 /* ─── Shop name ────────────────────────────────────────────────────── */
 .receipt-shop-name {
-    font-size: 15px;
+    font-size: 17px;
     font-weight: bold;
     letter-spacing: 1px;
     text-transform: uppercase;
@@ -280,7 +280,7 @@ async function printReceipt() {
 .receipt-table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 11px;
+    font-size: 12px;
 }
 .receipt-table td {
     padding: 1px 0;
@@ -306,7 +306,7 @@ async function printReceipt() {
     margin: 3px 0;
 }
 .receipt-item-name {
-    font-size: 13px;
+    font-size: 12px;
     font-weight: bold;
     white-space: nowrap;
     overflow: hidden;
@@ -315,16 +315,16 @@ async function printReceipt() {
 }
 .receipt-item-row {
     display: flex;
-    font-size: 13px;
+    font-size: 12px;
 }
 .receipt-discount {
-    font-size: 10px;
+    font-size: 11px;
     color: #666;
     padding-left: 4px;
 }
 
 /* ─── Totals block ─────────────────────────────────────────────────── */
-.receipt-totals    { font-size: 11px; }
+.receipt-totals    { font-size: 12px; }
 .receipt-total-row {
     display: flex;
     justify-content: space-between;
@@ -336,7 +336,7 @@ async function printReceipt() {
 .receipt-grand-total {
     display: flex;
     justify-content: space-between;
-    font-size: 14px;
+    font-size: 16px;
     font-weight: bold;
     padding: 4px 0;
 }
@@ -346,12 +346,12 @@ async function printReceipt() {
     margin-top: 4px;
 }
 .receipt-thanks-si {
-    font-size: 13px;
+    font-size: 14px;
     font-weight: bold;
     margin-bottom: 2px;
 }
 .receipt-thanks-en {
-    font-size: 11px;
+    font-size: 12px;
     color: #444;
 }
 
@@ -383,8 +383,8 @@ async function printReceipt() {
         width: 100% !important;
         max-width: 100% !important;
         box-sizing: border-box !important;
-        padding: 2mm 2mm 2mm 1mm !important;
-        font-size: 11px !important;
+        padding: 2mm 2mm 2mm 0mm !important;
+        font-size: 12px !important;
         overflow: hidden !important;
     }
 
@@ -405,13 +405,17 @@ async function printReceipt() {
         width: 60% !important;
     }
 
-    /* Item name: allow wrap, remove fixed max-width */
+    /* Item section — explicit sizes so they override the 12px root base */
+    .receipt-items-header { font-size: 17px !important; }
     .receipt-item-name {
+        font-size: 19px !important;
         white-space: normal !important;
         max-width: 100% !important;
         overflow: visible !important;
         text-overflow: clip !important;
     }
+    .receipt-item-row  { font-size: 19px !important; }
+    .receipt-discount  { font-size: 15px !important; }
 
     /* Page setup — 0 margin, padding handled by receipt-root */
     @page {
