@@ -54,7 +54,7 @@ class SettingController extends Controller
             Setting::set($key, is_bool($value) ? ($value ? '1' : '0') : ($value ?? ''));
         }
 
-        Cache::forget('app_settings');
+        Cache::forget('app_settings_' . request()->getHost());
         Log::info('[Settings] all keys saved');
 
         return redirect()->back()->with('success', 'Settings saved successfully.');

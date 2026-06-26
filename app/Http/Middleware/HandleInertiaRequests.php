@@ -54,7 +54,7 @@ class HandleInertiaRequests extends Middleware
             'device' => [
                 'shop' => config('tenant.shop'),
             ],
-            'appSettings' => fn () => Cache::remember('app_settings', 300, fn () =>
+            'appSettings' => fn () => Cache::remember('app_settings_' . request()->getHost(), 300, fn () =>
                 Setting::all()->pluck('value', 'key')->only([
                     'ui_language', 'bill_language', 'sidebar_theme', 'primary_color',
                     'shop_name', 'currency', 'tax_rate',
