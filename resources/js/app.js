@@ -8,6 +8,14 @@ import { ZiggyVue } from '../../vendor/tightenco/ziggy';
 import { useLocale, initLocale } from './composables/useLocale';
 import { useTheme, initTheme } from './composables/useTheme';
 
+// Zoom out on small screens based on actual screen resolution
+if (window.screen.width < 1500) {
+    document.documentElement.style.zoom = '0.8';
+    console.log(`[Zoom] Screen width: ${window.screen.width}px — zoom set to 80%`);
+} else {
+    console.log(`[Zoom] Screen width: ${window.screen.width}px — zoom kept at 100%`);
+}
+
 const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
 
 createInertiaApp({

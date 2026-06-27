@@ -167,7 +167,7 @@ function reloadApp() {
 </script>
 
 <template>
-    <div class="min-h-screen flex dark:bg-slate-900" style="background-color:#F8FAFC;">
+    <div class="min-h-screen flex dark:bg-slate-900">
 
         <!-- ── Page navigation loader ── -->
         <Transition name="nav-loader">

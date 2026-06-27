@@ -26,6 +26,9 @@ export default {
                 'app-text': '#0F172A',
                 border:   '#E2E8F0',
             },
+            boxShadow: {
+                sm: '0 1px 3px rgba(15, 23, 42, 0.08)',
+            },
         },
     },
 

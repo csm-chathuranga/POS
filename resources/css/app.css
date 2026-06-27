@@ -3,15 +3,16 @@
 @tailwind utilities;
 
 :root {
-    --color-primary:  #2563EB;
-    --color-sidebar:  #1E293B;
-    --color-app-bg:   #F8FAFC;
-    --color-success:  #16A34A;
-    --color-warning:  #F59E0B;
-    --color-danger:   #DC2626;
-    --color-text:     #0F172A;
-    --color-border:   #E2E8F0;
+    --primary:    #2563EB;   /* Main blue */
+    --success:    #16A34A;   /* Cash / success */
+    --warning:    #F59E0B;   /* Hold bill */
+    --danger:     #DC2626;   /* Delete / error */
+    --green-dark: #15803D;
 }
+
+/* Card border override — makes card edges visible on all monitors */
+.border-gray-100 { border-color: #CBD5E1 !important; }
+.border-gray-200 { border-color: #CBD5E1 !important; }
 
 @layer base {
     html {
@@ -21,6 +22,8 @@
     body {
         font-size: 15px;
         font-weight: 500;
+        background: #F1F5F9;
+        color: #0F172A;
     }
 
     /* Form inputs, selects, textareas — 15px */
@@ -44,13 +47,6 @@
     }
 }
 
-/* Small/medium screens (<1600px): zoom out to 80% so nothing gets cut off */
-@media screen and (max-width: 1599px) {
-    html {
-        zoom: 0.8;
-    }
-}
-
 /* Large monitor (≥1440px / ~19 inch+): scale everything up */
 @media (min-width: 1440px) {
     body {
@@ -67,6 +63,94 @@
 }
 
 @layer components {
+    /* ── 3D press buttons ── */
+    .btn-3d {
+        border: none;
+        border-radius: 12px;
+        font-weight: 700;
+        font-size: 15px;
+        padding: 14px 20px;
+        color: #ffffff;
+        cursor: pointer;
+        box-shadow:
+            0 5px 0 rgba(0, 0, 0, 0.18),
+            0 10px 18px rgba(15, 23, 42, 0.18);
+        transform: translateY(0);
+        transition: all 0.12s ease;
+    }
+    .btn-3d:hover {
+        filter: brightness(1.04);
+        transform: translateY(-1px);
+    }
+    .btn-3d:active {
+        transform: translateY(4px);
+        box-shadow:
+            0 1px 0 rgba(0, 0, 0, 0.22),
+            0 4px 8px rgba(15, 23, 42, 0.18);
+    }
+    .btn-3d:disabled {
+        filter: none;
+        transform: none;
+        box-shadow: none;
+        opacity: 0.45;
+        cursor: not-allowed;
+    }
+    .btn-primary-3d {
+        background: linear-gradient(180deg, #3B82F6 0%, #2563EB 55%, #1D4ED8 100%);
+    }
+    .btn-success-3d {
+        background: linear-gradient(180deg, #22C55E 0%, #16A34A 55%, #15803D 100%);
+    }
+    .btn-warning-3d {
+        background: linear-gradient(180deg, #FBBF24 0%, #F59E0B 55%, #D97706 100%);
+    }
+    .btn-danger-3d {
+        background: linear-gradient(180deg, #EF4444 0%, #DC2626 55%, #B91C1C 100%);
+    }
+
+    /* ── Payment method buttons ── */
+    .payment-btn {
+        background: #ffffff;
+        border: 1px solid #CBD5E1;
+        color: #0F172A;
+        border-radius: 12px;
+        padding: 13px 18px;
+        font-weight: 700;
+        box-shadow: 0 2px 4px rgba(15, 23, 42, 0.08);
+        transition: all 0.12s ease;
+        cursor: pointer;
+    }
+    .payment-btn:hover {
+        background: #F8FAFC;
+    }
+    .payment-btn.active {
+        color: #ffffff;
+        border: 1px solid transparent;
+        box-shadow:
+            0 5px 0 rgba(0, 0, 0, 0.18),
+            0 10px 18px rgba(15, 23, 42, 0.16);
+    }
+    .payment-btn.active:hover {
+        filter: brightness(1.04);
+        transform: translateY(-1px);
+    }
+    .payment-btn.active:active {
+        transform: translateY(4px);
+        box-shadow:
+            0 1px 0 rgba(0, 0, 0, 0.22),
+            0 4px 8px rgba(15, 23, 42, 0.16);
+    }
+    .payment-btn.active.cash    { background: linear-gradient(180deg, #22C55E 0%, #16A34A 55%, #15803D 100%); }
+    .payment-btn.active.card    { background: linear-gradient(180deg, #3B82F6 0%, #2563EB 55%, #1D4ED8 100%); }
+    .payment-btn.active.credit  { background: linear-gradient(180deg, #EF4444 0%, #DC2626 55%, #B91C1C 100%); }
+    .payment-btn.active.split   { background: linear-gradient(180deg, #818CF8 0%, #6366F1 55%, #4F46E5 100%); }
+
+    .card {
+        background: #FFFFFF;
+        border: 1px solid #CBD5E1;
+        box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+    }
+
     /* Sidebar nav items — 15px */
     .sidebar-nav-item {
         font-size: 15px;

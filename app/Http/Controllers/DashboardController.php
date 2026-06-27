@@ -37,12 +37,21 @@ class DashboardController extends Controller
             ->take(5)
             ->get();
 
+        $expiringSoon = Product::with('category')
+            ->whereNotNull('expiry_date')
+            ->where('expiry_date', '<=', Carbon::today()->addDays(30))
+            ->where('stock_qty', '>', 0)
+            ->orderBy('expiry_date')
+            ->take(20)
+            ->get(['id', 'name', 'name_si', 'category_id', 'expiry_date', 'stock_qty', 'unit']);
+
         return Inertia::render('Dashboard', [
             'todaySales'    => $todaySales,
             'monthSales'    => $monthSales,
             'totalProducts' => $totalProducts,
             'lowStockCount' => $lowStockCount,
             'recentSales'   => $recentSales,
+            'expiringSoon'  => $expiringSoon,
         ])->with(['flash' => session('flash')]);
     }
 }

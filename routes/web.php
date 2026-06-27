@@ -64,6 +64,7 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/low-stock', [ReportController::class, 'lowStock'])->name('low-stock');
         Route::get('/profit', [ReportController::class, 'profitReport'])->name('profit');
         Route::get('/credit-customers', [ReportController::class, 'creditCustomers'])->name('credit-customers');
+        Route::get('/stock-summary', [ReportController::class, 'stockSummary'])->name('stock-summary');
     });
 
     // Settings (admin only)

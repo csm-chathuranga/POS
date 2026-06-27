@@ -903,7 +903,7 @@ const focusedPriceIdx = ref(null);
                 <!-- Day End Report -->
                 <Link
                     :href="route('reports.day-end')"
-                    class="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold bg-indigo-600 hover:bg-indigo-700 text-white transition-colors"
+                    class="btn-3d btn-primary-3d flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 text-sm"
                     title="Day End Report"
                 >
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1286,9 +1286,9 @@ const focusedPriceIdx = ref(null);
                             </span>
                         </div>
                         <!-- Grand total -->
-                        <div class="flex items-center justify-between bg-emerald-600 dark:bg-emerald-700 rounded-xl border border-emerald-500 px-3 py-2.5 gap-2">
-                            <span class="text-xs lg:text-sm font-medium text-emerald-100 uppercase tracking-wide whitespace-nowrap">{{ t('lbl.grand_total') }}</span>
-                            <span class="text-sm lg:text-base font-extrabold text-white whitespace-nowrap">{{ fmt(total) }}</span>
+                        <div class="flex items-center justify-between bg-[#EFF6FF] dark:bg-blue-900 rounded-xl border border-[#BFDBFE] dark:border-blue-700 px-3 py-2.5 gap-2">
+                            <span class="text-xs lg:text-sm font-medium text-blue-700 dark:text-blue-300 uppercase tracking-wide whitespace-nowrap">{{ t('lbl.grand_total') }}</span>
+                            <span class="text-sm lg:text-base font-extrabold text-[#1D4ED8] dark:text-blue-300 whitespace-nowrap">{{ fmt(total) }}</span>
                         </div>
                     </div>
                 </div>
@@ -1339,7 +1339,7 @@ const focusedPriceIdx = ref(null);
                                 :placeholder="discountType === 'percent' ? '%' : 'Rs'"
                                 :disabled="cart.length === 0"
                                 @input="() => { if (discountType === 'percent' && parseFloat(billDiscount) > 70) billDiscount = '70' }"
-                                class="w-32 border border-orange-300 dark:border-slate-600 dark:bg-slate-700 dark:text-gray-100 dark:placeholder-slate-500 rounded-lg px-2 py-1.5 text-sm text-right focus:outline-none focus:ring-2 focus:ring-orange-300 dark:focus:ring-orange-800 disabled:bg-gray-50 dark:disabled:bg-slate-800 disabled:text-gray-400"
+                                class="w-32 border border-slate-300 bg-white dark:border-slate-600 dark:bg-slate-700 dark:text-gray-100 dark:placeholder-slate-500 rounded-lg px-2 py-1.5 text-sm text-right text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-300 dark:focus:ring-slate-600 disabled:bg-slate-50 dark:disabled:bg-slate-800 disabled:text-gray-400"
                             />
                             <button
                                 type="button"
@@ -1347,7 +1347,7 @@ const focusedPriceIdx = ref(null);
                                 class="w-9 rounded-lg border text-xs font-bold transition-colors flex-shrink-0"
                                 :class="discountType === 'percent'
                                     ? 'border-orange-400 bg-orange-500 text-white'
-                                    : 'border-orange-300 bg-orange-50 text-orange-600 dark:border-slate-600 dark:bg-slate-700 dark:text-orange-300'"
+                                    : 'border-slate-300 bg-white text-slate-600 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-300'"
                             >{{ discountType === 'percent' ? '%' : 'Rs' }}</button>
                         </div>
                         <!-- Quick % presets -->
@@ -1361,7 +1361,7 @@ const focusedPriceIdx = ref(null);
                                 class="flex-1 py-1.5 rounded-lg text-xs font-bold border transition-colors disabled:opacity-40 whitespace-nowrap"
                                 :class="discountType === 'percent' && Number(billDiscount) === pct
                                     ? 'border-orange-500 bg-orange-500 text-white'
-                                    : 'border-orange-200 bg-orange-50 text-orange-600 hover:bg-orange-100 dark:border-slate-600 dark:bg-slate-700 dark:text-orange-300 dark:hover:bg-slate-600'"
+                                    : 'border-[#FDBA74] bg-[#FFF7ED] text-[#C2410C] hover:bg-orange-100 dark:border-slate-600 dark:bg-slate-700 dark:text-orange-300 dark:hover:bg-slate-600'"
                             >{{ pct }}%</button>
                         </div>
                         <span v-if="billDiscountAmt > 0" class="text-xs font-semibold text-orange-600 flex-shrink-0">-{{ fmt(billDiscountAmt) }}</span>
@@ -1376,9 +1376,9 @@ const focusedPriceIdx = ref(null);
                         <span class="font-medium">{{ fmt(tax) }}</span>
                     </div>
 
-                    <div class="border-t border-gray-100 dark:border-slate-700 pt-2 flex justify-between items-baseline">
-                        <span class="billing-total-label font-bold text-gray-800 dark:text-slate-100 text-base lg:text-lg">{{ t('lbl.grand_total') }}</span>
-                        <span class="billing-total-amount font-bold text-blue-700 dark:text-blue-400 text-2xl lg:text-3xl">{{ fmt(total) }}</span>
+                    <div class="mt-1 bg-[#EFF6FF] dark:bg-blue-900 rounded-xl border border-[#BFDBFE] dark:border-blue-700 px-3 py-2.5 flex justify-between items-baseline">
+                        <span class="billing-total-label font-bold text-blue-700 dark:text-blue-300 text-base lg:text-lg">{{ t('lbl.grand_total') }}</span>
+                        <span class="billing-total-amount font-extrabold text-[#1D4ED8] dark:text-blue-300 text-2xl lg:text-3xl">{{ fmt(total) }}</span>
                     </div>
                 </div>
 
@@ -1390,10 +1390,8 @@ const focusedPriceIdx = ref(null);
                         <button
                             type="button"
                             @click="setPaymentMethod('cash')"
-                            class="flex items-center justify-center gap-2 rounded-xl border-2 px-3 py-2.5 min-h-[48px] transition-all font-semibold text-sm"
-                            :class="paymentMethod === 'cash'
-                                ? 'border-green-500 bg-green-500 text-white shadow-md shadow-green-200'
-                                : 'border-green-200 bg-green-50 text-green-700 hover:border-green-400 hover:bg-green-100 dark:border-green-900 dark:bg-green-950 dark:text-green-400 dark:hover:bg-green-900'"
+                            class="payment-btn flex items-center justify-center gap-2 min-h-[48px] text-sm"
+                            :class="paymentMethod === 'cash' ? 'active cash' : ''"
                         >
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
@@ -1405,10 +1403,8 @@ const focusedPriceIdx = ref(null);
                         <button
                             type="button"
                             @click="setPaymentMethod('card')"
-                            class="flex items-center justify-center gap-2 rounded-xl border-2 px-3 py-2.5 min-h-[48px] transition-all font-semibold text-sm"
-                            :class="paymentMethod === 'card'
-                                ? 'border-blue-500 bg-blue-500 text-white shadow-md shadow-blue-200'
-                                : 'border-blue-200 bg-blue-50 text-blue-700 hover:border-blue-400 hover:bg-blue-100 dark:border-blue-900 dark:bg-blue-950 dark:text-blue-400 dark:hover:bg-blue-900'"
+                            class="payment-btn flex items-center justify-center gap-2 min-h-[48px] text-sm"
+                            :class="paymentMethod === 'card' ? 'active card' : ''"
                         >
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
@@ -1420,10 +1416,8 @@ const focusedPriceIdx = ref(null);
                         <button
                             type="button"
                             @click="setPaymentMethod('credit')"
-                            class="flex items-center justify-center gap-2 rounded-xl border-2 px-3 py-2.5 min-h-[48px] transition-all font-semibold text-sm"
-                            :class="paymentMethod === 'credit'
-                                ? 'border-red-500 bg-red-500 text-white shadow-md shadow-red-200'
-                                : 'border-red-200 bg-red-50 text-red-700 hover:border-red-400 hover:bg-red-100 dark:border-red-900 dark:bg-red-950 dark:text-red-400 dark:hover:bg-red-900'"
+                            class="payment-btn flex items-center justify-center gap-2 min-h-[48px] text-sm"
+                            :class="paymentMethod === 'credit' ? 'active credit' : ''"
                         >
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
@@ -1435,10 +1429,8 @@ const focusedPriceIdx = ref(null);
                         <button
                             type="button"
                             @click="setPaymentMethod('split')"
-                            class="flex items-center justify-center gap-2 rounded-xl border-2 px-3 py-2.5 min-h-[48px] transition-all font-semibold text-sm"
-                            :class="paymentMethod === 'split'
-                                ? 'border-indigo-500 bg-indigo-500 text-white shadow-md shadow-indigo-200'
-                                : 'border-indigo-200 bg-indigo-50 text-indigo-700 hover:border-indigo-400 hover:bg-indigo-100 dark:border-indigo-900 dark:bg-indigo-950 dark:text-indigo-400 dark:hover:bg-indigo-900'"
+                            class="payment-btn flex items-center justify-center gap-2 min-h-[48px] text-sm"
+                            :class="paymentMethod === 'split' ? 'active split' : ''"
                         >
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
@@ -1640,7 +1632,7 @@ const focusedPriceIdx = ref(null);
                         type="button"
                         @click="submitSale"
                         :disabled="cart.length === 0 || submitting || form.processing"
-                        class="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-bold text-lg lg:text-xl py-4 lg:py-5 rounded-xl transition-colors min-h-[64px] lg:min-h-[72px] shadow-lg shadow-blue-100"
+                        class="btn-3d btn-primary-3d w-full flex items-center justify-center gap-2 text-lg lg:text-xl py-4 lg:py-5 min-h-[64px] lg:min-h-[72px]"
                     >
                         <svg v-if="!submitting && !form.processing" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -1658,7 +1650,7 @@ const focusedPriceIdx = ref(null);
                             type="button"
                             @click="holdBill"
                             :disabled="cart.length === 0"
-                            class="flex-1 flex items-center justify-center gap-2 bg-amber-500 hover:bg-amber-600 disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed text-white font-semibold text-sm lg:text-base py-3.5 lg:py-4 rounded-xl transition-colors min-h-[56px] lg:min-h-[64px]"
+                            class="btn-3d btn-warning-3d flex-1 flex items-center justify-center gap-2 text-sm lg:text-base py-3.5 lg:py-4 min-h-[56px] lg:min-h-[64px]"
                         >
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z" />

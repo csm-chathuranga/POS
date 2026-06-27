@@ -10,8 +10,22 @@ const props = defineProps({
     monthSales: { type: Number, default: 0 },
     totalProducts: { type: Number, default: 0 },
     lowStockCount: { type: Number, default: 0 },
-    recentSales: { type: Array, default: () => [] },
+    recentSales:   { type: Array, default: () => [] },
+    expiringSoon:  { type: Array, default: () => [] },
 });
+
+function daysUntilExpiry(dateStr) {
+    if (!dateStr) return null;
+    const diff = Math.ceil((new Date(dateStr) - new Date()) / 86400000);
+    return diff;
+}
+
+function expiryLabel(days) {
+    if (days < 0)  return { text: `Expired ${Math.abs(days)}d ago`, cls: 'bg-red-100 text-red-700' };
+    if (days === 0) return { text: 'Expires today',                  cls: 'bg-red-100 text-red-700' };
+    if (days <= 7)  return { text: `${days}d left`,                  cls: 'bg-red-100 text-red-700' };
+    return              { text: `${days}d left`,                     cls: 'bg-amber-100 text-amber-700' };
+}
 
 function formatCurrency(value) {
     return 'Rs. ' + Number(value).toLocaleString('en-LK', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -171,6 +185,53 @@ const statCards = [
                     </svg>
                 </div>
             </Link>
+        </div>
+
+        <!-- Expiring Soon -->
+        <div v-if="expiringSoon.length > 0" class="bg-white rounded-xl shadow-sm border border-amber-200 mb-6 overflow-hidden">
+            <div class="flex items-center justify-between px-4 py-3 border-b border-amber-100 bg-amber-50">
+                <div class="flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                    <h2 class="font-semibold text-amber-800">Expiring Soon <span class="text-amber-500 font-normal text-sm">(within 30 days)</span></h2>
+                </div>
+                <span class="text-xs font-bold bg-amber-500 text-white px-2 py-0.5 rounded-full">{{ expiringSoon.length }}</span>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead>
+                        <tr class="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider bg-gray-50">
+                            <th class="px-4 py-2.5">Product</th>
+                            <th class="px-4 py-2.5">Category</th>
+                            <th class="px-4 py-2.5 text-right">Stock</th>
+                            <th class="px-4 py-2.5 text-right">Expiry Date</th>
+                            <th class="px-4 py-2.5 text-center">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100">
+                        <tr v-for="product in expiringSoon" :key="product.id" class="hover:bg-amber-50 transition-colors">
+                            <td class="px-4 py-2.5">
+                                <div class="font-semibold text-gray-800 text-sm">{{ product.name }}</div>
+                                <div v-if="product.name_si" class="text-xs text-gray-400">{{ product.name_si }}</div>
+                            </td>
+                            <td class="px-4 py-2.5 text-sm text-gray-500">{{ product.category?.name || '—' }}</td>
+                            <td class="px-4 py-2.5 text-right text-sm font-medium text-gray-700">
+                                {{ product.stock_qty }}{{ product.unit ? ' ' + product.unit : '' }}
+                            </td>
+                            <td class="px-4 py-2.5 text-right text-sm text-gray-600">
+                                {{ product.expiry_date ? new Date(product.expiry_date).toLocaleDateString('en-LK') : '—' }}
+                            </td>
+                            <td class="px-4 py-2.5 text-center">
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold"
+                                    :class="expiryLabel(daysUntilExpiry(product.expiry_date)).cls">
+                                    {{ expiryLabel(daysUntilExpiry(product.expiry_date)).text }}
+                                </span>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
         </div>
 
         <!-- Recent Sales Table -->

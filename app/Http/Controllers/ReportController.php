@@ -217,6 +217,51 @@ class ReportController extends Controller
     }
 
     /**
+     * Stock summary — all products with stock value, cost, and status.
+     */
+    public function stockSummary(Request $request)
+    {
+        $query = Product::with('category')
+            ->where('active', true);
+
+        if ($request->filled('search')) {
+            $s = $request->search;
+            $query->where(function ($q) use ($s) {
+                $q->where('name', 'like', "%$s%")
+                  ->orWhere('name_si', 'like', "%$s%")
+                  ->orWhere('sku', 'like', "%$s%")
+                  ->orWhere('barcode', 'like', "%$s%");
+            });
+        }
+
+        if ($request->filled('category_id')) {
+            $query->where('category_id', $request->category_id);
+        }
+
+        if ($request->status === 'low') {
+            $query->whereColumn('stock_qty', '<=', 'alert_qty')->where('stock_qty', '>', 0);
+        } elseif ($request->status === 'out') {
+            $query->where('stock_qty', '<=', 0);
+        }
+
+        $products = $query->orderBy('name')->paginate(50)->withQueryString();
+
+        // Summary across all active products (not filtered)
+        $all = Product::where('active', true)
+            ->selectRaw('COUNT(*) as total_products, SUM(stock_qty) as total_units, SUM(cost_price * stock_qty) as total_cost_value, SUM(selling_price * stock_qty) as total_retail_value')
+            ->first();
+
+        $categories = \App\Models\Category::orderBy('name')->get(['id', 'name']);
+
+        return Inertia::render('Reports/StockSummary', [
+            'products'   => $products,
+            'summary'    => $all,
+            'categories' => $categories,
+            'filters'    => $request->only(['search', 'category_id', 'status']),
+        ]);
+    }
+
+    /**
      * Customers with outstanding credit balance.
      */
     public function creditCustomers(Request $request)
