@@ -21,9 +21,11 @@ class Sale extends Model
         'balance',
         'status',
         'note',
+        'extra_charges',
     ];
 
     protected $casts = [
+        'extra_charges' => 'array',
         'subtotal' => 'decimal:2',
         'discount' => 'decimal:2',
         'tax'      => 'decimal:2',

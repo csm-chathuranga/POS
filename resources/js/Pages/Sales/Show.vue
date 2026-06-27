@@ -220,6 +220,12 @@ onMounted(async () => {
                         <td class="meta-label" style="padding:6px 8px; border:2px solid #0F172A; border-right:none;">ලද වට්ටම</td>
                         <td class="meta-value" style="padding:6px 8px; border:2px solid #0F172A; border-left:none;">- {{ n(sale.discount) }}</td>
                     </tr>
+                    <template v-if="sale.extra_charges?.length">
+                        <tr v-for="(ec, i) in sale.extra_charges" :key="i" style="color:#0F172A; font-size:12px; font-weight:700;">
+                            <td class="meta-label">+ {{ ec.reason }}</td>
+                            <td class="meta-value">{{ n(ec.amount) }}</td>
+                        </tr>
+                    </template>
                     <tr class="total-row" style="border-top:2px solid #0F172A; font-size:14px; font-weight:900; color:#0F172A;">
                         <td class="meta-label" style="padding-top:6px;">{{ tBill('lbl.total') }}</td>
                         <td class="meta-value" style="padding-top:6px;">{{ currency }} {{ n(sale.total) }}</td>

@@ -137,7 +137,7 @@ class SaleController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'items'                  => 'required|array|min:1',
+            'items'                  => 'nullable|array',
             'items.*.product_id'     => 'required|exists:products,id',
             'items.*.variant_id'     => 'nullable|exists:product_variants,id',
             'items.*.qty'            => 'required|numeric|min:0.01',
@@ -154,8 +154,11 @@ class SaleController extends Controller
             'tax'                    => 'nullable|numeric|min:0',
             'total'                  => 'required|numeric|min:0',
             'paid'                   => 'required|numeric|min:0',
-            'customer_id'            => 'nullable|exists:customers,id',
-            'note'                   => 'nullable|string',
+            'customer_id'              => 'nullable|exists:customers,id',
+            'note'                     => 'nullable|string',
+            'extra_charges'            => 'nullable|array',
+            'extra_charges.*.reason'   => 'required|string|max:255',
+            'extra_charges.*.amount'   => 'required|numeric|min:0',
         ]);
 
         $sale = DB::transaction(function () use ($request) {
@@ -177,16 +180,17 @@ class SaleController extends Controller
                 'user_id'     => Auth::id(),
                 'customer_id' => $request->customer_id,
                 'subtotal'    => $request->subtotal,
-                'discount'    => $request->discount ?? 0,
-                'tax'         => $request->tax ?? 0,
-                'total'       => $request->total,
-                'paid'        => $request->paid,
-                'balance'     => $balance,
-                'status'      => 'completed',
-                'note'        => $request->note,
+                'discount'      => $request->discount ?? 0,
+                'tax'           => $request->tax ?? 0,
+                'total'         => $request->total,
+                'paid'          => $request->paid,
+                'balance'       => $balance,
+                'status'        => 'completed',
+                'note'          => $request->note,
+                'extra_charges' => $request->extra_charges ?: null,
             ]);
 
-            foreach ($request->items as $item) {
+            foreach ($request->items ?? [] as $item) {
                 $product = Product::lockForUpdate()->findOrFail($item['product_id']);
                 $variant = !empty($item['variant_id'])
                     ? ProductVariant::lockForUpdate()->findOrFail($item['variant_id'])

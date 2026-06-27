@@ -38,6 +38,11 @@ return [
         'username' => 'lmucunal_mysql',
         'password' => 'K!ngd0m@!t0ne',
     ],
+        'localhost' => [
+        'database' => 'lmuc_pos_sinhala',
+        'username' => 'root',
+        'password' => 'root',
+    ],
 
     
 ];
