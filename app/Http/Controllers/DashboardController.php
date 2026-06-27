@@ -12,20 +12,24 @@ class DashboardController extends Controller
 {
     public function index()
     {
-        $today = Carbon::today();
-        $monthStart = Carbon::now()->startOfMonth();
+        $today      = Carbon::today()->toDateString();
+        $monthStart = Carbon::now()->startOfMonth()->toDateTimeString();
 
-        $todaySales = Sale::whereDate('created_at', $today)
-            ->where('status', '!=', 'held')
-            ->sum('total');
+        $todaySales = \Illuminate\Support\Facades\Cache::remember('dash_today_' . $today, 60, fn () =>
+            Sale::whereDate('created_at', $today)->where('status', '!=', 'held')->sum('total')
+        );
 
-        $monthSales = Sale::whereBetween('created_at', [$monthStart, Carbon::now()])
-            ->where('status', '!=', 'held')
-            ->sum('total');
+        $monthSales = \Illuminate\Support\Facades\Cache::remember('dash_month_' . $today, 120, fn () =>
+            Sale::whereBetween('created_at', [$monthStart, now()])->where('status', '!=', 'held')->sum('total')
+        );
 
-        $totalProducts = Product::count();
+        $totalProducts = \Illuminate\Support\Facades\Cache::remember('dash_product_count', 300, fn () =>
+            Product::count()
+        );
 
-        $lowStockCount = Product::whereColumn('stock_qty', '<=', 'alert_qty')->count();
+        $lowStockCount = \Illuminate\Support\Facades\Cache::remember('dash_lowstock', 120, fn () =>
+            Product::whereColumn('stock_qty', '<=', 'alert_qty')->count()
+        );
 
         $recentSales = Sale::with('user')
             ->where('status', '!=', 'held')

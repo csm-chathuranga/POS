@@ -62,10 +62,10 @@ class HandleInertiaRequests extends Middleware
                     'logo', 'demo_mode', 'printer_name', 'enable_promotions',
                 ])
             ),
-            'ziggy' => fn () => [
-                ...(new Ziggy)->toArray(),
-                'location' => $request->url(),
-            ],
+            'ziggy' => fn () => array_merge(
+                Cache::remember('ziggy_routes', 3600, fn () => (new Ziggy)->toArray()),
+                ['location' => $request->url()]
+            ),
         ];
     }
 }
