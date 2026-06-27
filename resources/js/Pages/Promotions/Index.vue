@@ -61,8 +61,8 @@ function renderBarcode(el) {
         try {
             JsBarcode(svg, barcodeProduct.value.barcode, {
                 format: 'CODE128', displayValue: true,
-                fontSize: 12, fontOptions: 'bold',
-                textMargin: 2, width: 0.6, height: 16, margin: 1,
+                fontSize: 9, fontOptions: 'bold',
+                textMargin: 1, width: 0.8, height: 20, margin: 1,
             });
             const w = svg.getAttribute('width');
             const h = svg.getAttribute('height');
@@ -388,8 +388,8 @@ const printLabel = computed(() => {
     html.barcode-printing .bc-label-page {
         width: 30mm; height: 20mm;
         display: flex; flex-direction: column;
-        align-items: stretch; justify-content: center;
-        gap: 0.5mm; padding: 1mm;
+        align-items: center; justify-content: center;
+        gap: 0.5mm; padding: 1mm; margin: 0;
         font-family: sans-serif; overflow: hidden; box-sizing: border-box;
     }
     html.barcode-printing .bc-print-name {
@@ -398,8 +398,8 @@ const printLabel = computed(() => {
         white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
     html.barcode-printing .bc-label-page svg {
-        width: 100% !important; height: auto !important;
-        display: block; flex-shrink: 1; min-height: 0;
+        display: block;
+        width: auto !important; max-width: 100% !important; height: auto !important;
     }
     html.barcode-printing .bc-print-price-wrap {
         display: flex; align-items: center; justify-content: center; gap: 2mm;

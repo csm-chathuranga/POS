@@ -1,0 +1,1 @@
+import{J as r}from"./app-Bsau-SB7.js";const a=5*60*1e3;let n=null,l=0,t=null;function u(){return n&&Date.now()-l<a?Promise.resolve(n):t||(t=r.get("/api/products/all").then(e=>(n=e.data,l=Date.now(),t=null,n)).catch(e=>{throw t=null,e}),t)}function i(){n=null,l=0,t=null}export{u as g,i};
