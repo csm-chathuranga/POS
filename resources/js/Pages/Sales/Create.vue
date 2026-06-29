@@ -43,7 +43,7 @@ function onFullscreenChange() {
 const page        = usePage();
 const authUser    = computed(() => page.props.auth?.user);
 const canDiscount = computed(() =>
-    ['admin', 'manager'].includes(authUser.value?.role)
+    ['admin', 'manager', 'cashier'].includes(authUser.value?.role)
 );
 
 // ─── Refs ─────────────────────────────────────────────────────────────────────
@@ -267,6 +267,90 @@ function addCustomWeight() {
 const lastKeyTime    = ref(0);
 const keyIntervals   = ref([]);
 const isScanMode     = ref(false);
+
+// ─── Barcode scan guard — discount / price fields ────────────────────────────
+// Same timing-based detection as qty: intercept digits, buffer them, confirm scan
+// on Enter if chars arrived fast (< 60ms apart). Otherwise treat as manual input.
+let fldBuffer      = '';
+let fldLastKeyTime = 0;
+let fldIsScanning  = false;
+let fldSavedValue  = null;
+let fldScanTimer   = null;
+
+function resetFldState() {
+    fldBuffer      = '';
+    fldLastKeyTime = 0;
+    fldIsScanning  = false;
+    fldSavedValue  = null;
+    if (fldScanTimer) { clearTimeout(fldScanTimer); fldScanTimer = null; }
+}
+
+function onFieldKeydown(e, item, field) {
+    if (e.key === 'Enter') {
+        e.preventDefault();
+        if (fldScanTimer) { clearTimeout(fldScanTimer); fldScanTimer = null; }
+
+        if (fldIsScanning && fldBuffer.length >= 3) {
+            const barcode = fldBuffer;
+            // Restore original field value
+            e.target.value = fldSavedValue ?? '';
+            if (field === 'discount') updateDiscount(item, fldSavedValue ?? 0);
+            else                      updatePrice(item, fldSavedValue ?? item.unit_price);
+            resetFldState();
+            const hit = allProducts.value.find(p => p.barcode === barcode);
+            if (hit) addToCart(hit, null, false);
+            refocusSearch();
+        } else if (fldBuffer.length > 0) {
+            // Manual value typed — apply it
+            const val = fldBuffer;
+            resetFldState();
+            if (field === 'discount') updateDiscount(item, val);
+            else                      updatePrice(item, val);
+            e.target.value = val;
+            refocusSearch();
+        } else {
+            resetFldState();
+        }
+        return;
+    }
+
+    if (e.key === 'Backspace') {
+        if (!fldIsScanning && fldBuffer.length > 0) {
+            e.preventDefault();
+            fldBuffer      = fldBuffer.slice(0, -1);
+            e.target.value = fldBuffer || '';
+        } else {
+            resetFldState();
+        }
+        return;
+    }
+
+    if (e.key.length !== 1 || !/[0-9.]/.test(e.key)) return;
+
+    e.preventDefault();
+
+    const now      = Date.now();
+    const interval = fldLastKeyTime > 0 ? now - fldLastKeyTime : 9999;
+    fldLastKeyTime = now;
+
+    if (fldScanTimer) { clearTimeout(fldScanTimer); fldScanTimer = null; }
+
+    if (fldBuffer.length === 0) fldSavedValue = e.target.value; // save before first char
+
+    if (interval < 60 && fldBuffer.length > 0) {
+        fldIsScanning = true;
+        fldBuffer    += e.key;
+    } else {
+        fldIsScanning = false;
+        fldBuffer    += e.key;
+        const el   = e.target;
+        const snap = fldBuffer;
+        fldScanTimer = setTimeout(() => {
+            fldScanTimer = null;
+            if (!fldIsScanning && fldBuffer === snap) el.value = fldBuffer;
+        }, 80);
+    }
+}
 
 // ─── Barcode scan detection (qty field) ───────────────────────────────────────
 // All digit keys are intercepted so @input never fires during a scan.
@@ -578,7 +662,7 @@ function updateQty(item, val, inputEl = null) {
     const clamped = Math.max(1, Math.min(n, max));
 
     if (n > max) {
-        errorMsg.value = `"${item.name}" — only ${item.stock_qty} in stock.`;
+        errorMsg.value = `"${item.name}" — only ${fmtQty(item.stock_qty)} in stock.`;
     }
 
     item.qty = clamped;
@@ -868,6 +952,11 @@ function fmtNum(val) {
     });
 }
 
+function fmtQty(val) {
+    const n = parseFloat(val) || 0;
+    return n % 1 === 0 ? n.toString() : n.toString();
+}
+
 const focusedPriceIdx = ref(null);
 </script>
 
@@ -1049,7 +1138,7 @@ const focusedPriceIdx = ref(null);
                                 <div class="text-right ml-4 flex-shrink-0">
                                     <p class="font-bold" :class="idx === activeIndex ? 'text-white' : 'text-blue-700 dark:text-blue-400'">{{ fmt(product.selling_price) }}</p>
                                     <p class="text-xs" :class="idx === activeIndex ? 'text-blue-200' : (product.stock_qty > 0 ? 'text-green-600 dark:text-green-400' : 'text-red-500')">
-                                        {{ t('th.stock') }}: {{ product.stock_qty }} {{ product.unit }}
+                                        {{ t('th.stock') }}: {{ fmtQty(product.stock_qty) }} {{ product.unit }}
                                     </p>
                                 </div>
                             </button>
@@ -1188,7 +1277,7 @@ const focusedPriceIdx = ref(null);
                                             <span
                                                 v-if="item.stock_qty <= item.alert_qty"
                                                 class="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-red-100 text-red-600"
-                                            >Low stock: {{ item.stock_qty }}</span>
+                                            >Low stock: {{ fmtQty(item.stock_qty) }}</span>
                                         </div>
                                     </td>
                                     <td class="px-3 py-2.5">
@@ -1207,7 +1296,7 @@ const focusedPriceIdx = ref(null);
                                                 :placeholder="['kg','g'].includes(item.unit) ? '0' : '1'"
                                                 @input="e => updateQty(item, e.target.value, e.target)"
                                                 @keydown="onQtyKeydown($event, item)"
-                                                @focus="resetQtyState()"
+                                                @focus="resetQtyState(); $event.target.select()"
                                                 class="cart-qty-input w-14 lg:w-18 text-center border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-gray-100 rounded-lg py-1.5 px-1 focus:outline-none focus:ring-2 focus:ring-blue-300 dark:focus:ring-blue-800 text-sm lg:text-base font-medium"
                                             />
                                             <button
@@ -1223,8 +1312,9 @@ const focusedPriceIdx = ref(null);
                                             type="text"
                                             inputmode="decimal"
                                             :value="focusedPriceIdx === idx ? item.unit_price : fmtNum(item.unit_price)"
-                                            @focus="focusedPriceIdx = idx; $event.target.value = item.unit_price; $event.target.select()"
-                                            @blur="focusedPriceIdx = null"
+                                            @focus="focusedPriceIdx = idx; $event.target.value = item.unit_price; $event.target.select(); resetFldState()"
+                                            @blur="focusedPriceIdx = null; resetFldState()"
+                                            @keydown="e => onFieldKeydown(e, item, 'unit_price')"
                                             @change="e => updatePrice(item, e.target.value)"
                                             class="w-16 lg:w-20 text-right border border-gray-200 dark:border-slate-600 dark:bg-slate-700 dark:text-gray-100 rounded-lg py-1.5 px-2 focus:outline-none focus:ring-2 focus:ring-blue-300 dark:focus:ring-blue-800 text-sm lg:text-base font-medium text-gray-700"
                                         />
@@ -1235,6 +1325,9 @@ const focusedPriceIdx = ref(null);
                                             min="0"
                                             step="0.01"
                                             :value="item.discount"
+                                            @focus="$event.target.select(); resetFldState()"
+                                            @blur="resetFldState()"
+                                            @keydown="e => onFieldKeydown(e, item, 'discount')"
                                             @change="e => updateDiscount(item, e.target.value)"
                                             class="w-16 lg:w-20 text-right border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-gray-100 rounded-lg py-1.5 px-2 focus:outline-none focus:ring-2 focus:ring-orange-300 dark:focus:ring-orange-800 text-sm lg:text-base"
                                         />
