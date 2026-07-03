@@ -668,7 +668,7 @@ async function doPrint() {
     min-height: 90px;
 }
 .barcode-label-preview svg { max-width: 100%; height: auto; }
-.bc-name { font-size: 12pt; font-weight: 700; text-align: center; color: #111; line-height: 1.2; }
+.bc-name { font-size: 10pt; font-weight: 700; text-align: center; color: #111; line-height: 1.2; }
 .bc-name-si { font-size: 7pt; font-weight: 600; text-align: center; color: #374151; }
 .bc-price { font-size: 10pt; font-weight: 800; color: #16a34a; text-align: left; padding-left: 3px; margin-top: 2px; margin-left: 4px; }
 
@@ -752,7 +752,7 @@ async function doPrint() {
         height: auto !important;
     }
     html.barcode-printing .bc-print-name {
-        font-size: 11pt; font-weight: 700;
+        font-size: 9pt; font-weight: 700;
         text-align: center; line-height: 1.1;
         white-space: nowrap; overflow: hidden;
         margin: 0;
