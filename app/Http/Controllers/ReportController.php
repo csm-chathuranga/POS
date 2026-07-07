@@ -175,7 +175,7 @@ class ReportController extends Controller
     }
 
     /**
-     * Profit report: (selling_price - cost_price) * qty per sale_item for a date range.
+     * Profit / Revenue report: full breakdown — gross sales, discounts, net revenue, cost, profit.
      */
     public function profitReport(Request $request)
     {
@@ -187,25 +187,58 @@ class ReportController extends Controller
             ? Carbon::parse($request->date_to)->endOfDay()
             : Carbon::now()->endOfDay();
 
+        // Detailed breakdown — grouped by product + unit_price + cost_price
         $items = SaleItem::select(
                 'sale_items.product_id',
                 'sale_items.product_name',
+                'sale_items.unit_price',
+                'sale_items.cost_price',
+                DB::raw('(sale_items.unit_price - sale_items.cost_price) as unit_profit'),
                 DB::raw('SUM(sale_items.qty) as total_qty'),
-                DB::raw('SUM(sale_items.total) as total_revenue'),
+                DB::raw('SUM(sale_items.unit_price * sale_items.qty) as gross_revenue'),
+                DB::raw('SUM(sale_items.discount) as total_item_discount'),
+                DB::raw('SUM(sale_items.total) as net_revenue'),
                 DB::raw('SUM(sale_items.cost_price * sale_items.qty) as total_cost'),
                 DB::raw('SUM((sale_items.unit_price - sale_items.cost_price) * sale_items.qty) as gross_profit')
             )
             ->join('sales', 'sale_items.sale_id', '=', 'sales.id')
             ->whereBetween('sales.created_at', [$dateFrom, $dateTo])
             ->where('sales.status', '!=', 'held')
-            ->groupBy('sale_items.product_id', 'sale_items.product_name')
+            ->groupBy('sale_items.product_id', 'sale_items.product_name', 'sale_items.unit_price', 'sale_items.cost_price')
+            ->orderBy('sale_items.product_name')
             ->orderByDesc('gross_profit')
             ->get();
 
+        // Sales-level summary (bill discounts, totals)
+        $salesSummary = Sale::whereBetween('created_at', [$dateFrom, $dateTo])
+            ->where('status', '!=', 'held')
+            ->selectRaw('
+                COUNT(*) as total_bills,
+                SUM(subtotal) as subtotal,
+                SUM(discount) as bill_discount,
+                SUM(total) as net_total
+            ')
+            ->first();
+
+        $grossRevenue  = $items->sum('gross_revenue');
+        $itemDiscount  = $items->sum('total_item_discount');
+        $billDiscount  = (float) ($salesSummary->bill_discount ?? 0);
+        $totalDiscount = $itemDiscount + $billDiscount;
+        $netRevenue    = $items->sum('net_revenue') - $billDiscount;
+        $totalCost     = $items->sum('total_cost');
+        $grossProfit   = $items->sum('gross_profit');          // (unit_price - cost_price) * qty
+        $netProfit     = $grossProfit - $totalDiscount;        // gross profit minus all discounts
+
         $summary = [
-            'total_revenue' => $items->sum('total_revenue'),
-            'total_cost'    => $items->sum('total_cost'),
-            'gross_profit'  => $items->sum('gross_profit'),
+            'total_bills'       => (int) ($salesSummary->total_bills ?? 0),
+            'gross_revenue'     => $grossRevenue,
+            'item_discount'     => $itemDiscount,
+            'bill_discount'     => $billDiscount,
+            'total_discount'    => $totalDiscount,
+            'net_revenue'       => $netRevenue,
+            'total_cost'        => $totalCost,
+            'gross_profit'      => $grossProfit,   // (unit_price - cost_price) * qty
+            'net_profit'        => $netProfit,     // gross_profit - discounts
         ];
 
         return Inertia::render('Reports/Profit', [
@@ -214,6 +247,79 @@ class ReportController extends Controller
             'date_from' => $dateFrom->toDateString(),
             'date_to'   => $dateTo->toDateString(),
         ])->with(['flash' => session('flash')]);
+    }
+
+    /**
+     * Revenue report: daily revenue breakdown with discount and payment method split.
+     */
+    public function revenueReport(Request $request)
+    {
+        $dateFrom = $request->filled('date_from')
+            ? Carbon::parse($request->date_from)->startOfDay()
+            : Carbon::now()->startOfMonth()->startOfDay();
+
+        $dateTo = $request->filled('date_to')
+            ? Carbon::parse($request->date_to)->endOfDay()
+            : Carbon::now()->endOfDay();
+
+        // Daily breakdown with cost from sale_items
+        $byDay = SaleItem::join('sales', 'sale_items.sale_id', '=', 'sales.id')
+            ->whereBetween('sales.created_at', [$dateFrom, $dateTo])
+            ->where('sales.status', '!=', 'held')
+            ->selectRaw('
+                DATE(sales.created_at) as date,
+                COUNT(DISTINCT sales.id) as total_bills,
+                SUM(sale_items.unit_price * sale_items.qty) as gross_revenue,
+                SUM(sale_items.discount) as item_discount,
+                SUM(sale_items.total) as net_revenue,
+                SUM(sale_items.cost_price * sale_items.qty) as total_cost,
+                SUM((sale_items.unit_price - sale_items.cost_price) * sale_items.qty) as gross_profit
+            ')
+            ->groupBy(DB::raw('DATE(sales.created_at)'))
+            ->orderBy('date')
+            ->get();
+
+        // Bill-level discounts per day
+        $billDiscountsByDay = Sale::whereBetween('created_at', [$dateFrom, $dateTo])
+            ->where('status', '!=', 'held')
+            ->selectRaw('DATE(created_at) as date, SUM(discount) as bill_discount')
+            ->groupBy(DB::raw('DATE(created_at)'))
+            ->pluck('bill_discount', 'date');
+
+        foreach ($byDay as $row) {
+            $row->bill_discount  = (float) ($billDiscountsByDay[$row->date] ?? 0);
+            $row->total_discount = (float) $row->item_discount + $row->bill_discount;
+            $row->net_profit     = (float) $row->gross_profit - $row->total_discount;
+        }
+
+        // Payment method split
+        $byPayment = DB::table('payments')
+            ->join('sales', 'payments.sale_id', '=', 'sales.id')
+            ->whereBetween('sales.created_at', [$dateFrom, $dateTo])
+            ->where('sales.status', '!=', 'held')
+            ->selectRaw('payments.method, SUM(payments.amount) as total')
+            ->groupBy('payments.method')
+            ->get();
+
+        $summary = [
+            'total_bills'    => $byDay->sum('total_bills'),
+            'gross_revenue'  => $byDay->sum('gross_revenue'),
+            'item_discount'  => $byDay->sum('item_discount'),
+            'bill_discount'  => $byDay->sum('bill_discount'),
+            'total_discount' => $byDay->sum('total_discount'),
+            'net_revenue'    => $byDay->sum('net_revenue'),
+            'total_cost'     => $byDay->sum('total_cost'),
+            'gross_profit'   => $byDay->sum('gross_profit'),
+            'net_profit'     => $byDay->sum('net_profit'),
+        ];
+
+        return Inertia::render('Reports/Revenue', [
+            'byDay'     => $byDay,
+            'byPayment' => $byPayment,
+            'summary'   => $summary,
+            'date_from' => $dateFrom->toDateString(),
+            'date_to'   => $dateTo->toDateString(),
+        ]);
     }
 
     /**

@@ -67,6 +67,7 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/profit', [ReportController::class, 'profitReport'])->name('profit');
         Route::get('/credit-customers', [ReportController::class, 'creditCustomers'])->name('credit-customers');
         Route::get('/stock-summary', [ReportController::class, 'stockSummary'])->name('stock-summary');
+        Route::get('/revenue', [ReportController::class, 'revenueReport'])->name('revenue');
     });
 
     // Settings (admin only)

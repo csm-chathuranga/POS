@@ -1,11 +1,22 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
-import { inject, computed } from 'vue';
+import { inject, computed, ref } from 'vue';
 import { invalidateProducts } from '@/stores/productCache';
 
 const t = inject('t');
 const promotionsEnabled = computed(() => usePage().props.appSettings?.enable_promotions === '1' || usePage().props.appSettings?.enable_promotions === true);
+
+const barcodeError = ref('');
+function validateBarcode() {
+    const val = form.barcode.trim();
+    if (!val) { barcodeError.value = ''; return true; }
+    if (!/^\d+$/.test(val)) { barcodeError.value = 'Barcode must contain numbers only.'; return false; }
+    if (val.startsWith('0')) { barcodeError.value = 'Barcode cannot start with 0.'; return false; }
+    if (val.length < 6) { barcodeError.value = 'Barcode must be at least 6 digits.'; return false; }
+    barcodeError.value = '';
+    return true;
+}
 
 const props = defineProps({
     product:    { type: Object, required: true },
@@ -53,6 +64,7 @@ function removeVariant(i) {
 }
 
 function submit() {
+    if (!validateBarcode()) return;
     invalidateProducts();
     form.put(route('products.update', props.product.id));
 }
@@ -106,8 +118,9 @@ function submit() {
                         <div class="grid grid-cols-2 gap-3">
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1">{{ t('prod.barcode') }}</label>
-                                <input v-model="form.barcode" type="text" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500" :class="{ 'border-red-500': form.errors.barcode }" />
-                                <p v-if="form.errors.barcode" class="text-red-500 text-xs mt-1">{{ form.errors.barcode }}</p>
+                                <input v-model="form.barcode" type="text" @blur="validateBarcode" @input="validateBarcode" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500" :class="{ 'border-red-500': form.errors.barcode || barcodeError }" />
+                                <p v-if="barcodeError" class="text-red-500 text-xs mt-1">{{ barcodeError }}</p>
+                                <p v-else-if="form.errors.barcode" class="text-red-500 text-xs mt-1">{{ form.errors.barcode }}</p>
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1">SKU</label>

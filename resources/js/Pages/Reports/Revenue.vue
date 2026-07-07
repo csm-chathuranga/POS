@@ -6,7 +6,8 @@ import { ref, inject } from 'vue';
 const t = inject('t');
 
 const props = defineProps({
-    items:     { type: Array,  default: () => [] },
+    byDay:     { type: Array,  default: () => [] },
+    byPayment: { type: Array,  default: () => [] },
     summary:   { type: Object, default: () => ({}) },
     date_from: { type: String, default: '' },
     date_to:   { type: String, default: '' },
@@ -19,25 +20,26 @@ function fmt(v) {
     return 'Rs. ' + Number(v || 0).toLocaleString('en-LK', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
-function pct(profit, revenue) {
-    if (!revenue || revenue == 0) return '0%';
-    return (( profit / revenue) * 100).toFixed(1) + '%';
+function fmtDate(d) {
+    return new Date(d).toLocaleDateString('en-LK', { weekday: 'short', month: 'short', day: 'numeric' });
 }
 
+const methodLabel = { cash: 'Cash', card: 'Card', credit: 'Credit', qr: 'QR' };
+
 function filter() {
-    router.get(route('reports.profit'), { date_from: from.value, date_to: to.value }, { preserveScroll: true });
+    router.get(route('reports.revenue'), { date_from: from.value, date_to: to.value }, { preserveScroll: true });
 }
 </script>
 
 <template>
-    <Head :title="t('rep.profit')" />
+    <Head title="Revenue Report" />
     <AuthenticatedLayout>
         <template #header>
             <div class="flex items-center gap-3 flex-wrap">
                 <Link :href="route('reports.index')" class="text-slate-400 hover:text-slate-600">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
                 </Link>
-                <h1 class="text-xl font-bold" style="color:#0F172A;">Revenue & Profit Report</h1>
+                <h1 class="text-xl font-bold" style="color:#0F172A;">Revenue Report</h1>
                 <div class="ml-auto flex items-center gap-2">
                     <input type="date" v-model="from" class="rounded-lg px-3 py-1.5 text-sm outline-none" style="border:1px solid #E2E8F0;" />
                     <span class="text-slate-400">—</span>
@@ -50,7 +52,7 @@ function filter() {
         <!-- Summary Cards -->
         <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
             <div class="bg-white rounded-xl p-4 shadow-sm" style="border:1px solid #E2E8F0;">
-                <p class="text-xs text-slate-500 mb-1">Total Bills</p>
+                <p class="text-xs text-slate-500 mb-1">Bills</p>
                 <p class="text-2xl font-bold" style="color:#374151;">{{ summary.total_bills }}</p>
             </div>
             <div class="bg-white rounded-xl p-4 shadow-sm" style="border:1px solid #E2E8F0;">
@@ -61,7 +63,6 @@ function filter() {
             <div class="bg-white rounded-xl p-4 shadow-sm" style="border:1px solid #E2E8F0;">
                 <p class="text-xs text-slate-500 mb-1">Total Cost</p>
                 <p class="text-2xl font-bold" style="color:#DC2626;">{{ fmt(summary.total_cost) }}</p>
-                <p class="text-xs text-slate-400 mt-1">cost price × qty</p>
             </div>
             <div class="bg-white rounded-xl p-4 shadow-sm" style="border:1px solid #E2E8F0;">
                 <p class="text-xs text-slate-500 mb-1">Gross Profit</p>
@@ -70,22 +71,32 @@ function filter() {
             </div>
         </div>
 
-        <!-- Discount + Net Profit Banner -->
+        <!-- Discount + Net Profit banner -->
         <div class="bg-white rounded-xl shadow-sm mb-4 p-4" style="border:1px solid #E2E8F0;">
             <div class="flex flex-wrap gap-6 items-center">
                 <div>
                     <p class="text-xs text-slate-500">Item Discounts</p>
                     <p class="text-lg font-bold" style="color:#EA580C;">- {{ fmt(summary.item_discount) }}</p>
                 </div>
-                <div class="text-slate-300 text-xl font-light">+</div>
+                <div class="text-slate-300 text-xl">+</div>
                 <div>
                     <p class="text-xs text-slate-500">Bill Discounts</p>
                     <p class="text-lg font-bold" style="color:#EA580C;">- {{ fmt(summary.bill_discount) }}</p>
                 </div>
-                <div class="text-slate-300 text-xl font-light">=</div>
+                <div class="text-slate-300 text-xl">=</div>
                 <div>
                     <p class="text-xs text-slate-500">Total Discounts</p>
                     <p class="text-lg font-bold" style="color:#EA580C;">- {{ fmt(summary.total_discount) }}</p>
+                </div>
+                <!-- Payment method split -->
+                <div class="border-l pl-6 ml-2" style="border-color:#E2E8F0;">
+                    <p class="text-xs text-slate-500 mb-1">By Payment</p>
+                    <div class="flex gap-4">
+                        <div v-for="p in byPayment" :key="p.method" class="text-sm">
+                            <span class="text-slate-400">{{ methodLabel[p.method] || p.method }}: </span>
+                            <span class="font-semibold" style="color:#374151;">{{ fmt(p.total) }}</span>
+                        </div>
+                    </div>
                 </div>
                 <div class="ml-auto text-right">
                     <p class="text-xs text-slate-500">Net Profit (after discounts)</p>
@@ -94,84 +105,52 @@ function filter() {
             </div>
         </div>
 
-        <!-- Detailed Table -->
+        <!-- Daily Breakdown Table -->
         <div class="bg-white rounded-xl shadow-sm" style="border:1px solid #E2E8F0;">
-            <div class="px-5 py-3 border-b flex items-center justify-between" style="border-color:#F1F5F9; background:#F8FAFC;">
-                <p class="text-xs font-bold uppercase tracking-wider" style="color:#64748B;">Detailed Product Breakdown</p>
-                <p class="text-xs text-slate-400">{{ items.length }} line(s)</p>
+            <div class="px-5 py-3 border-b" style="border-color:#F1F5F9; background:#F8FAFC;">
+                <p class="text-xs font-bold uppercase tracking-wider" style="color:#64748B;">Daily Breakdown</p>
             </div>
             <div class="overflow-x-auto">
                 <table class="w-full text-sm">
                     <thead>
                         <tr class="text-xs text-slate-500 uppercase" style="background:#F8FAFC; border-bottom:1px solid #E2E8F0;">
-                            <th class="px-4 py-3 text-left">Product</th>
-                            <th class="px-4 py-3 text-center">Qty</th>
-                            <th class="px-4 py-3 text-right">Sell Price</th>
-                            <th class="px-4 py-3 text-right">Cost Price</th>
-                            <th class="px-4 py-3 text-right">Unit Profit</th>
-                            <th class="px-4 py-3 text-right">Total Sales</th>
-                            <th class="px-4 py-3 text-right">Total Cost</th>
-                            <th class="px-4 py-3 text-right">Discount</th>
+                            <th class="px-4 py-3 text-left">Date</th>
+                            <th class="px-4 py-3 text-center">Bills</th>
+                            <th class="px-4 py-3 text-right">Gross Sales</th>
+                            <th class="px-4 py-3 text-right">Discounts</th>
+                            <th class="px-4 py-3 text-right">Net Revenue</th>
+                            <th class="px-4 py-3 text-right">Cost</th>
                             <th class="px-4 py-3 text-right">Gross Profit</th>
-                            <th class="px-4 py-3 text-right">Margin</th>
+                            <th class="px-4 py-3 text-right">Net Profit</th>
                         </tr>
                     </thead>
                     <tbody>
-                        <tr v-if="items.length === 0">
-                            <td colspan="10" class="px-4 py-8 text-center text-slate-400">{{ t('lbl.no_data') }}</td>
+                        <tr v-if="byDay.length === 0">
+                            <td colspan="8" class="px-4 py-8 text-center text-slate-400">{{ t('lbl.no_data') }}</td>
                         </tr>
-                        <tr
-                            v-for="(item, idx) in items"
-                            :key="idx"
-                            class="hover:bg-slate-50"
-                            style="border-bottom:1px solid #F1F5F9;"
-                        >
-                            <td class="px-4 py-2.5 font-medium" style="color:#0F172A; max-width:180px;">
-                                <p class="truncate">{{ item.product_name }}</p>
-                            </td>
-                            <td class="px-4 py-2.5 text-center text-slate-600">{{ Number(item.total_qty).toFixed(2) }}</td>
-                            <td class="px-4 py-2.5 text-right font-medium" style="color:#2563EB;">{{ fmt(item.unit_price) }}</td>
-                            <td class="px-4 py-2.5 text-right font-medium" style="color:#DC2626;">{{ fmt(item.cost_price) }}</td>
-                            <td class="px-4 py-2.5 text-right font-semibold" :style="item.unit_profit >= 0 ? 'color:#16A34A' : 'color:#DC2626'">
-                                {{ fmt(item.unit_profit) }}
-                            </td>
-                            <td class="px-4 py-2.5 text-right" style="color:#374151;">{{ fmt(item.gross_revenue) }}</td>
-                            <td class="px-4 py-2.5 text-right" style="color:#DC2626;">{{ fmt(item.total_cost) }}</td>
+                        <tr v-for="row in byDay" :key="row.date" class="hover:bg-slate-50" style="border-bottom:1px solid #F1F5F9;">
+                            <td class="px-4 py-2.5 font-medium" style="color:#0F172A;">{{ fmtDate(row.date) }}</td>
+                            <td class="px-4 py-2.5 text-center text-slate-500">{{ row.total_bills }}</td>
+                            <td class="px-4 py-2.5 text-right" style="color:#2563EB;">{{ fmt(row.gross_revenue) }}</td>
                             <td class="px-4 py-2.5 text-right" style="color:#EA580C;">
-                                {{ item.total_item_discount > 0 ? '- ' + fmt(item.total_item_discount) : '—' }}
+                                {{ row.total_discount > 0 ? '- ' + fmt(row.total_discount) : '—' }}
                             </td>
-                            <td class="px-4 py-2.5 text-right font-semibold" :style="item.gross_profit >= 0 ? 'color:#16A34A' : 'color:#DC2626'">
-                                {{ fmt(item.gross_profit) }}
-                            </td>
-                            <td class="px-4 py-2.5 text-right">
-                                <span class="text-xs font-semibold px-2 py-0.5 rounded-full"
-                                    :style="item.gross_profit >= 0
-                                        ? 'background:#F0FDF4; color:#15803D;'
-                                        : 'background:#FEF2F2; color:#DC2626;'">
-                                    {{ pct(item.gross_profit, item.gross_revenue) }}
-                                </span>
-                            </td>
+                            <td class="px-4 py-2.5 text-right" style="color:#0369A1;">{{ fmt(row.net_revenue) }}</td>
+                            <td class="px-4 py-2.5 text-right" style="color:#DC2626;">{{ fmt(row.total_cost) }}</td>
+                            <td class="px-4 py-2.5 text-right font-medium" :style="row.gross_profit >= 0 ? 'color:#16A34A' : 'color:#DC2626'">{{ fmt(row.gross_profit) }}</td>
+                            <td class="px-4 py-2.5 text-right font-semibold" :style="row.net_profit >= 0 ? 'color:#15803D' : 'color:#DC2626'">{{ fmt(row.net_profit) }}</td>
                         </tr>
                     </tbody>
-                    <tfoot v-if="items.length > 0">
+                    <tfoot v-if="byDay.length > 0">
                         <tr class="text-sm font-bold" style="background:#F8FAFC; border-top:2px solid #E2E8F0;">
                             <td class="px-4 py-3" style="color:#374151;">Total</td>
-                            <td class="px-4 py-3 text-center" style="color:#374151;">
-                                {{ items.reduce((s, i) => s + Number(i.total_qty), 0).toFixed(2) }}
-                            </td>
-                            <td class="px-4 py-3" colspan="3"></td>
+                            <td class="px-4 py-3 text-center" style="color:#374151;">{{ summary.total_bills }}</td>
                             <td class="px-4 py-3 text-right" style="color:#2563EB;">{{ fmt(summary.gross_revenue) }}</td>
+                            <td class="px-4 py-3 text-right" style="color:#EA580C;">- {{ fmt(summary.total_discount) }}</td>
+                            <td class="px-4 py-3 text-right" style="color:#0369A1;">{{ fmt(summary.net_revenue) }}</td>
                             <td class="px-4 py-3 text-right" style="color:#DC2626;">{{ fmt(summary.total_cost) }}</td>
-                            <td class="px-4 py-3 text-right" style="color:#EA580C;">- {{ fmt(summary.item_discount) }}</td>
                             <td class="px-4 py-3 text-right" :style="summary.gross_profit >= 0 ? 'color:#16A34A' : 'color:#DC2626'">{{ fmt(summary.gross_profit) }}</td>
-                            <td class="px-4 py-3 text-right">
-                                <span class="text-xs font-semibold px-2 py-0.5 rounded-full"
-                                    :style="summary.gross_profit >= 0
-                                        ? 'background:#F0FDF4; color:#15803D;'
-                                        : 'background:#FEF2F2; color:#DC2626;'">
-                                    {{ pct(summary.gross_profit, summary.gross_revenue) }}
-                                </span>
-                            </td>
+                            <td class="px-4 py-3 text-right" :style="summary.net_profit >= 0 ? 'color:#15803D' : 'color:#DC2626'">{{ fmt(summary.net_profit) }}</td>
                         </tr>
                     </tfoot>
                 </table>

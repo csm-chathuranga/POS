@@ -163,7 +163,8 @@ const printing        = ref(false);
 
 const appSettings  = computed(() => usePage().props.appSettings || {});
 const showPrice    = computed(() => appSettings.value.barcode_show_price !== '0' && appSettings.value.barcode_show_price !== false);
-const currentSize  = { w: '40mm', h: '25mm' };
+const shopName     = computed(() => appSettings.value.shop_name || '');
+const currentSize  = { w: '30mm', h: '20mm' };
 
 function openBarcodeModal(product) {
     barcodeProduct.value = product;
@@ -183,11 +184,15 @@ function renderBarcode(el) {
     targets.forEach(svg => {
         if (!svg) return;
         try {
-            JsBarcode(svg, barcodeProduct.value.barcode, {
-                format: 'CODE128',
+            const val = barcodeProduct.value.barcode;
+            const format = /^\d{13}$/.test(val) ? 'EAN13'
+                         : /^\d{8}$/.test(val)  ? 'EAN8'
+                         : 'CODE128';
+            JsBarcode(svg, val, {
+                format,
                 displayValue: false,
-                width: 0.8,
-                height: 20,
+                width: 1.0,
+                height: 14,
                 margin: 1,
             });
             const w = svg.getAttribute('width');
@@ -571,7 +576,9 @@ async function doPrint() {
                     <div class="barcode-preview-wrap">
                         <p class="barcode-section-label">Preview</p>
                         <div class="barcode-label-preview">
+                            <p v-if="shopName" class="bc-shop-name">{{ shopName }}</p>
                             <p class="bc-name">{{ barcodeProduct?.name }}</p>
+                            <p v-if="barcodeProduct?.name_si" class="bc-name-si">{{ barcodeProduct?.name_si }}</p>
                             <svg ref="modalBarcodeSvg"></svg>
                             <p v-if="showPrice" class="bc-price">Rs. {{ Number(barcodeProduct?.selling_price || 0).toFixed(2) }}</p>
                         </div>
@@ -614,7 +621,9 @@ async function doPrint() {
         <div v-if="printing" id="barcode-print-area"
             :style="`--lw:${currentSize.w};--lh:${currentSize.h}`">
             <div class="bc-label-page">
+                <p v-if="shopName" class="bc-print-shop-name">{{ shopName }}</p>
                 <p class="bc-print-name">{{ barcodeProduct?.name }}</p>
+                <p v-if="barcodeProduct?.name_si" class="bc-print-name-si">{{ barcodeProduct?.name_si }}</p>
                 <svg ref="printBarcodeSvg"></svg>
                 <p v-if="showPrice" class="bc-print-price">Rs. {{ Number(barcodeProduct?.selling_price || 0).toFixed(2) }}</p>
             </div>
@@ -668,9 +677,10 @@ async function doPrint() {
     min-height: 90px;
 }
 .barcode-label-preview svg { max-width: 100%; height: auto; }
-.bc-name { font-size: 10pt; font-weight: 700; text-align: center; color: #111; line-height: 1.2; }
-.bc-name-si { font-size: 7pt; font-weight: 600; text-align: center; color: #374151; }
-.bc-price { font-size: 10pt; font-weight: 800; color: #16a34a; text-align: left; padding-left: 3px; margin-top: 2px; margin-left: 4px; }
+.bc-shop-name { font-size: 8pt; font-weight: 700; text-align: center; color: #374151; letter-spacing: 0.04em; text-transform: uppercase; margin-bottom: 1px; }
+.bc-name { font-size: 11pt; font-weight: 700; text-align: center; color: #111; line-height: 1.2; }
+.bc-name-si { font-size: 9pt; font-weight: 600; text-align: center; color: #374151; }
+.bc-price { font-size: 11pt; font-weight: 800; color: #16a34a; text-align: left; padding-left: 3px; margin-top: 2px; margin-left: 4px; }
 
 /* ── Options ── */
 .barcode-options { display: flex; flex-direction: column; gap: 1rem; }
@@ -738,28 +748,47 @@ async function doPrint() {
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        gap: 0.5mm;
-        padding: 1mm;
+        gap: 0;
+        padding: 0.5mm 1mm;
         margin: 0;
         font-family: sans-serif;
         overflow: hidden;
         box-sizing: border-box;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+        color: #000;
     }
     html.barcode-printing .bc-label-page svg {
         display: block;
         width: auto !important;
         max-width: 100% !important;
         height: auto !important;
+        flex-shrink: 0;
+    }
+    html.barcode-printing .bc-print-shop-name {
+        font-size: 7pt; font-weight: 900;
+        text-align: center; text-transform: uppercase;
+        letter-spacing: 0.03em; margin: 0;
+        width: 100%; line-height: 1.1; color: #000;
     }
     html.barcode-printing .bc-print-name {
-        font-size: 9pt; font-weight: 700;
+        font-size: 7.5pt; font-weight: 900;
         text-align: center; line-height: 1.1;
         white-space: nowrap; overflow: hidden;
-        margin: 0;
+        text-overflow: ellipsis; width: 100%;
+        margin: 0 0 1mm 0; color: #000;
+    }
+    html.barcode-printing .bc-print-name-si {
+        font-size: 6.5pt; font-weight: 700;
+        text-align: center; line-height: 1.1;
+        white-space: nowrap; overflow: hidden;
+        text-overflow: ellipsis; width: 100%;
+        margin: 0; color: #000;
     }
     html.barcode-printing .bc-print-price {
-        font-size: 10pt; font-weight: 800;
-        text-align: left; padding-left: 3px; margin-top: 2px; margin-left: 4px;
+        font-size: 10pt; font-weight: 900;
+        text-align: center; margin: 0;
+        width: 100%; color: #000;
     }
 }
 </style>

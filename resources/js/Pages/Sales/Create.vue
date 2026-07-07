@@ -950,15 +950,15 @@ onUnmounted(() => {
 // ─── Formatting ───────────────────────────────────────────────────────────────
 function fmt(val) {
     return 'Rs. ' + Number(val || 0).toLocaleString('en-LK', {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0,
     });
 }
 
 function fmtNum(val) {
     return Number(val || 0).toLocaleString('en-LK', {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0,
     });
 }
 
@@ -1063,7 +1063,7 @@ const focusedPriceIdx = ref(null);
             <!-- ══════════════════════════════════════════
                  LEFT PANEL: Search + Cart
             ═══════════════════════════════════════════ -->
-            <div class="flex-1 lg:w-[60%] flex flex-col gap-3 min-w-0">
+            <div class="flex-1 lg:w-[60%] flex flex-col gap-1 min-w-0">
 
                 <!-- Barcode / Product Search -->
                 <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-100 dark:border-slate-700 p-3">
@@ -1235,16 +1235,6 @@ const focusedPriceIdx = ref(null);
 
                 <!-- Cart Table -->
                 <div class="bg-gray-50 dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 flex-1 flex flex-col overflow-hidden">
-                    <!-- Cart header -->
-                    <div class="flex items-center justify-between px-4 py-3 border-b border-gray-100 dark:border-slate-700">
-                        <h2 class="font-bold text-gray-700 dark:text-slate-200 text-base lg:text-lg flex items-center gap-2">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
-                            </svg>
-                            {{ t('page.sales') }}
-                        </h2>
-                        <span class="text-sm text-gray-500 dark:text-slate-400">{{ cart.length }} {{ t('th.product') }}</span>
-                    </div>
 
                     <!-- Empty state -->
                     <div v-if="cart.length === 0" class="flex-1 flex flex-col items-center justify-center py-10 gap-5">
@@ -1277,7 +1267,7 @@ const focusedPriceIdx = ref(null);
                                     class="border-b border-gray-50 dark:border-slate-700 transition-colors"
                                     :class="idx % 2 === 0 ? 'bg-white dark:bg-slate-800' : 'bg-gray-100/60 dark:bg-slate-800/60'"
                                 >
-                                    <td class="px-4 py-3">
+                                    <td class="px-4 py-1.5">
                                         <div class="flex items-center gap-2 flex-wrap">
                                             <p class="font-medium text-gray-800 dark:text-gray-100 leading-tight text-sm lg:text-base">{{ item.name }}</p>
                                             <span
@@ -1293,10 +1283,10 @@ const focusedPriceIdx = ref(null);
                                             <span
                                                 v-if="item.stock_qty <= item.alert_qty"
                                                 class="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-red-100 text-red-600"
-                                            >Low stock: {{ fmtQty(item.stock_qty) }}</span>
+                                            >{{ fmtQty(item.stock_qty) }}</span>
                                         </div>
                                     </td>
-                                    <td class="px-3 py-2.5">
+                                    <td class="px-3 py-1.5">
                                         <div class="flex items-center gap-1">
                                             <button
                                                 type="button"
@@ -1323,7 +1313,7 @@ const focusedPriceIdx = ref(null);
                                             >+</button>
                                         </div>
                                     </td>
-                                    <td class="px-3 py-2.5">
+                                    <td class="px-3 py-1.5">
                                         <input
                                             type="text"
                                             inputmode="decimal"
@@ -1348,12 +1338,12 @@ const focusedPriceIdx = ref(null);
                                             class="w-16 lg:w-20 text-right border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-gray-100 rounded-lg py-1.5 px-2 focus:outline-none focus:ring-2 focus:ring-orange-300 dark:focus:ring-orange-800 text-sm lg:text-base"
                                         />
                                     </td>
-                                    <td class="px-3 py-3 text-right">
+                                    <td class="px-3 py-1.5 text-right">
                                         <span class="text-base lg:text-lg font-extrabold" :class="item.total < 0 ? 'text-red-600' : 'text-blue-700'">
                                             {{ fmt(item.total) }}
                                         </span>
                                     </td>
-                                    <td class="px-2 py-2.5 text-center">
+                                    <td class="px-2 py-1.5 text-center">
                                         <button
                                             type="button"
                                             @click="removeFromCart(idx)"

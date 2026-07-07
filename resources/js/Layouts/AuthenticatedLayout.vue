@@ -423,7 +423,7 @@ function reloadApp() {
                 </div>
             </Transition>
 
-            <main class="flex-1 p-4 md:p-6 pb-20 md:pb-6 print:p-0 dark:bg-slate-900 dark:text-slate-100">
+            <main class="flex-1 px-4 md:px-6 pt-1 md:pt-1 pb-20 md:pb-6 print:p-0 dark:bg-slate-900 dark:text-slate-100">
                 <slot />
             </main>
         </div>

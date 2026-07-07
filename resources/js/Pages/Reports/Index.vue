@@ -1,9 +1,15 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
-import { Head } from '@inertiajs/vue3';
-import { inject } from 'vue';
+import { Head, router } from '@inertiajs/vue3';
+import { inject, ref } from 'vue';
 
 const t = inject('t');
+const loading = ref(null);
+
+function navigate(href) {
+    loading.value = href;
+    router.visit(href);
+}
 
 const reportCards = [
     {
@@ -48,6 +54,12 @@ const reportCards = [
         bg: 'bg-teal-600',
         icon: `<svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>`,
     },
+    {
+        labelKey: 'rep.revenue',
+        href: '/reports/revenue',
+        bg: 'bg-emerald-600',
+        icon: `<svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>`,
+    },
 ];
 </script>
 
@@ -60,24 +72,31 @@ const reportCards = [
         </template>
 
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            <a
+            <button
                 v-for="card in reportCards"
                 :key="card.href"
-                :href="card.href"
-                class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition-shadow cursor-pointer group"
+                @click="navigate(card.href)"
+                :disabled="loading !== null"
+                class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition-shadow cursor-pointer group text-left w-full"
+                :class="{ 'opacity-60': loading !== null && loading !== card.href }"
             >
                 <div class="flex items-start gap-4">
-                    <div :class="[card.bg, 'w-14 h-14 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform']">
-                        <span v-html="card.icon"></span>
+                    <div :class="[card.bg, 'w-14 h-14 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform relative']">
+                        <span v-if="loading !== card.href" v-html="card.icon"></span>
+                        <svg v-else class="animate-spin h-8 w-8 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+                        </svg>
                     </div>
                     <div class="flex-1 min-w-0">
                         <h3 class="font-bold text-gray-900 text-lg leading-tight">{{ t(card.labelKey) }}</h3>
+                        <p v-if="loading === card.href" class="text-xs text-gray-400 mt-1">Loading...</p>
                     </div>
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-300 group-hover:text-gray-500 flex-shrink-0 mt-1 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <svg v-if="loading !== card.href" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-300 group-hover:text-gray-500 flex-shrink-0 mt-1 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
                     </svg>
                 </div>
-            </a>
+            </button>
         </div>
     </AuthenticatedLayout>
 </template>
