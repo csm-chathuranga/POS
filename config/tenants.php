@@ -18,31 +18,31 @@
 */
 
 return [
-    // 'mailagas.lumac.lk' => [
-    //     'database' => 'lmucunal_mailagas_pos',
-    //     'username' => 'lmucunal_mysql',
-    //     'password' => 'K!ngd0m@!t0ne',
-    // ],
-    // 'asitha-pos.lumac.lk' => [
-    //     'database' => 'lmucunal_asitha_pos',
-    //     'username' => 'lmucunal_mysql',
-    //     'password' => 'K!ngd0m@!t0ne',
-    // ],
-    // 'lover-kahatagasdigiliya.lumac.lk' => [
-    //     'database' => 'lmucunal_lover_kahatagasdigiliya',
-    //     'username' => 'lmucunal_mysql',
-    //     'password' => 'K!ngd0m@!t0ne',
-    // ],
-    // 'renuka.lumac.lk' => [
-    //     'database' => 'lmucunal_renuka',
-    //     'username' => 'lmucunal_mysql',
-    //     'password' => 'K!ngd0m@!t0ne',
-    // ],
-    // 'pos.lumac.lk' => [
-    //     'database' => 'lmucunal_senewirathna',
-    //     'username' => 'lmucunal_mysql',
-    //     'password' => 'K!ngd0m@!t0ne',
-    // ],
+    'mailagas.lumac.lk' => [
+        'database' => 'lmucunal_mailagas_pos',
+        'username' => 'lmucunal_mysql',
+        'password' => 'K!ngd0m@!t0ne',
+    ],
+    'asitha-pos.lumac.lk' => [
+        'database' => 'lmucunal_asitha_pos',
+        'username' => 'lmucunal_mysql',
+        'password' => 'K!ngd0m@!t0ne',
+    ],
+    'lover-kahatagasdigiliya.lumac.lk' => [
+        'database' => 'lmucunal_lover_kahatagasdigiliya',
+        'username' => 'lmucunal_mysql',
+        'password' => 'K!ngd0m@!t0ne',
+    ],
+    'renuka.lumac.lk' => [
+        'database' => 'lmucunal_renuka',
+        'username' => 'lmucunal_mysql',
+        'password' => 'K!ngd0m@!t0ne',
+    ],
+    'pos.lumac.lk' => [
+        'database' => 'lmucunal_senewirathna',
+        'username' => 'lmucunal_mysql',
+        'password' => 'K!ngd0m@!t0ne',
+    ],
         'localhost' => [
         'database' => 'ranali',
         'username' => 'root',
