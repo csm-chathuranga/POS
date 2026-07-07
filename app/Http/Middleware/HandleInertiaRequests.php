@@ -39,11 +39,14 @@ class HandleInertiaRequests extends Middleware
                     ? Cache::remember(
                         'user_auth_' . $request->user()->id,
                         300,
-                        fn () => array_merge($request->user()->toArray(), [
-                            'role'        => $request->user()->user_type ?? 'cashier',
-                            'roles'       => [$request->user()->user_type ?? 'cashier'],
-                            'permissions' => [],
-                        ])
+                        function () use ($request) {
+                            $user  = $request->user()->load('roles');
+                            $role  = $user->roles->first()?->name ?? 'cashier';
+                            return array_merge($user->toArray(), [
+                                'role'  => $role,
+                                'roles' => $user->roles->pluck('name')->toArray(),
+                            ]);
+                        }
                     )
                     : null,
             ],

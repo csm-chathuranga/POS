@@ -2,44 +2,26 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
-use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable
 {
-    use HasApiTokens, HasFactory, Notifiable, HasRoles;
+    use HasApiTokens, HasFactory, Notifiable;
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var array<int, string>
-     */
     protected $fillable = [
         'name',
         'email',
         'password',
-        'user_type',
     ];
 
-    /**
-     * The attributes that should be hidden for serialization.
-     *
-     * @var array<int, string>
-     */
     protected $hidden = [
         'password',
         'remember_token',
     ];
 
-    /**
-     * The attributes that should be cast.
-     *
-     * @var array<string, string>
-     */
     protected $appends = ['role'];
 
     protected $casts = [
@@ -47,14 +29,12 @@ class User extends Authenticatable
         'password'          => 'hashed',
     ];
 
-    public function getRoleAttribute(): string
-    {
-        return $this->user_type ?? 'cashier';
-    }
+    // ── Relationships ──────────────────────────────
 
-    public function isAdmin(): bool    { return $this->user_type === 'admin'; }
-    public function isManager(): bool  { return in_array($this->user_type, ['admin', 'manager']); }
-    public function isCashier(): bool  { return $this->user_type === 'cashier'; }
+    public function roles()
+    {
+        return $this->belongsToMany(Role::class, 'user_role');
+    }
 
     public function sales()
     {
@@ -69,5 +49,35 @@ class User extends Authenticatable
     public function stockMovements()
     {
         return $this->hasMany(StockMovement::class);
+    }
+
+    // ── Role helpers ───────────────────────────────
+
+    public function getRoleAttribute(): string
+    {
+        return $this->roles->first()?->name ?? 'cashier';
+    }
+
+    public function hasRole(string $role): bool
+    {
+        return $this->roles->contains('name', $role);
+    }
+
+    public function isAdmin(): bool   { return $this->hasRole('admin'); }
+    public function isManager(): bool { return $this->hasRole('admin') || $this->hasRole('manager'); }
+    public function isCashier(): bool { return $this->hasRole('cashier'); }
+
+    public function assignRole(string $roleName): void
+    {
+        $role = Role::where('name', $roleName)->first();
+        if ($role) {
+            $this->roles()->syncWithoutDetaching($role->id);
+        }
+    }
+
+    public function syncRole(string $roleName): void
+    {
+        $role = Role::where('name', $roleName)->first();
+        $this->roles()->sync($role ? [$role->id] : []);
     }
 }
