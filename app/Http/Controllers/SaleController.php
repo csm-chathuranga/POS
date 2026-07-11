@@ -71,6 +71,7 @@ class SaleController extends Controller
             'name'            => $p->name,
             'name_si'         => $p->name_si,
             'barcode'         => $p->barcode,
+            'image'           => $p->image,
             'selling_price'   => (float) $p->selling_price,
             'wholesale_price' => (float) $p->wholesale_price,
             'stock_qty'       => (float) $p->stock_qty,

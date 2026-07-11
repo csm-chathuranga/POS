@@ -65,8 +65,9 @@ const form = useForm({
         barcode_show_price:  props.settings.barcode_show_price === '1' || props.settings.barcode_show_price === true || props.settings.barcode_show_price === undefined,
         enable_promotions:   props.settings.enable_promotions === '1' || props.settings.enable_promotions === true,
         logo:           props.settings.logo || '',
-        demo_mode:      props.settings.demo_mode === '1' || props.settings.demo_mode === true,
-        printer_name:   props.settings.printer_name || '',
+        demo_mode:         props.settings.demo_mode === '1' || props.settings.demo_mode === true,
+        printer_name:      props.settings.printer_name || '',
+        pos_touch_numpad:  props.settings.pos_touch_numpad === '1' || props.settings.pos_touch_numpad === true,
     },
 });
 
@@ -429,6 +430,30 @@ async function runMigrations() {
                                 <span
                                     class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform shadow"
                                     :class="form.settings.barcode_show_price ? 'translate-x-6' : 'translate-x-1'"
+                                ></span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- POS / Touch Screen card -->
+                    <div class="bg-white rounded-xl shadow-sm p-5 space-y-4" style="border:1px solid #E2E8F0;">
+                        <h2 class="font-semibold text-[15px]" style="color:#0F172A; border-bottom:1px solid #E2E8F0; padding-bottom:10px;">
+                            📱 POS / Touch Screen
+                        </h2>
+                        <div class="flex items-center justify-between py-1">
+                            <div>
+                                <p class="text-sm font-medium" style="color:#334155;">Touch Numpad</p>
+                                <p class="text-xs mt-0.5" style="color:#94A3B8;">Show on-screen numpad for qty and price — ideal for touch screens, disables keyboard input on those fields</p>
+                            </div>
+                            <button
+                                type="button"
+                                @click="form.settings.pos_touch_numpad = !form.settings.pos_touch_numpad"
+                                class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors flex-shrink-0 ml-3"
+                                :style="form.settings.pos_touch_numpad ? 'background:#7C3AED;' : 'background:#D1D5DB;'"
+                            >
+                                <span
+                                    class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform shadow"
+                                    :class="form.settings.pos_touch_numpad ? 'translate-x-6' : 'translate-x-1'"
                                 ></span>
                             </button>
                         </div>

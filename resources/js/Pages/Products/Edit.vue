@@ -1,8 +1,11 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
+import ImageUpload from '@/Components/ImageUpload.vue';
 import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
 import { inject, computed, ref } from 'vue';
 import { invalidateProducts } from '@/stores/productCache';
+
+const imageUploadRef = ref(null);
 
 const t = inject('t');
 const promotionsEnabled = computed(() => usePage().props.appSettings?.enable_promotions === '1' || usePage().props.appSettings?.enable_promotions === true);
@@ -40,6 +43,7 @@ const form = useForm({
     alert_qty:        props.product.alert_qty  != null ? parseFloat(props.product.alert_qty)  : 1,
     unit:            props.product.unit || 'pcs',
     description:     props.product.description || '',
+    image:           props.product.image || '',
     active:          props.product.active ?? true,
     is_fast_moving:  props.product.is_fast_moving ?? false,
     variants: (props.product.variants || []).map(v => ({
@@ -63,10 +67,15 @@ function removeVariant(i) {
     form.variants.splice(i, 1);
 }
 
-function submit() {
+async function submit() {
     if (!validateBarcode()) return;
+    try {
+        form.image = await imageUploadRef.value?.upload() ?? form.image;
+    } catch { return; }
     invalidateProducts();
-    form.put(route('products.update', props.product.id));
+    form.put(route('products.update', props.product.id), {
+        onError: () => window.scrollTo({ top: 0, behavior: 'smooth' }),
+    });
 }
 </script>
 
@@ -156,6 +165,13 @@ function submit() {
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">{{ t('prod.description') }}</label>
                             <textarea v-model="form.description" rows="2" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"></textarea>
+                        </div>
+
+                        <!-- Product Image -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Product Image</label>
+                            <ImageUpload ref="imageUploadRef" v-model="form.image" folder="products" />
+                            <p v-if="form.errors.image" class="text-red-500 text-xs mt-1">{{ form.errors.image }}</p>
                         </div>
 
                         <div class="flex flex-col gap-3 pt-1">

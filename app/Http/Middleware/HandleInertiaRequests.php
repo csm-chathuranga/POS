@@ -62,7 +62,7 @@ class HandleInertiaRequests extends Middleware
                     'ui_language', 'bill_language', 'sidebar_theme', 'primary_color',
                     'shop_name', 'currency', 'tax_rate',
                     'barcode_label_size', 'barcode_show_price',
-                    'logo', 'demo_mode', 'printer_name', 'enable_promotions',
+                    'logo', 'demo_mode', 'printer_name', 'enable_promotions', 'pos_touch_numpad',
                 ])
             ),
             'ziggy' => fn () => array_merge(

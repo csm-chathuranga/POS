@@ -12,6 +12,7 @@ use App\Http\Controllers\ReportController;
 use App\Http\Controllers\SettingController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\DeviceController;
+use App\Http\Controllers\ImageKitController;
 use App\Http\Controllers\ProductImportController;
 use Illuminate\Support\Facades\Route;
 
@@ -52,6 +53,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/api/products/search',  [ProductController::class, 'search'])->name('products.search');
     Route::get('/api/products/all',     [ProductController::class, 'all'])->name('products.all');
     Route::get('/api/products/version', [ProductController::class, 'version'])->name('products.version');
+    Route::get('/api/imagekit/auth',    [ImageKitController::class, 'auth'])->name('imagekit.auth');
 
     // Purchases / GRN
     Route::resource('purchases', PurchaseController::class)->only(['index', 'create', 'store', 'show', 'destroy']);

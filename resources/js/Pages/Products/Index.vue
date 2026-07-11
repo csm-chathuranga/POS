@@ -139,7 +139,8 @@ function fmtQty(val) {
     return parseFloat(Number(val || 0).toFixed(3)).toString();
 }
 
-const deleteTarget = ref(null);
+const deleteTarget  = ref(null);
+const lightboxImage = ref(null);
 const deleting = ref(false);
 
 function promptDelete(id, name) {
@@ -333,10 +334,24 @@ async function doPrint() {
                 class="bg-white rounded-xl shadow-sm border border-gray-100 p-4"
             >
                 <div class="flex justify-between items-start mb-2">
-                    <div>
-                        <p class="font-semibold text-gray-900">{{ product.name }}</p>
-                        <p v-if="product.name_si" class="text-sm text-gray-500">{{ product.name_si }}</p>
-                        <p class="text-xs text-gray-400 mt-1">{{ product.barcode }}</p>
+                    <div class="flex items-start gap-3">
+                        <img
+                            v-if="product.image"
+                            :src="product.image"
+                            :alt="product.name"
+                            class="w-12 h-12 object-cover rounded-lg border border-gray-100 flex-shrink-0 cursor-zoom-in hover:opacity-80 transition-opacity"
+                            @click="lightboxImage = product.image"
+                        />
+                        <div v-else class="w-12 h-12 rounded-lg bg-gray-100 flex items-center justify-center flex-shrink-0">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                        </div>
+                        <div>
+                            <p class="font-semibold text-gray-900">{{ product.name }}</p>
+                            <p v-if="product.name_si" class="text-sm text-gray-500">{{ product.name_si }}</p>
+                            <p class="text-xs text-gray-400 mt-1">{{ product.barcode }}</p>
+                        </div>
                     </div>
                     <span
                         class="text-xs font-medium px-2 py-1 rounded-full"
@@ -405,6 +420,7 @@ async function doPrint() {
                 <table class="w-full">
                     <thead>
                         <tr class="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider bg-gray-50 border-b border-gray-100">
+                            <th class="px-4 py-3 w-14"></th>
                             <th class="px-4 py-3">{{ t('th.product') }}</th>
                             <th class="px-4 py-3">{{ t('th.barcode') }}</th>
                             <th class="px-4 py-3">{{ t('th.category') }}</th>
@@ -418,6 +434,7 @@ async function doPrint() {
                         <!-- Skeleton rows -->
                         <template v-if="loading">
                             <tr v-for="i in 8" :key="'sk-'+i" class="animate-pulse">
+                                <td class="px-4 py-3"><div class="h-10 w-10 bg-gray-200 rounded-lg"></div></td>
                                 <td class="px-4 py-3">
                                     <div class="h-4 w-40 bg-gray-200 rounded mb-1.5"></div>
                                     <div class="h-3 w-28 bg-gray-100 rounded"></div>
@@ -438,13 +455,27 @@ async function doPrint() {
                         </template>
                         <template v-else>
                         <tr v-if="products.data?.length === 0">
-                            <td colspan="7" class="px-4 py-8 text-center text-gray-400">{{ t('prod.no_products') }}</td>
+                            <td colspan="8" class="px-4 py-8 text-center text-gray-400">{{ t('prod.no_products') }}</td>
                         </tr>
                         <tr
                             v-for="product in products.data"
                             :key="product.id"
                             class="hover:bg-gray-50 transition-colors"
                         >
+                            <td class="px-4 py-3">
+                                <img
+                                    v-if="product.image"
+                                    :src="product.image"
+                                    :alt="product.name"
+                                    class="w-10 h-10 object-cover rounded-lg border border-gray-100 cursor-zoom-in hover:opacity-80 transition-opacity"
+                                    @click="lightboxImage = product.image"
+                                />
+                                <div v-else class="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                    </svg>
+                                </div>
+                            </td>
                             <td class="px-4 py-3">
                                 <p class="font-medium text-gray-900">{{ product.name }}</p>
                                 <p v-if="product.name_si" class="text-xs text-gray-500">{{ product.name_si }}</p>
@@ -617,6 +648,29 @@ async function doPrint() {
             </div>
         </div>
 
+        <!-- Image Lightbox -->
+        <Transition name="lightbox">
+            <div
+                v-if="lightboxImage"
+                class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/85 backdrop-blur-sm"
+                @click.self="lightboxImage = null"
+                @keydown.esc.window="lightboxImage = null"
+            >
+                <button
+                    @click="lightboxImage = null"
+                    class="absolute top-4 right-4 text-white/70 hover:text-white bg-black/40 hover:bg-black/60 rounded-full p-2 transition-colors"
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+                <img
+                    :src="lightboxImage"
+                    class="max-w-[90vw] max-h-[90vh] object-contain rounded-xl shadow-2xl"
+                />
+            </div>
+        </Transition>
+
         <!-- Hidden print-only area (rendered when printing) -->
         <div v-if="printing" id="barcode-print-area"
             :style="`--lw:${currentSize.w};--lh:${currentSize.h}`">
@@ -632,6 +686,10 @@ async function doPrint() {
 </template>
 
 <style>
+/* ── Lightbox transition ── */
+.lightbox-enter-active, .lightbox-leave-active { transition: opacity 0.2s ease; }
+.lightbox-enter-from, .lightbox-leave-to       { opacity: 0; }
+
 /* ── Modal ── */
 .barcode-modal-backdrop {
     position: fixed; inset: 0; z-index: 9999;

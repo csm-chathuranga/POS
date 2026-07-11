@@ -634,6 +634,7 @@ function addToCart(product, initialQty = null, focusQty = true) {
             variant_id:      variantId,
             name:            product.name_si ? `${product.name} / ${product.name_si}` : product.name,
             barcode:         product.barcode || '',
+            image:           product.image || '',
             qty:             startQty,
             unit_price:      unitPrice,
             selling_price:   parseFloat(product.selling_price) || 0,
@@ -968,6 +969,112 @@ function fmtQty(val) {
 }
 
 const focusedPriceIdx = ref(null);
+
+// ─── Touch Numpad ─────────────────────────────────────────────────────────────
+const numpadEnabled  = computed(() => page.props.appSettings?.pos_touch_numpad === '1' || page.props.appSettings?.pos_touch_numpad === true);
+const showNumpad     = ref(false);
+const numpadValue    = ref('');
+const numpadItem     = ref(null);
+const numpadField    = ref(''); // 'qty' | 'unit_price' | 'discount' | 'field'
+const numpadLabel    = ref('');
+const numpadMax      = ref(null);
+const numpadCallback = ref(null); // for non-cart fields
+
+const NUMPAD_KEYS = [
+    ['7','8','9'],
+    ['4','5','6'],
+    ['1','2','3'],
+    ['.','0','⌫'],
+];
+
+function openNumpad(item, field) {
+    numpadItem.value     = item;
+    numpadField.value    = field;
+    numpadLabel.value    = item.name;
+    numpadMax.value      = field === 'qty' && item.stock_qty > 0 ? item.stock_qty : null;
+    numpadCallback.value = null;
+    numpadValue.value    = String(
+        field === 'qty'        ? (item.qty ?? '')        :
+        field === 'unit_price' ? (item.unit_price ?? '') :
+        (item.discount || '')
+    );
+    showNumpad.value = true;
+}
+
+function openNumpadField(currentVal, label, callback) {
+    numpadItem.value     = null;
+    numpadField.value    = 'field';
+    numpadLabel.value    = label;
+    numpadMax.value      = null;
+    numpadCallback.value = callback;
+    numpadValue.value    = String(currentVal || '');
+    showNumpad.value     = true;
+}
+
+function numpadPress(key) {
+    if (key === 'C')  { numpadValue.value = ''; return; }
+    if (key === '⌫') { numpadValue.value = numpadValue.value.slice(0, -1); return; }
+    if (key === '.' && numpadValue.value.includes('.')) return;
+    if (numpadValue.value === '0' && key !== '.') { numpadValue.value = key; return; }
+    numpadValue.value += key;
+}
+
+function numpadConfirm() {
+    if (numpadCallback.value) {
+        numpadCallback.value(numpadValue.value);
+        numpadCallback.value = null;
+    } else {
+        const item  = numpadItem.value;
+        const field = numpadField.value;
+        if (item) {
+            if (field === 'qty') {
+                const n = parseFloat(numpadValue.value);
+                if (!isNaN(n) && n > 0) updateQty(item, n);
+            } else if (field === 'unit_price') {
+                updatePrice(item, numpadValue.value);
+            } else if (field === 'discount') {
+                updateDiscount(item, numpadValue.value);
+            }
+        }
+    }
+    showNumpad.value = false;
+    refocusSearch();
+}
+
+function closeNumpad() {
+    showNumpad.value = false;
+    numpadItem.value = null;
+    refocusSearch();
+}
+
+// ─── Product Browser (touch mode search) ─────────────────────────────────────
+const showProductBrowser = ref(false);
+const browserQuery       = ref('');
+const browserSearchInput = ref(null);
+
+const browserProducts = computed(() => {
+    const q = browserQuery.value.trim().toLowerCase();
+    const list = allProducts.value;
+    if (!q) return list.slice(0, 80);
+    return list.filter(p =>
+        p.name.toLowerCase().includes(q) ||
+        (p.name_si && p.name_si.includes(q)) ||
+        (p.barcode && p.barcode.toLowerCase().includes(q))
+    ).slice(0, 80);
+});
+
+function openProductBrowser() {
+    if (!productsReady.value) return;
+    browserQuery.value = '';
+    showProductBrowser.value = true;
+    nextTick(() => browserSearchInput.value?.focus());
+}
+
+function selectFromBrowser(product) {
+    showProductBrowser.value = false;
+    browserQuery.value = '';
+    addToCart(product);
+}
 </script>
 
 <template>
@@ -1084,15 +1191,18 @@ const focusedPriceIdx = ref(null);
                             type="text"
                             :placeholder="t('pos.search_product')"
                             autocomplete="off"
+                            :readonly="numpadEnabled"
                             class="w-full pl-12 pr-28 py-2.5 text-base lg:text-lg border-2 border-blue-200 rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 min-h-[44px] lg:min-h-[50px] font-medium bg-white dark:bg-slate-900 dark:border-slate-600 dark:text-white dark:placeholder-slate-500 dark:focus:border-blue-400 dark:focus:ring-blue-900"
-                            @focus="onSearchFocus"
-                            @blur="onSearchBlur"
-                            @input="onSearchInput"
-                            @keypress="onSearchKeypress"
-                            @keydown.enter="onSearchEnter"
-                            @keydown.arrow-down="onArrowDown"
-                            @keydown.arrow-up="onArrowUp"
-                            @keydown.escape="showDropdown = false; searchQuery = ''; activeIndex = -1"
+                            :class="numpadEnabled ? 'cursor-pointer' : ''"
+                            @focus="numpadEnabled ? $event.target.blur() : onSearchFocus()"
+                            @click="numpadEnabled && openProductBrowser()"
+                            @blur="numpadEnabled ? null : onSearchBlur($event)"
+                            @input="numpadEnabled ? null : onSearchInput()"
+                            @keypress="numpadEnabled ? null : onSearchKeypress($event)"
+                            @keydown.enter="numpadEnabled ? null : onSearchEnter($event)"
+                            @keydown.arrow-down="numpadEnabled ? null : onArrowDown($event)"
+                            @keydown.arrow-up="numpadEnabled ? null : onArrowUp($event)"
+                            @keydown.escape="numpadEnabled ? null : (showDropdown = false, searchQuery = '', activeIndex = -1)"
                         />
                         <!-- Scan button + status indicator -->
                         <div class="absolute inset-y-0 right-0 pr-3 flex items-center gap-2">
@@ -1137,19 +1247,33 @@ const focusedPriceIdx = ref(null);
                                 v-for="(product, idx) in dropdownItems"
                                 :key="product.id"
                                 type="button"
-                                class="w-full text-left px-4 py-3 flex items-center justify-between border-b border-gray-50 dark:border-slate-700 last:border-b-0 transition-colors"
+                                class="w-full text-left px-3 py-2.5 flex items-center gap-3 border-b border-gray-50 dark:border-slate-700 last:border-b-0 transition-colors"
                                 :class="idx === activeIndex
                                     ? 'bg-blue-600 text-white'
                                     : 'hover:bg-blue-50 dark:hover:bg-slate-700'"
                                 @mousedown.prevent="addToCart(product)"
                                 @mouseover="activeIndex = idx"
                             >
-                                <div>
-                                    <p class="font-medium text-sm" :class="idx === activeIndex ? 'text-white' : 'text-gray-800 dark:text-gray-200'">{{ product.name }}</p>
-                                    <p v-if="product.name_si" class="text-xs" :class="idx === activeIndex ? 'text-blue-200' : 'text-gray-500 dark:text-slate-400'">{{ product.name_si }}</p>
+                                <!-- Thumbnail -->
+                                <img
+                                    v-if="product.image"
+                                    :src="product.image"
+                                    :alt="product.name"
+                                    class="w-10 h-10 rounded-lg object-cover flex-shrink-0 border"
+                                    :class="idx === activeIndex ? 'border-blue-400' : 'border-gray-100'"
+                                />
+                                <div v-else class="w-10 h-10 rounded-lg flex-shrink-0 flex items-center justify-center"
+                                    :class="idx === activeIndex ? 'bg-blue-500' : 'bg-gray-100 dark:bg-slate-700'">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" :class="idx === activeIndex ? 'text-blue-200' : 'text-gray-300'" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                    </svg>
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <p class="font-medium text-sm truncate" :class="idx === activeIndex ? 'text-white' : 'text-gray-800 dark:text-gray-200'">{{ product.name }}</p>
+                                    <p v-if="product.name_si" class="text-xs truncate" :class="idx === activeIndex ? 'text-blue-200' : 'text-gray-500 dark:text-slate-400'">{{ product.name_si }}</p>
                                     <p class="text-xs font-mono" :class="idx === activeIndex ? 'text-blue-300' : 'text-gray-400 dark:text-slate-500'">{{ product.barcode }}</p>
                                 </div>
-                                <div class="text-right ml-4 flex-shrink-0">
+                                <div class="text-right flex-shrink-0">
                                     <p class="font-bold" :class="idx === activeIndex ? 'text-white' : 'text-blue-700 dark:text-blue-400'">{{ fmt(product.selling_price) }}</p>
                                     <p class="text-xs" :class="idx === activeIndex ? 'text-blue-200' : (product.stock_qty > 0 ? 'text-green-600 dark:text-green-400' : 'text-red-500')">
                                         {{ t('th.stock') }}: {{ fmtQty(product.stock_qty) }} {{ product.unit }}
@@ -1268,6 +1392,14 @@ const focusedPriceIdx = ref(null);
                                     :class="idx % 2 === 0 ? 'bg-white dark:bg-slate-800' : 'bg-gray-100/60 dark:bg-slate-800/60'"
                                 >
                                     <td class="px-4 py-1.5">
+                                        <div class="flex items-center gap-3">
+                                        <img
+                                            v-if="item.image"
+                                            :src="item.image"
+                                            :alt="item.name"
+                                            class="w-9 h-9 rounded-lg object-cover border border-gray-100 flex-shrink-0"
+                                        />
+                                        <div>
                                         <div class="flex items-center gap-2 flex-wrap">
                                             <p class="font-medium text-gray-800 dark:text-gray-100 leading-tight text-sm lg:text-base">{{ item.name }}</p>
                                             <span
@@ -1285,6 +1417,8 @@ const focusedPriceIdx = ref(null);
                                                 class="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-red-100 text-red-600"
                                             >{{ fmtQty(item.stock_qty) }}</span>
                                         </div>
+                                        </div>
+                                        </div>
                                     </td>
                                     <td class="px-3 py-1.5">
                                         <div class="flex items-center gap-1">
@@ -1300,10 +1434,13 @@ const focusedPriceIdx = ref(null);
                                                 step="0.01"
                                                 :value="item.qty ?? ''"
                                                 :placeholder="['kg','g'].includes(item.unit) ? '0' : '1'"
-                                                @input="e => updateQty(item, e.target.value, e.target)"
-                                                @keydown="onQtyKeydown($event, item)"
-                                                @focus="resetQtyState(); $event.target.select()"
+                                                :readonly="numpadEnabled"
+                                                @input="numpadEnabled ? null : e => updateQty(item, e.target.value, e.target)"
+                                                @keydown="numpadEnabled ? null : onQtyKeydown($event, item)"
+                                                @focus="numpadEnabled ? $event.target.blur() : (resetQtyState(), $event.target.select())"
+                                                @click="numpadEnabled && openNumpad(item, 'qty')"
                                                 class="cart-qty-input w-14 lg:w-18 text-center border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-gray-100 rounded-lg py-1.5 px-1 focus:outline-none focus:ring-2 focus:ring-blue-300 dark:focus:ring-blue-800 text-sm lg:text-base font-medium"
+                                                :class="numpadEnabled ? 'cursor-pointer select-none' : ''"
                                             />
                                             <button
                                                 type="button"
@@ -1318,11 +1455,14 @@ const focusedPriceIdx = ref(null);
                                             type="text"
                                             inputmode="decimal"
                                             :value="focusedPriceIdx === idx ? item.unit_price : fmtNum(item.unit_price)"
-                                            @focus="focusedPriceIdx = idx; $event.target.value = item.unit_price; $event.target.select(); resetFldState()"
-                                            @blur="focusedPriceIdx = null; resetFldState()"
-                                            @keydown="e => onFieldKeydown(e, item, 'unit_price')"
-                                            @change="e => updatePrice(item, e.target.value)"
+                                            :readonly="numpadEnabled"
+                                            @focus="numpadEnabled ? $event.target.blur() : (focusedPriceIdx = idx, $event.target.value = item.unit_price, $event.target.select(), resetFldState())"
+                                            @blur="numpadEnabled ? null : (focusedPriceIdx = null, resetFldState())"
+                                            @keydown="numpadEnabled ? null : e => onFieldKeydown(e, item, 'unit_price')"
+                                            @change="numpadEnabled ? null : e => updatePrice(item, e.target.value)"
+                                            @click="numpadEnabled && openNumpad(item, 'unit_price')"
                                             class="w-16 lg:w-20 text-right border border-gray-200 dark:border-slate-600 dark:bg-slate-700 dark:text-gray-100 rounded-lg py-1.5 px-2 focus:outline-none focus:ring-2 focus:ring-blue-300 dark:focus:ring-blue-800 text-sm lg:text-base font-medium text-gray-700"
+                                            :class="numpadEnabled ? 'cursor-pointer select-none' : ''"
                                         />
                                     </td>
                                     <td v-if="canDiscount" class="px-3 py-2.5">
@@ -1331,11 +1471,14 @@ const focusedPriceIdx = ref(null);
                                             min="0"
                                             step="0.01"
                                             :value="item.discount"
-                                            @focus="$event.target.select(); resetFldState()"
-                                            @blur="resetFldState()"
-                                            @keydown="e => onFieldKeydown(e, item, 'discount')"
-                                            @change="e => updateDiscount(item, e.target.value)"
+                                            :readonly="numpadEnabled"
+                                            @focus="numpadEnabled ? $event.target.blur() : ($event.target.select(), resetFldState())"
+                                            @blur="numpadEnabled ? null : resetFldState()"
+                                            @keydown="numpadEnabled ? null : e => onFieldKeydown(e, item, 'discount')"
+                                            @change="numpadEnabled ? null : e => updateDiscount(item, e.target.value)"
+                                            @click="numpadEnabled && openNumpad(item, 'discount')"
                                             class="w-16 lg:w-20 text-right border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-gray-100 rounded-lg py-1.5 px-2 focus:outline-none focus:ring-2 focus:ring-orange-300 dark:focus:ring-orange-800 text-sm lg:text-base"
+                                            :class="numpadEnabled ? 'cursor-pointer select-none' : ''"
                                         />
                                     </td>
                                     <td class="px-3 py-1.5 text-right">
@@ -1408,6 +1551,14 @@ const focusedPriceIdx = ref(null);
                             @click="addToCart(product)"
                             class="flex flex-col items-center text-center p-2 rounded-lg border border-purple-200 dark:border-purple-900 bg-purple-50 dark:bg-purple-950 hover:bg-purple-100 dark:hover:bg-purple-900 hover:border-purple-300 active:scale-95 transition-all"
                         >
+                            <!-- Image -->
+                            <div class="w-full aspect-square rounded-md overflow-hidden mb-1.5 flex-shrink-0 flex items-center justify-center"
+                                :class="product.image ? '' : 'bg-purple-100 dark:bg-purple-900'">
+                                <img v-if="product.image" :src="product.image" :alt="product.name_si || product.name" class="w-full h-full object-cover" />
+                                <svg v-else xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-purple-300 dark:text-purple-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                </svg>
+                            </div>
                             <span class="text-xs font-semibold text-purple-900 dark:text-purple-200 leading-tight line-clamp-2 w-full">{{ product.name_si || product.name }}</span>
                             <span v-if="product.sizes?.length > 0" class="text-[10px] text-purple-500 dark:text-purple-400 font-medium">{{ product.sizes.length }} sizes</span>
                             <span v-else class="text-xs font-bold text-purple-700 dark:text-purple-300 mt-0.5">{{ fmt(product.selling_price) }}</span>
@@ -1437,8 +1588,11 @@ const focusedPriceIdx = ref(null);
                                 step="0.01"
                                 :placeholder="discountType === 'percent' ? '%' : 'Rs'"
                                 :disabled="cart.length === 0"
-                                @input="() => { if (discountType === 'percent' && parseFloat(billDiscount) > 70) billDiscount = '70' }"
+                                :readonly="numpadEnabled"
+                                @input="numpadEnabled ? null : () => { if (discountType === 'percent' && parseFloat(billDiscount) > 70) billDiscount = '70' }"
+                                @click="numpadEnabled && cart.length > 0 && openNumpadField(billDiscount, 'Bill Discount (' + (discountType === 'percent' ? '%' : 'Rs') + ')', v => { billDiscount = v; if (discountType === 'percent' && parseFloat(v) > 70) billDiscount = '70' })"
                                 class="w-32 border border-slate-300 bg-white dark:border-slate-600 dark:bg-slate-700 dark:text-gray-100 dark:placeholder-slate-500 rounded-lg px-2 py-1.5 text-sm text-right text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-300 dark:focus:ring-slate-600 disabled:bg-slate-50 dark:disabled:bg-slate-800 disabled:text-gray-400"
+                                :class="numpadEnabled && cart.length > 0 ? 'cursor-pointer' : ''"
                             />
                             <button
                                 type="button"
@@ -1557,7 +1711,10 @@ const focusedPriceIdx = ref(null);
                             v-model="cardReceiptNo"
                             type="text"
                             placeholder="e.g. TXN123456"
+                            :readonly="numpadEnabled"
+                            @click="numpadEnabled && openNumpadField(cardReceiptNo, 'Card Reference No.', v => cardReceiptNo = v)"
                             class="w-full pl-9 pr-4 py-2.5 border border-blue-300 dark:border-blue-700 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white dark:bg-slate-700 text-gray-800 dark:text-slate-100"
+                            :class="numpadEnabled ? 'cursor-pointer' : ''"
                         />
                     </div>
                 </div>
@@ -1583,7 +1740,10 @@ const focusedPriceIdx = ref(null);
                             min="0"
                             step="0.01"
                             placeholder="0.00"
+                            :readonly="numpadEnabled"
+                            @click="numpadEnabled && openNumpadField(splitCashAmt, 'Split — ගෙවු මුදල (Cash)', v => splitCashAmt = v)"
                             class="w-full border-2 border-indigo-300 dark:border-indigo-700 rounded-xl px-3 py-2 text-lg lg:text-xl font-bold focus:outline-none focus:ring-2 focus:ring-indigo-400 dark:bg-slate-700 dark:placeholder-slate-500 text-indigo-800 dark:text-indigo-200"
+                            :class="numpadEnabled ? 'cursor-pointer' : ''"
                         />
                         <div class="flex flex-wrap gap-1 mt-1.5">
                             <button
@@ -1619,7 +1779,10 @@ const focusedPriceIdx = ref(null);
                                 v-model="splitCardReceiptNo"
                                 type="text"
                                 placeholder="e.g. TXN123456"
+                                :readonly="numpadEnabled"
+                                @click="numpadEnabled && openNumpadField(splitCardReceiptNo, 'Split Card Reference No.', v => splitCardReceiptNo = v)"
                                 class="w-full pl-9 pr-4 py-2.5 border border-indigo-300 dark:border-indigo-700 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white dark:bg-slate-700 text-gray-800 dark:text-slate-100"
+                                :class="numpadEnabled ? 'cursor-pointer' : ''"
                             />
                         </div>
                     </div>
@@ -1698,9 +1861,12 @@ const focusedPriceIdx = ref(null);
                                 min="0"
                                 step="0.01"
                                 placeholder="0.00"
-                                @keydown.enter.prevent="submitSale"
+                                :readonly="numpadEnabled"
+                                @keydown.enter.prevent="numpadEnabled ? null : submitSale()"
+                                @click="numpadEnabled && openNumpadField(cashPaid, 'ගෙවු මුදල (Cash Paid)', v => cashPaid = v)"
                                 class="w-full border-2 rounded-xl px-3 py-2 text-lg lg:text-xl font-bold focus:outline-none dark:bg-slate-700 dark:placeholder-slate-500"
                                 :class="[
+                                    numpadEnabled ? 'cursor-pointer' : '',
                                     shakePaid ? 'shake-field border-red-500 text-red-700 dark:text-red-400' :
                                         paymentMethod === 'credit'
                                             ? 'border-red-300 dark:border-red-800 text-red-800 dark:text-red-300 focus:ring-2 focus:ring-red-400 focus:border-red-500'
@@ -2054,10 +2220,161 @@ const focusedPriceIdx = ref(null);
                 </div>
             </div>
         </Teleport>
+
+        <!-- ══ Product Browser Modal (touch mode) ══ -->
+        <Teleport to="body">
+            <Transition name="browser-fade">
+                <div v-if="showProductBrowser && numpadEnabled" class="fixed inset-0 z-[55] flex flex-col bg-white dark:bg-slate-900">
+                    <!-- Header -->
+                    <div class="flex items-center gap-3 px-4 pt-4 pb-3 border-b border-gray-100 dark:border-slate-700 flex-shrink-0">
+                        <!-- Search box inside modal (receives keyboard/scanner) -->
+                        <div class="relative flex-1">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                </svg>
+                            </div>
+                            <input
+                                ref="browserSearchInput"
+                                v-model="browserQuery"
+                                type="text"
+                                placeholder="Search or scan barcode…"
+                                autocomplete="off"
+                                class="w-full pl-10 pr-4 py-3 text-base border-2 border-blue-300 dark:border-slate-600 rounded-xl focus:outline-none focus:border-blue-500 bg-white dark:bg-slate-800 dark:text-white dark:placeholder-slate-500"
+                                @keydown.enter.prevent="browserProducts.length === 1 && selectFromBrowser(browserProducts[0])"
+                            />
+                        </div>
+                        <button
+                            type="button"
+                            @click="showProductBrowser = false; browserQuery = ''"
+                            class="flex-shrink-0 px-4 py-3 rounded-xl bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-slate-300 font-semibold text-sm hover:bg-gray-200 dark:hover:bg-slate-600 transition-colors"
+                        >Cancel</button>
+                    </div>
+
+                    <!-- Product count hint -->
+                    <div class="px-4 py-2 flex-shrink-0">
+                        <p class="text-xs text-gray-400 dark:text-slate-500">
+                            {{ browserProducts.length }} product{{ browserProducts.length !== 1 ? 's' : '' }}
+                            <span v-if="browserQuery"> for "{{ browserQuery }}"</span>
+                        </p>
+                    </div>
+
+                    <!-- Product grid -->
+                    <div class="flex-1 overflow-y-auto px-4 pb-6">
+                        <div v-if="browserProducts.length === 0" class="flex flex-col items-center justify-center py-20 text-gray-300 dark:text-slate-600">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                            </svg>
+                            <p class="text-sm font-medium">No products found</p>
+                        </div>
+                        <div v-else class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
+                            <button
+                                v-for="product in browserProducts"
+                                :key="product.id"
+                                type="button"
+                                @click="selectFromBrowser(product)"
+                                class="flex flex-col items-center text-center rounded-2xl border p-3 transition-all active:scale-95 hover:shadow-md"
+                                :class="(product.stock_qty ?? 0) <= 0
+                                    ? 'border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 opacity-50'
+                                    : 'border-blue-100 dark:border-slate-700 bg-white dark:bg-slate-800 hover:border-blue-300 hover:bg-blue-50 dark:hover:bg-slate-700'"
+                            >
+                                <!-- Image or placeholder -->
+                                <div class="w-full aspect-square rounded-xl overflow-hidden mb-2 bg-gray-100 dark:bg-slate-700 flex items-center justify-center flex-shrink-0">
+                                    <img v-if="product.image" :src="product.image" :alt="product.name" class="w-full h-full object-cover" />
+                                    <svg v-else xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-gray-300 dark:text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                    </svg>
+                                </div>
+                                <p class="text-xs font-semibold text-gray-800 dark:text-slate-100 leading-tight line-clamp-2 w-full mb-1">{{ product.name_si || product.name }}</p>
+                                <p class="text-sm font-extrabold text-blue-700 dark:text-blue-400">{{ fmt(product.selling_price) }}</p>
+                                <p class="text-[10px] mt-0.5" :class="(product.stock_qty ?? 0) <= 0 ? 'text-red-400' : 'text-gray-400 dark:text-slate-500'">
+                                    {{ (product.stock_qty ?? 0) <= 0 ? 'Out of stock' : fmtQty(product.stock_qty) + ' ' + (product.unit || 'pcs') }}
+                                </p>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </Transition>
+        </Teleport>
+
+        <!-- ══ Touch Numpad Modal ══ -->
+        <Teleport to="body">
+            <Transition name="numpad-slide">
+                <div v-if="showNumpad && numpadEnabled" class="fixed inset-0 z-[60] flex items-end" @click.self="closeNumpad">
+                    <!-- Backdrop -->
+                    <div class="absolute inset-0 bg-black/50" @click="closeNumpad"></div>
+
+                    <!-- Numpad drawer -->
+                    <div class="relative w-full max-w-sm mx-auto bg-white dark:bg-slate-800 rounded-t-3xl shadow-2xl pb-safe overflow-hidden">
+                        <!-- Header: field label + current value -->
+                        <div class="px-5 pt-4 pb-3 border-b border-gray-100 dark:border-slate-700">
+                            <div class="flex items-center justify-between mb-1">
+                                <p class="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-slate-500">
+                                    {{ numpadField === 'qty' ? 'Quantity' : numpadField === 'unit_price' ? 'Price' : 'Discount' }}
+                                </p>
+                                <button type="button" @click="closeNumpad" class="text-gray-400 hover:text-gray-600 dark:hover:text-slate-300 p-1">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+                                    </svg>
+                                </button>
+                            </div>
+                            <p class="text-sm text-gray-500 dark:text-slate-400 truncate">{{ numpadLabel }}</p>
+                            <!-- Value display -->
+                            <div class="mt-2 flex items-center justify-end gap-2 bg-gray-50 dark:bg-slate-900 rounded-xl px-4 py-3 min-h-[56px]">
+                                <span class="text-3xl font-bold text-gray-800 dark:text-slate-100 tracking-tight">
+                                    {{ numpadValue || '0' }}
+                                </span>
+                                <span v-if="numpadMax" class="text-xs text-gray-400 dark:text-slate-500 flex-shrink-0">/ {{ numpadMax }}</span>
+                            </div>
+                        </div>
+
+                        <!-- Numpad grid -->
+                        <div class="p-3 space-y-2">
+                            <div v-for="row in NUMPAD_KEYS" :key="row[0]" class="grid grid-cols-3 gap-2">
+                                <button
+                                    v-for="key in row"
+                                    :key="key"
+                                    type="button"
+                                    @click="numpadPress(key)"
+                                    class="h-16 rounded-2xl text-2xl font-bold flex items-center justify-center transition-all active:scale-95"
+                                    :class="key === '⌫'
+                                        ? 'bg-red-50 dark:bg-red-950 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-900 hover:bg-red-100'
+                                        : 'bg-gray-100 dark:bg-slate-700 text-gray-800 dark:text-slate-100 border border-gray-200 dark:border-slate-600 hover:bg-gray-200 dark:hover:bg-slate-600'"
+                                >{{ key }}</button>
+                            </div>
+
+                            <!-- Bottom row: Clear + Confirm -->
+                            <div class="grid grid-cols-2 gap-2 pt-1">
+                                <button
+                                    type="button"
+                                    @click="numpadPress('C')"
+                                    class="h-14 rounded-2xl text-base font-bold bg-amber-50 dark:bg-amber-950 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-900 hover:bg-amber-100 active:scale-95 transition-all"
+                                >Clear</button>
+                                <button
+                                    type="button"
+                                    @click="numpadConfirm"
+                                    class="h-14 rounded-2xl text-base font-bold bg-green-500 hover:bg-green-600 text-white shadow active:scale-95 transition-all"
+                                >✓ Confirm</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </Transition>
+        </Teleport>
     </AuthenticatedLayout>
 </template>
 
 <style scoped>
+.numpad-slide-enter-active,
+.numpad-slide-leave-active { transition: transform 0.22s cubic-bezier(0.4,0,0.2,1); }
+.numpad-slide-enter-from,
+.numpad-slide-leave-to    { transform: translateY(100%); }
+
+.browser-fade-enter-active,
+.browser-fade-leave-active { transition: opacity 0.18s ease; }
+.browser-fade-enter-from,
+.browser-fade-leave-to    { opacity: 0; }
+
 @keyframes shake {
     0%, 100% { transform: translateX(0); }
     15%       { transform: translateX(-8px); }

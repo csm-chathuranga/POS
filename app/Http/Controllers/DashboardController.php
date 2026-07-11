@@ -100,9 +100,10 @@ class DashboardController extends Controller
             // ── Fast moving — 1 query ─────────────────────────────────
             $fastMoving = DB::table('sale_items')
                 ->join('sales', 'sale_items.sale_id', '=', 'sales.id')
+                ->leftJoin('products', 'sale_items.product_id', '=', 'products.id')
                 ->where('sales.created_at', '>=', Carbon::now()->subDays(30))
                 ->where('sales.status', '!=', 'held')
-                ->selectRaw('sale_items.product_name, ROUND(SUM(sale_items.qty)) as total_qty, COUNT(DISTINCT sales.id) as bill_count')
+                ->selectRaw('sale_items.product_name, MAX(products.image) as image, ROUND(SUM(sale_items.qty)) as total_qty, COUNT(DISTINCT sales.id) as bill_count')
                 ->groupBy('sale_items.product_name')
                 ->orderByDesc('total_qty')
                 ->limit(8)

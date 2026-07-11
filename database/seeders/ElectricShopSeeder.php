@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
@@ -383,6 +384,8 @@ class ElectricShopSeeder extends Seeder
             ],
         ];
 
+        $tenant = config('database.connections.mysql.database');
+
         foreach ($withVariants as $p) {
             $base      = $p['v'][$p['base']];
             $baseCost  = $base[1];
@@ -423,5 +426,8 @@ class ElectricShopSeeder extends Seeder
                 ]);
             }
         }
+
+        // Clear server-side product cache so new items load immediately
+        Cache::forget($tenant . '_api_products_all');
     }
 }

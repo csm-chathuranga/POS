@@ -46,6 +46,7 @@ class SettingController extends Controller
             'settings.logo'               => 'nullable|string',
             'settings.demo_mode'          => 'nullable',
             'settings.printer_name'       => 'nullable|string|max:255',
+            'settings.pos_touch_numpad'   => 'nullable',
         ]);
 
         Log::info('[Settings] validation passed, saving…');
