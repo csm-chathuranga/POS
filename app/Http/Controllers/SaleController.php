@@ -30,6 +30,7 @@ class SaleController extends Controller
         $dateTo   = $request->filled('date_to') ? $request->date_to : null;
 
         $query = Sale::with(['user', 'customer'])
+            ->withCount('returns')
             ->where('status', '!=', 'held');
 
         if ($request->filled('search')) {

@@ -155,7 +155,10 @@ const statusClass = {
             >
                 <div class="flex justify-between items-start mb-2">
                     <div>
-                        <p class="font-semibold text-gray-900">{{ sale.invoice_no }}</p>
+                        <p class="font-semibold text-gray-900">
+                            {{ sale.invoice_no }}
+                            <span v-if="sale.returns_count > 0" class="ml-1 text-xs font-semibold px-1.5 py-0.5 rounded bg-orange-100 text-orange-700">RTN</span>
+                        </p>
                         <p class="text-sm text-gray-500">{{ sale.customer?.name || t('lbl.general') }}</p>
                         <p class="text-xs text-gray-400">{{ sale.user?.name }} · {{ formatDate(sale.created_at) }}</p>
                     </div>
@@ -202,7 +205,10 @@ const statusClass = {
                             :key="sale.id"
                             class="hover:bg-gray-50 transition-colors"
                         >
-                            <td class="px-4 py-3 font-medium text-blue-600">{{ sale.invoice_no }}</td>
+                            <td class="px-4 py-3 font-medium text-blue-600">
+                            {{ sale.invoice_no }}
+                            <span v-if="sale.returns_count > 0" class="ml-1.5 text-xs font-semibold px-1.5 py-0.5 rounded bg-orange-100 text-orange-700">RTN</span>
+                        </td>
                             <td class="px-4 py-3 text-gray-600">{{ sale.customer?.name || t('lbl.general') }}</td>
                             <td class="px-4 py-3 font-semibold text-green-600">{{ formatCurrency(sale.total) }}</td>
                             <td class="px-4 py-3">

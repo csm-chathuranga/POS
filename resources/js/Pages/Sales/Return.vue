@@ -47,6 +47,8 @@ const returnItems = computed(() =>
 
 const returnTotal = computed(() => returnItems.value.reduce((s, i) => s + i.total, 0));
 
+const RETURN_REASONS = ['Defective', 'Wrong Item', 'Changed Mind', 'Damaged', 'Expired', 'Other'];
+
 const reason = ref('');
 const submitting = ref(false);
 const errorMsg   = ref('');
@@ -181,13 +183,25 @@ function submitReturn() {
 
                 <!-- Reason -->
                 <div>
-                    <label class="block text-sm font-medium text-slate-600 mb-1">Reason (optional)</label>
-                    <textarea
+                    <label class="block text-sm font-medium text-slate-600 mb-2">Reason (optional)</label>
+                    <div class="flex flex-wrap gap-2 mb-2">
+                        <button
+                            v-for="r in RETURN_REASONS"
+                            :key="r"
+                            type="button"
+                            @click="reason = (reason === r ? '' : r)"
+                            class="px-3 py-1 rounded-full text-xs font-semibold border transition-colors"
+                            :class="reason === r
+                                ? 'bg-red-600 text-white border-red-600'
+                                : 'bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200'"
+                        >{{ r }}</button>
+                    </div>
+                    <input
                         v-model="reason"
-                        rows="2"
-                        placeholder="Defective item, wrong item, customer changed mind…"
-                        class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-400 resize-none"
-                    ></textarea>
+                        type="text"
+                        placeholder="Or type a custom reason…"
+                        class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-400"
+                    />
                 </div>
 
                 <!-- Error -->
