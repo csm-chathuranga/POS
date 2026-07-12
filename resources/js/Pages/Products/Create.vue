@@ -20,8 +20,7 @@ function validateBarcode() {
     const val = form.barcode.trim();
     if (!val) { barcodeError.value = ''; return true; }
     if (!/^\d+$/.test(val)) { barcodeError.value = 'Barcode must contain numbers only.'; return false; }
-    if (val.startsWith('0')) { barcodeError.value = 'Barcode cannot start with 0.'; return false; }
-    if (val.length < 6) { barcodeError.value = 'Barcode must be at least 6 digits.'; return false; }
+    if (val.length < 4) { barcodeError.value = 'Barcode must be at least 4 digits.'; return false; }
     barcodeError.value = '';
     return true;
 }
