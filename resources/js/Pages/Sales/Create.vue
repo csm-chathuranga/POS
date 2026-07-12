@@ -52,6 +52,7 @@ const searchContainer = ref(null);
 const searchQuery    = ref('');
 const searchResults  = ref([]);
 const showDropdown   = ref(false);
+const composing      = ref(false);
 const activeIndex    = ref(-1);   // highlighted row in dropdown (-1 = none)
 
 const allProducts    = ref([]);   // full catalogue, loaded on mount
@@ -193,7 +194,7 @@ const splitCardAmt  = computed(() => Math.max(0, total.value - (parseFloat(split
 
 // ─── Dropdown items: first 20 products when query empty, search results otherwise
 const dropdownItems = computed(() =>
-    searchQuery.value.trim() === ''
+    searchQuery.value.trim() === '' && !composing.value
         ? allProducts.value.slice(0, 20)
         : searchResults.value
 );
@@ -1178,6 +1179,8 @@ function addToCartTouched(product) {
                             class="w-full pl-12 pr-28 py-2.5 text-base lg:text-lg border-2 border-blue-200 rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 min-h-[44px] lg:min-h-[50px] font-medium bg-white dark:bg-slate-900 dark:border-slate-600 dark:text-white dark:placeholder-slate-500 dark:focus:border-blue-400 dark:focus:ring-blue-900"
                             @focus="onSearchFocus()"
                             @blur="onSearchBlur($event)"
+                            @compositionstart="composing = true"
+                            @compositionend="composing = false; onSearchInput()"
                             @input="onSearchInput()"
                             @keypress="onSearchKeypress($event)"
                             @keydown.enter="onSearchEnter($event)"
