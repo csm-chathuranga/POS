@@ -137,6 +137,7 @@ onMounted(async () => {
                     </button>
                     <!-- Sales Return -->
                     <Link
+                        v-if="!sale.returns_count"
                         :href="route('sales.return.create', sale.id)"
                         class="no-print flex items-center gap-2 text-white px-4 py-2 rounded-lg text-sm font-semibold"
                         style="background-color:#DC2626;"
@@ -146,6 +147,17 @@ onMounted(async () => {
                         </svg>
                         {{ t('btn.return') }}
                     </Link>
+                    <span
+                        v-else
+                        class="no-print flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold cursor-not-allowed"
+                        style="background-color:#FEE2E2; color:#DC2626;"
+                        :title="t('btn.return') + ' already processed'"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
+                        </svg>
+                        Returned
+                    </span>
                     <Link
                         :href="route('sales.create')"
                         class="no-print flex items-center gap-2 text-white px-4 py-2 rounded-lg text-sm font-semibold"

@@ -292,7 +292,7 @@ function onFieldKeydown(e, item, field) {
         e.preventDefault();
         if (fldScanTimer) { clearTimeout(fldScanTimer); fldScanTimer = null; }
 
-        if (fldIsScanning && fldBuffer.length >= 3) {
+        if (fldIsScanning && fldBuffer.length >= 4) {
             const barcode = fldBuffer;
             // Restore original field value
             e.target.value = fldSavedValue ?? '';
@@ -376,7 +376,7 @@ function onQtyKeydown(e, item) {
         e.preventDefault();
         if (qtyScanTimer) { clearTimeout(qtyScanTimer); qtyScanTimer = null; }
 
-        if (qtyIsScanning && qtyBuffer.length >= 3) {
+        if (qtyIsScanning && qtyBuffer.length >= 4) {
             // Scanner confirmed — restore qty and add the scanned product
             const barcode  = qtyBuffer;
             const savedQty = qtySavedQty;
@@ -875,7 +875,7 @@ function handleGlobalKeyboard(e) {
             e.preventDefault();
             return;
         }
-        if (!isEditable && e.key === 'Enter' && barcodeBuffer.length >= 3) {
+        if (!isEditable && e.key === 'Enter' && barcodeBuffer.length >= 4) {
             e.preventDefault();
             const code = barcodeBuffer;
             barcodeBuffer   = '';

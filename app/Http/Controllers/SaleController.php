@@ -317,7 +317,7 @@ class SaleController extends Controller
             'payments',
             'customer',
             'user',
-        ])->findOrFail($id);
+        ])->withCount('returns')->findOrFail($id);
 
         $settings = \App\Models\Setting::all()->pluck('value', 'key')->toArray();
 
