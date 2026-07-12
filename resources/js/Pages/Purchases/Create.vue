@@ -450,10 +450,12 @@ function submit() {
                                         autocomplete="off"
                                         placeholder="Search or scan barcode...  [F1]"
                                         class="w-full border border-gray-300 rounded-lg pl-9 pr-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[44px]"
-                                        :class="{ 'border-red-500': form.errors[`items.${index}.product_id`] }"
-                                        @focus="openSearch(index)"
-                                        @blur="onSearchBlur(index)"
-                                        @keydown="onSearchKeydown(index, $event)"
+                                        :class="[{ 'border-red-500': form.errors[`items.${index}.product_id`] }, numpadEnabled ? 'cursor-pointer' : '']"
+                                        :readonly="numpadEnabled"
+                                        @focus="numpadEnabled ? $event.target.blur() : openSearch(index)"
+                                        @click="numpadEnabled && openNumpad(searchQueries[index] || '', t('th.product'), v => { searchQueries[index] = v; openSearch(index); }, { raw: true })"
+                                        @blur="numpadEnabled ? null : onSearchBlur(index)"
+                                        @keydown="numpadEnabled ? null : onSearchKeydown(index, $event)"
                                     />
                                 </div>
 
@@ -621,8 +623,11 @@ function submit() {
                                             autocomplete="off"
                                             placeholder="Search product..."
                                             class="w-full border border-gray-300 rounded-lg pl-9 pr-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[44px]"
-                                            @focus="openSearch(index)"
-                                            @blur="onSearchBlur(index)"
+                                            :class="numpadEnabled ? 'cursor-pointer' : ''"
+                                            :readonly="numpadEnabled"
+                                            @focus="numpadEnabled ? $event.target.blur() : openSearch(index)"
+                                            @click="numpadEnabled && openNumpad(searchQueries[index] || '', t('th.product'), v => { searchQueries[index] = v; openSearch(index); }, { raw: true })"
+                                            @blur="numpadEnabled ? null : onSearchBlur(index)"
                                         />
                                     </div>
 

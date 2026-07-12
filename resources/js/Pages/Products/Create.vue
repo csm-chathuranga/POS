@@ -132,7 +132,7 @@ async function submit() {
                         <div class="grid grid-cols-2 gap-3">
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1">{{ t('prod.barcode') }}</label>
-                                <input v-model="form.barcode" type="text" @blur="validateBarcode" @input="validateBarcode" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500" :class="{ 'border-red-500': form.errors.barcode || barcodeError }" placeholder="1234567890" />
+                                <input v-model="form.barcode" type="text" @blur="validateBarcode" @input="validateBarcode" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500" :class="[{ 'border-red-500': form.errors.barcode || barcodeError }, numpadEnabled ? 'cursor-default' : '']" :readonly="numpadEnabled" placeholder="1234567890" />
                                 <p v-if="barcodeError" class="text-red-500 text-xs mt-1">{{ barcodeError }}</p>
                                 <p v-else-if="form.errors.barcode" class="text-red-500 text-xs mt-1">{{ form.errors.barcode }}</p>
                             </div>
