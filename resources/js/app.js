@@ -20,9 +20,12 @@ createInertiaApp({
         initLocale(dbSettings);
         initTheme(dbSettings);
 
-        // Auto-scale: zoom to 80% on screens narrower than 1500px unless explicitly disabled
+        // Scale: auto (80% on small screens) or fixed value from settings
         const scaleOff = dbSettings.pos_auto_scale === '0' || dbSettings.pos_auto_scale === false;
-        if (!scaleOff && window.screen.width < 1500) {
+        if (scaleOff) {
+            const pct = parseInt(dbSettings.pos_scale_value || '100', 10);
+            if (pct !== 100) document.documentElement.style.zoom = (pct / 100).toString();
+        } else if (window.screen.width < 1500) {
             document.documentElement.style.zoom = '0.8';
         }
         const { locale, t, toggleLocale, setLocale, billLocale, tBill, setBillLocale } = useLocale();

@@ -73,6 +73,7 @@ const form = useForm({
         pos_auto_scale:    props.settings.pos_auto_scale === undefined || props.settings.pos_auto_scale === null
                                ? true
                                : (props.settings.pos_auto_scale === '1' || props.settings.pos_auto_scale === true),
+        pos_scale_value:   props.settings.pos_scale_value || '100',
     },
 });
 
@@ -477,7 +478,7 @@ async function runMigrations() {
                         <div class="flex items-center justify-between py-1 mt-1">
                             <div>
                                 <p class="text-sm font-medium" style="color:#334155;">Auto Scale (80%)</p>
-                                <p class="text-xs mt-0.5" style="color:#94A3B8;">Automatically zoom to 80% on screens narrower than 1500px — turn off to keep 100%</p>
+                                <p class="text-xs mt-0.5" style="color:#94A3B8;">Automatically zoom to 80% on screens narrower than 1500px — turn off to set a custom scale</p>
                             </div>
                             <button
                                 type="button"
@@ -490,6 +491,24 @@ async function runMigrations() {
                                     :class="form.settings.pos_auto_scale ? 'translate-x-6' : 'translate-x-1'"
                                 ></span>
                             </button>
+                        </div>
+                        <div v-if="!form.settings.pos_auto_scale" class="flex items-center justify-between py-1 mt-1">
+                            <div>
+                                <p class="text-sm font-medium" style="color:#334155;">Scale Value</p>
+                                <p class="text-xs mt-0.5" style="color:#94A3B8;">Fixed zoom level applied on every page load</p>
+                            </div>
+                            <div class="flex gap-1 ml-3">
+                                <button
+                                    v-for="val in ['80','85','90','95','100']"
+                                    :key="val"
+                                    type="button"
+                                    @click="form.settings.pos_scale_value = val"
+                                    class="px-2.5 py-1 rounded-full text-xs font-semibold transition-colors"
+                                    :style="form.settings.pos_scale_value === val
+                                        ? 'background:#7C3AED; color:#fff;'
+                                        : 'background:#E2E8F0; color:#475569;'"
+                                >{{ val }}%</button>
+                            </div>
                         </div>
                     </div>
                 </div>
