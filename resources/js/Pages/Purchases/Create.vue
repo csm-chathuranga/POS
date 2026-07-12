@@ -124,6 +124,7 @@ function filteredProducts(index) {
 }
 
 function focusQty(index) {
+    if (numpadEnabled.value) return; // numpad mode: user taps qty manually
     nextTick(() => {
         const el = document.getElementById(`qty-${index}`);
         if (el) { el.focus(); el.select(); }
