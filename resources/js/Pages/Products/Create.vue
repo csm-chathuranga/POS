@@ -14,6 +14,7 @@ const imageUploadRef = ref(null);
 const t = inject('t');
 const promotionsEnabled = computed(() => usePage().props.appSettings?.enable_promotions === '1' || usePage().props.appSettings?.enable_promotions === true);
 
+const uploading = ref(false);
 const barcodeError = ref('');
 function validateBarcode() {
     const val = form.barcode.trim();
@@ -66,9 +67,14 @@ function removeVariant(i) {
 
 async function submit() {
     if (!validateBarcode()) return;
+    uploading.value = true;
     try {
         form.image = await imageUploadRef.value?.upload() ?? form.image;
-    } catch { return; } // upload failed — error shown in component
+    } catch {
+        uploading.value = false;
+        return;
+    }
+    uploading.value = false;
     invalidateProducts();
     form.post(route('products.store'));
 }
@@ -303,8 +309,12 @@ async function submit() {
 
                 <!-- Buttons -->
                 <div class="flex flex-col sm:flex-row gap-3">
-                    <button type="submit" :disabled="form.processing" class="flex-1 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-medium py-3 px-6 rounded-lg transition-colors">
-                        {{ form.processing ? t('lbl.loading') : t('btn.save') }}
+                    <button type="submit" :disabled="uploading || form.processing" class="flex-1 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-medium py-3 px-6 rounded-lg transition-colors flex items-center justify-center gap-2">
+                        <svg v-if="uploading || form.processing" class="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                        </svg>
+                        {{ uploading ? 'Uploading...' : form.processing ? t('lbl.loading') : t('btn.save') }}
                     </button>
                     <Link :href="route('products.index')" class="flex-1 text-center bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-3 px-6 rounded-lg transition-colors flex items-center justify-center">
                         {{ t('btn.cancel') }}
