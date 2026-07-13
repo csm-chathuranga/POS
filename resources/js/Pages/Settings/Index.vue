@@ -458,23 +458,6 @@ async function runMigrations() {
                         <h2 class="font-semibold text-[15px]" style="color:#0F172A; border-bottom:1px solid #E2E8F0; padding-bottom:10px;">
                             📱 POS / Touch Screen
                         </h2>
-                        <div class="flex items-center justify-between py-1">
-                            <div>
-                                <p class="text-sm font-medium" style="color:#334155;">Touch Numpad</p>
-                                <p class="text-xs mt-0.5" style="color:#94A3B8;">Show on-screen numpad for qty and price — ideal for touch screens, disables keyboard input on those fields</p>
-                            </div>
-                            <button
-                                type="button"
-                                @click="form.settings.pos_touch_numpad = !form.settings.pos_touch_numpad"
-                                class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors flex-shrink-0 ml-3"
-                                :style="form.settings.pos_touch_numpad ? 'background:#7C3AED;' : 'background:#D1D5DB;'"
-                            >
-                                <span
-                                    class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform shadow"
-                                    :class="form.settings.pos_touch_numpad ? 'translate-x-6' : 'translate-x-1'"
-                                ></span>
-                            </button>
-                        </div>
                         <div class="flex items-center justify-between py-1 mt-1">
                             <div>
                                 <p class="text-sm font-medium" style="color:#334155;">Auto Scale (80%)</p>

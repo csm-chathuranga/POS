@@ -118,7 +118,27 @@ const quickCustomerName  = ref('');
 const quickCustomerPhone = ref('');
 const quickCustomerError = ref('');
 const quickSaving        = ref(false);
-const localCustomers     = ref([...props.customers]);
+const localCustomers      = ref([...props.customers]);
+const customerQuery       = ref('');
+const showCustomerDrop    = ref(false);
+const customerSearchRef   = ref(null);
+const filteredCustomers   = computed(() => {
+    const q = customerQuery.value.trim().toLowerCase();
+    if (!q) return localCustomers.value.slice(0, 20);
+    return localCustomers.value.filter(c =>
+        c.name?.toLowerCase().includes(q) || c.phone?.includes(q)
+    ).slice(0, 20);
+});
+function selectCustomerFromSearch(c) {
+    selectedCustomer.value = c;
+    customerQuery.value    = c.name;
+    showCustomerDrop.value = false;
+}
+function clearCustomerSearch() {
+    selectedCustomer.value = null;
+    customerQuery.value    = '';
+    showCustomerDrop.value = false;
+}
 
 function openQuickCustomer() {
     quickCustomerName.value  = '';
@@ -972,6 +992,9 @@ function handleOutsideClick(e) {
         activeIndex.value     = -1;
         blockNextDropdownOpen = true;
     }
+    if (customerSearchRef.value && !customerSearchRef.value.contains(e.target)) {
+        showCustomerDrop.value = false;
+    }
 }
 
 onMounted(() => {
@@ -1416,7 +1439,7 @@ function addToCartTouched(product) {
                                             <p class="text-xs text-gray-400 dark:text-slate-500 font-mono">{{ item.barcode }}</p>
                                             <span
                                                 v-if="item.stock_qty <= item.alert_qty"
-                                                class="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-red-100 text-red-600"
+                                                class="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-red-100 text-red-600"
                                             >{{ fmtQty(item.stock_qty) }}</span>
                                         </div>
                                         </div>
@@ -1538,30 +1561,30 @@ function addToCartTouched(product) {
                 </div>
 
                 <!-- Fast Moving Products -->
-                <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-purple-100 dark:border-slate-700 p-3">
-                    <p class="text-xs font-semibold text-purple-600 dark:text-purple-400 uppercase tracking-wider mb-2 flex items-center gap-1">
+                <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-purple-100 dark:border-slate-700 p-2">
+                    <p class="text-xs font-semibold text-purple-600 dark:text-purple-400 uppercase tracking-wider mb-1.5 flex items-center gap-1">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
                             <path fill-rule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clip-rule="evenodd" />
                         </svg>
                         {{ t('pos.fast_moving') }}
                     </p>
-                    <div v-if="fastMovingProducts.length > 0" class="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 xl:grid-cols-8 gap-1.5">
+                    <div v-if="fastMovingProducts.length > 0" class="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 xl:grid-cols-8 gap-1">
                         <button
                             v-for="product in fastMovingProducts"
                             :key="product.id"
                             type="button"
                             @click="addToCartTouched(product)"
-                            class="flex flex-col items-center text-center p-2 rounded-lg border border-purple-200 dark:border-purple-900 bg-purple-50 dark:bg-purple-950 hover:bg-purple-100 dark:hover:bg-purple-900 hover:border-purple-300 active:scale-95 transition-all"
+                            class="flex flex-col items-center text-center p-1.5 rounded-lg border border-purple-200 dark:border-purple-900 bg-purple-50 dark:bg-purple-950 hover:bg-purple-100 dark:hover:bg-purple-900 hover:border-purple-300 active:scale-95 transition-all"
                         >
                             <!-- Image -->
-                            <div class="w-full aspect-square rounded-md overflow-hidden mb-1.5 flex-shrink-0 flex items-center justify-center"
+                            <div class="w-10 h-10 rounded-md overflow-hidden mb-1 flex-shrink-0 flex items-center justify-center"
                                 :class="product.image ? '' : 'bg-purple-100 dark:bg-purple-900'">
                                 <img v-if="product.image" :src="product.image" :alt="product.name_si || product.name" class="w-full h-full object-cover" />
-                                <svg v-else xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-purple-300 dark:text-purple-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <svg v-else xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-purple-300 dark:text-purple-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                                 </svg>
                             </div>
-                            <span class="text-xs font-semibold text-purple-900 dark:text-purple-200 leading-tight line-clamp-2 w-full">{{ product.name_si || product.name }}</span>
+                            <span class="text-xs font-semibold text-purple-900 dark:text-purple-200 w-full truncate block">{{ product.name_si || product.name }}</span>
                             <span v-if="product.sizes?.length > 0" class="text-[10px] text-purple-500 dark:text-purple-400 font-medium">{{ product.sizes.length }} sizes</span>
                             <span v-else class="text-xs font-bold text-purple-700 dark:text-purple-300 mt-0.5">{{ fmt(product.selling_price) }}</span>
                         </button>
@@ -1643,15 +1666,17 @@ function addToCartTouched(product) {
                         <span class="inline-flex items-center justify-center w-4 h-4 rounded-full bg-blue-500 text-white text-[10px] font-bold leading-none">2</span>
                         Select Payment Method
                     </p>
-                    <div class="grid grid-cols-2 gap-2">
+                    <div class="flex rounded-xl overflow-hidden border border-gray-200 dark:border-slate-600">
                         <!-- Cash F2 -->
                         <button
                             type="button"
                             @click="setPaymentMethod('cash')"
-                            class="payment-btn flex items-center justify-center gap-2 min-h-[48px] text-sm"
-                            :class="paymentMethod === 'cash' ? 'active cash' : ''"
+                            class="flex-1 flex flex-col items-center justify-center gap-1 py-2.5 text-sm font-semibold transition-colors border-r border-gray-200 dark:border-slate-600"
+                            :class="paymentMethod === 'cash'
+                                ? 'bg-green-500 text-white'
+                                : 'bg-white dark:bg-slate-800 text-gray-500 dark:text-slate-400 hover:bg-gray-50 dark:hover:bg-slate-700'"
                         >
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
                             </svg>
                             {{ t('pos.cash_btn') }}
@@ -1661,10 +1686,12 @@ function addToCartTouched(product) {
                         <button
                             type="button"
                             @click="setPaymentMethod('card')"
-                            class="payment-btn flex items-center justify-center gap-2 min-h-[48px] text-sm"
-                            :class="paymentMethod === 'card' ? 'active card' : ''"
+                            class="flex-1 flex flex-col items-center justify-center gap-1 py-2.5 text-sm font-semibold transition-colors border-r border-gray-200 dark:border-slate-600"
+                            :class="paymentMethod === 'card'
+                                ? 'bg-indigo-500 text-white'
+                                : 'bg-white dark:bg-slate-800 text-gray-500 dark:text-slate-400 hover:bg-gray-50 dark:hover:bg-slate-700'"
                         >
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
                             </svg>
                             {{ t('pos.card_btn') }}
@@ -1674,10 +1701,12 @@ function addToCartTouched(product) {
                         <button
                             type="button"
                             @click="setPaymentMethod('credit')"
-                            class="payment-btn flex items-center justify-center gap-2 min-h-[48px] text-sm"
-                            :class="paymentMethod === 'credit' ? 'active credit' : ''"
+                            class="flex-1 flex flex-col items-center justify-center gap-1 py-2.5 text-sm font-semibold transition-colors border-r border-gray-200 dark:border-slate-600"
+                            :class="paymentMethod === 'credit'
+                                ? 'bg-red-500 text-white'
+                                : 'bg-white dark:bg-slate-800 text-gray-500 dark:text-slate-400 hover:bg-gray-50 dark:hover:bg-slate-700'"
                         >
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                             </svg>
                             {{ t('pos.credit_btn') }}
@@ -1687,13 +1716,15 @@ function addToCartTouched(product) {
                         <button
                             type="button"
                             @click="setPaymentMethod('split')"
-                            class="payment-btn flex items-center justify-center gap-2 min-h-[48px] text-sm"
-                            :class="paymentMethod === 'split' ? 'active split' : ''"
+                            class="flex-1 flex flex-col items-center justify-center gap-1 py-2.5 text-sm font-semibold transition-colors"
+                            :class="paymentMethod === 'split'
+                                ? 'bg-purple-500 text-white'
+                                : 'bg-white dark:bg-slate-800 text-gray-500 dark:text-slate-400 hover:bg-gray-50 dark:hover:bg-slate-700'"
                         >
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
                             </svg>
-                            Split (F5)
+                            Split
                         </button>
                     </div>
 
@@ -1820,16 +1851,37 @@ function addToCartTouched(product) {
                                     {{ t('cust.quick_add') }}
                                 </button>
                             </div>
-                            <select
-                                @change="selectCustomer"
-                                class="w-full border border-gray-300 dark:border-slate-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white dark:bg-slate-700 dark:text-gray-100"
-                            >
-                                <option value="">{{ t('lbl.select_customer') }}</option>
-                                <option v-for="c in localCustomers" :key="c.id" :value="c.id" :selected="selectedCustomer?.id === c.id">
-                                    {{ c.name }} {{ c.phone ? `· ${c.phone}` : '' }}
-                                </option>
-                            </select>
-                            <div v-if="selectedCustomer" class="mt-1 flex items-center gap-1.5 text-xs text-blue-700 bg-blue-50 rounded-lg px-2 py-1">
+                            <div class="relative" ref="customerSearchRef">
+                                <div class="flex items-center gap-1">
+                                    <input
+                                        v-model="customerQuery"
+                                        type="text"
+                                        :placeholder="t('lbl.select_customer')"
+                                        @focus="showCustomerDrop = true"
+                                        class="w-full border border-gray-300 dark:border-slate-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white dark:bg-slate-700 dark:text-gray-100"
+                                    />
+                                    <button v-if="selectedCustomer" type="button" @click="clearCustomerSearch" class="text-gray-400 hover:text-red-500 flex-shrink-0 p-1">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                            <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+                                        </svg>
+                                    </button>
+                                </div>
+                                <ul v-if="showCustomerDrop && filteredCustomers.length > 0"
+                                    class="absolute z-50 w-full mt-1 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-lg shadow-lg max-h-48 overflow-y-auto"
+                                >
+                                    <li
+                                        v-for="c in filteredCustomers"
+                                        :key="c.id"
+                                        @mousedown.prevent="selectCustomerFromSearch(c)"
+                                        class="px-3 py-2 text-sm cursor-pointer hover:bg-blue-50 dark:hover:bg-slate-700 flex items-center justify-between gap-2"
+                                        :class="selectedCustomer?.id === c.id ? 'bg-blue-50 dark:bg-slate-700 font-semibold text-blue-700 dark:text-blue-300' : 'text-gray-700 dark:text-slate-200'"
+                                    >
+                                        <span class="truncate">{{ c.name }}</span>
+                                        <span v-if="c.phone" class="text-xs text-gray-400 flex-shrink-0">{{ c.phone }}</span>
+                                    </li>
+                                </ul>
+                            </div>
+                            <div v-if="selectedCustomer" class="mt-1 flex items-center gap-1.5 text-xs text-blue-700 bg-blue-50 dark:bg-blue-950 rounded-lg px-2 py-1">
                                 <span class="font-medium truncate">{{ selectedCustomer.name }}</span>
                                 <span v-if="selectedCustomer.phone" class="text-blue-400 flex-shrink-0">{{ selectedCustomer.phone }}</span>
                             </div>
@@ -1940,7 +1992,7 @@ function addToCartTouched(product) {
                         </button>
                     </div>
 
-                    <!-- Hold Bill row: hold current + view held list -->
+                    <!-- Hold Bill row: hold current + view held list + clear -->
                     <div class="flex gap-2">
                         <button
                             type="button"
@@ -1967,17 +2019,19 @@ function addToCartTouched(product) {
                                 {{ heldBills.length }}
                             </span>
                         </button>
+                        <!-- Clear cart -->
+                        <button
+                            v-if="cart.length > 0"
+                            type="button"
+                            @click="cart = []; selectedCustomer = null; cashPaid = ''; errorMsg = ''; refocusSearch()"
+                            class="flex flex-col items-center justify-center gap-0.5 px-3 rounded-xl bg-red-500 hover:bg-red-600 text-white text-xs font-medium transition-colors min-h-[56px]"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                            {{ t('btn.clear') }}
+                        </button>
                     </div>
-
-                    <!-- Clear cart -->
-                    <button
-                        v-if="cart.length > 0"
-                        type="button"
-                        @click="cart = []; selectedCustomer = null; cashPaid = ''; errorMsg = ''; refocusSearch()"
-                        class="w-full text-center text-sm text-gray-400 hover:text-red-500 py-2 transition-colors"
-                    >
-                        {{ t('btn.clear') }}
-                    </button>
                 </div>
             </div>
         </div>

@@ -1,6 +1,6 @@
 import { ref, computed } from 'vue';
 
-// Module-level singleton — shared across all components without provide/inject
+// Numpad is permanently disabled — numpadEnabled always returns false
 const _enabled       = ref(false);
 const showNumpad     = ref(false);
 const numpadValue    = ref('');
@@ -10,7 +10,7 @@ const numpadCallback = ref(null);
 const numpadOnInput  = ref(null);
 const numpadRaw      = ref(false);
 
-export const numpadEnabled = computed(() => _enabled.value);
+export const numpadEnabled = computed(() => false);
 
 export const NUMPAD_KEYS = [
     ['7','8','9'],
@@ -19,8 +19,8 @@ export const NUMPAD_KEYS = [
     ['.','0','⌫'],
 ];
 
-export function setNumpadEnabled(val) {
-    _enabled.value = Boolean(val);
+export function setNumpadEnabled(_val) {
+    // no-op — numpad is permanently disabled
 }
 
 export function openNumpad(currentVal, label, callback, { max = null, onInput = null, raw = false } = {}) {
