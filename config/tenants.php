@@ -39,9 +39,9 @@ return [
         'password' => 'Pos@2026Strong',
     ],
     'localhost' => [
-        'database' => 'pos',
-        'username' => 'pos_user',
-        'password' => 'Pos@2026Strong',
+        'database' => 'ranali',
+        'username' => 'root',
+        'password' => 'root',
     ],
 
     

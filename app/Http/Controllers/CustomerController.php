@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Customer;
 use App\Models\CreditPayment;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Inertia\Inertia;
 
 class CustomerController extends Controller
@@ -63,6 +64,7 @@ class CustomerController extends Controller
         ]);
 
         Customer::create($validated);
+        Cache::forget(config('database.connections.mysql.database') . '_pos_customers');
 
         return redirect()->route('customers.index')->with('success', 'Customer created successfully.');
     }
@@ -108,6 +110,7 @@ class CustomerController extends Controller
         ]);
 
         $customer->update($validated);
+        Cache::forget(config('database.connections.mysql.database') . '_pos_customers');
 
         return redirect()->route('customers.index')->with('success', 'Customer updated successfully.');
     }
@@ -119,6 +122,7 @@ class CustomerController extends Controller
     {
         $customer = Customer::findOrFail($id);
         $customer->delete();
+        Cache::forget(config('database.connections.mysql.database') . '_pos_customers');
 
         return redirect()->route('customers.index')->with('success', 'Customer deleted successfully.');
     }
@@ -207,6 +211,7 @@ class CustomerController extends Controller
             'phone'  => $validated['phone'] ?? null,
             'active' => true,
         ]);
+        Cache::forget(config('database.connections.mysql.database') . '_pos_customers');
 
         return response()->json([
             'customer' => $customer->only(['id', 'name', 'phone', 'credit_balance']),

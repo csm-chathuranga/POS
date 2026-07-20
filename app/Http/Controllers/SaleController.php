@@ -65,7 +65,11 @@ class SaleController extends Controller
      */
     public function create()
     {
-        $customers = Customer::where('active', true)->orderBy('name')->get();
+        $tenant = config('database.connections.mysql.database');
+
+        $customers = Cache::remember($tenant . '_pos_customers', 300, fn () =>
+            Customer::where('active', true)->orderBy('name')->get(['id', 'name', 'phone', 'credit_balance', 'credit_limit'])
+        );
 
         $mapProduct = fn ($p) => [
             'id'              => $p->id,
@@ -84,8 +88,6 @@ class SaleController extends Controller
                 'conversion_factor' => (float) ($v->conversion_factor ?? 1),
             ])->values()->all(),
         ];
-
-        $tenant = config('database.connections.mysql.database');
 
         $popularProducts = Cache::remember($tenant . '_pos_popular_products_' . now()->toDateString(), 3600, function () use ($mapProduct) {
             $popularIds = SaleItem::select('product_id', DB::raw('SUM(qty) as total_sold'))
