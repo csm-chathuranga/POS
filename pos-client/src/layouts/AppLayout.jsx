@@ -1,0 +1,328 @@
+import { useState, useEffect, useRef } from 'react';
+import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
+import { useDispatch, useSelector } from 'react-redux';
+import { logout, selectCurrentUser, selectRole, selectToken } from '../features/auth/authSlice';
+import { useLocale } from '../contexts/LocaleContext';
+import { useConnectivity } from '../contexts/ConnectivityContext';
+import { syncAll, syncOfflineQueue } from '../services/cacheSync';
+import NotificationDrawer, { useNotifBadge } from '../components/NotificationDrawer';
+import { api } from '../app/baseApi';
+
+const settingsApi = api.injectEndpoints({
+  endpoints: b => ({
+    getLayoutSettings: b.query({ query: () => '/settings', providesTags: ['Settings'] }),
+  }),
+  overrideExisting: false,
+});
+
+const API = import.meta.env.VITE_API_URL;
+
+// ─── Icons ────────────────────────────────────────────────────────────────────
+const Icons = {
+  dashboard: <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1" strokeWidth={2}/><rect x="14" y="3" width="7" height="7" rx="1" strokeWidth={2}/><rect x="3" y="14" width="7" height="7" rx="1" strokeWidth={2}/><rect x="14" y="14" width="7" height="7" rx="1" strokeWidth={2}/></svg>,
+  pos:       <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7H6a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3m-1-4H9m0 0a2 2 0 0 0 0 4h6a2 2 0 0 0 0-4M9 3h6"/></svg>,
+  sales:     <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2m-6 9l2 2 4-4"/></svg>,
+  products:  <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>,
+  purchases: <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 1 1 0-4h14a2 2 0 1 1 0 4M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8m-9 4h4"/></svg>,
+  customers: <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4" strokeWidth={2}/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>,
+  suppliers: <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v5m-4 0h4"/></svg>,
+  users:     <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 1 1 0 5.292M15 21H3v-1a6 6 0 0 1 12 0v1zm0 0h6v-1a6 6 0 0 0-9-5.197"/></svg>,
+  settings:  <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 0 0 2.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 0 0 1.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 0 0-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 0 0-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 0 0-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 0 0-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 0 0 1.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><circle cx="12" cy="12" r="3" strokeWidth={2}/></svg>,
+  logout:    <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3V7a3 3 0 0 1 3-3h4a3 3 0 0 1 3 3v1"/></svg>,
+  bell:      <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0 1 18 14.158V11a6.002 6.002 0 0 0-4-5.659V5a2 2 0 1 0-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 1 1-6 0v-1m6 0H9"/></svg>,
+  chevronsRight: <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l7 7-7 7M6 5l7 7-7 7"/></svg>,
+  chevronsLeft:  <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 19l-7-7 7-7m7 14l-7-7 7-7"/></svg>,
+};
+
+const PAGE_TITLE_KEYS = {
+  '/dashboard':        'page.dashboard',
+  '/sales/create':     'page.new_sale',
+  '/sales':            'page.sales',
+  '/products':         'page.products',
+  '/products/create':  'page.new_product',
+  '/purchases':        'page.purchases',
+  '/purchases/create': 'page.new_purchase',
+  '/customers':        'page.customers',
+  '/suppliers':        'page.suppliers',
+  '/users':            'page.users',
+  '/settings':         'page.settings',
+};
+
+const roleColor = { admin: 'bg-red-500', manager: 'bg-orange-500', cashier: 'bg-green-500' };
+
+export default function AppLayout() {
+  const dispatch  = useDispatch();
+  const navigate  = useNavigate();
+  const location  = useLocation();
+  const user      = useSelector(selectCurrentUser);
+  const role      = useSelector(selectRole);
+  const isManager = role === 'admin' || role === 'manager';
+  const { t }     = useLocale();
+  const token     = useSelector(selectToken);
+
+  const { isOnline, wasOffline } = useConnectivity();
+  const [syncing, setSyncing]   = useState(false);
+  const syncedOnceRef           = useRef(false);
+
+  const { data: layoutSettings } = settingsApi.useGetLayoutSettingsQuery(undefined, { skip: !token });
+
+  const [notifOpen, setNotifOpen] = useState(false);
+  const notifCount = useNotifBadge(token);
+
+  const [collapsed, setCollapsed] = useState(
+    () => localStorage.getItem('sidebar_collapsed') === 'true'
+  );
+  const [shopInfo, setShopInfo] = useState({ shop_name: '', shop_logo: '' });
+
+  useEffect(() => {
+    fetch(`${API}/api/settings/public`)
+      .then(r => r.json())
+      .then(d => setShopInfo(d))
+      .catch(() => {});
+  }, []);
+
+  // Sync local cache on first load; drain offline queue when connectivity restores
+  useEffect(() => {
+    if (!isOnline || !token) return;
+    if (syncedOnceRef.current && !wasOffline) return;
+    const firstSync = !syncedOnceRef.current;
+    syncedOnceRef.current = true;
+    setSyncing(true);
+    const work = firstSync
+      ? syncAll()
+      : syncOfflineQueue().then(() => syncAll());
+    work.finally(() => setSyncing(false));
+  }, [isOnline, wasOffline, token]);
+
+  useEffect(() => {
+    if (location.pathname === '/sales/create') {
+      setCollapsed(true);
+    }
+  }, [location.pathname]);
+
+  // Apply global zoom — same logic as old app.js
+  const [zoomScale, setZoomScale] = useState(1);
+  useEffect(() => {
+    if (!layoutSettings) return;
+    const autoScale = layoutSettings.pos_auto_scale !== '0' && layoutSettings.pos_auto_scale !== false;
+    let scale = 1;
+    if (autoScale) {
+      scale = window.screen.width < 1500 ? 0.8 : 1;
+    } else {
+      scale = parseInt(layoutSettings.pos_scale_value || '100', 10) / 100;
+    }
+    setZoomScale(scale);
+  }, [layoutSettings]);
+
+  const isPOS       = location.pathname === '/sales/create';
+  const hideHeader  = isPOS || /^\/sales\/\d+$/.test(location.pathname);
+
+  const pageTitleKey = Object.entries(PAGE_TITLE_KEYS).find(([path]) =>
+    location.pathname === path || location.pathname.startsWith(path + '/')
+  )?.[1];
+  const pageTitle = pageTitleKey ? t(pageTitleKey) : 'LMUC POS';
+
+  const mainNav = [
+    { to: '/dashboard',    label: t('nav.dashboard'), icon: Icons.dashboard },
+    { to: '/sales/create', label: t('nav.new_sale'),  icon: Icons.pos,      highlight: true },
+    { to: '/sales',        label: t('nav.sales'),      icon: Icons.sales },
+    { to: '/products',     label: t('nav.products'),   icon: Icons.products },
+    { to: '/purchases',    label: t('nav.purchases'),  icon: Icons.purchases },
+    { to: '/customers',    label: t('nav.customers'),  icon: Icons.customers },
+    { to: '/suppliers',    label: t('nav.suppliers'),  icon: Icons.suppliers },
+  ];
+
+  const mgmtNav = [
+    { to: '/users',    label: t('nav.users'),    icon: Icons.users },
+    { to: '/settings', label: t('nav.settings'), icon: Icons.settings },
+  ];
+
+  function toggleCollapse() {
+    setCollapsed(c => {
+      const next = !c;
+      localStorage.setItem('sidebar_collapsed', String(next));
+      return next;
+    });
+  }
+
+  function handleLogout() {
+    dispatch(logout());
+    navigate('/login');
+  }
+
+  // Nav item class builder
+  function navCls(isActive) {
+    const base = `flex items-center py-2.5 rounded-xl text-sm font-medium transition-all duration-150 whitespace-nowrap overflow-hidden
+      ${collapsed ? 'justify-center px-0 w-10 mx-auto' : 'gap-3 px-3'}`;
+    if (isActive) {
+      return `${base} bg-orange-500 text-white shadow-md shadow-orange-500/30`;
+    }
+    return `${base} text-slate-400 hover:text-white hover:bg-slate-700/60`;
+  }
+
+  const zoomStyle = zoomScale !== 1 ? {
+    zoom: zoomScale,
+    width:  `${100 / zoomScale}vw`,
+    height: `${100 / zoomScale}vh`,
+  } : {};
+
+  return (
+    <div style={zoomStyle} className="flex h-screen bg-slate-100 overflow-hidden">
+
+      {/* ── Sidebar ────────────────────────────────────────────────────────── */}
+      <aside className={`bg-slate-900 flex flex-col flex-shrink-0 select-none transition-all duration-300 overflow-hidden
+        ${collapsed ? 'w-[62px]' : 'w-56'}`}>
+
+        {/* Brand / Logo */}
+        <div className={`border-b border-slate-700/60 shrink-0 flex items-center transition-all duration-300
+          ${collapsed ? 'justify-center py-3 px-0' : 'px-4 py-3 gap-2.5'}`}>
+          <div className="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center text-white font-extrabold text-sm shrink-0 overflow-hidden border-2 border-slate-600">
+            {shopInfo.shop_logo
+              ? <img src={shopInfo.shop_logo} alt="logo" className="w-full h-full object-cover" />
+              : <span>{(shopInfo.shop_name || 'L')[0].toUpperCase()}</span>
+            }
+          </div>
+          {!collapsed && (
+            <div className="min-w-0">
+              <p className="text-white font-bold text-sm leading-tight truncate">
+                {shopInfo.shop_name || 'LMUC POS'}
+              </p>
+              <p className="text-slate-400 text-xs">Point of Sale</p>
+            </div>
+          )}
+        </div>
+
+        {/* Nav */}
+        <nav className={`flex-1 overflow-y-auto py-3 space-y-0.5 ${collapsed ? 'px-1' : 'px-2'}`}>
+          {mainNav.map(({ to, label, icon, highlight }) => (
+            <NavLink key={to} to={to}
+              end={to === '/sales' || to === '/dashboard'}
+              title={collapsed ? label : undefined}
+              className={({ isActive }) => navCls(isActive)}
+            >
+              {icon}
+              {!collapsed && <span className="flex-1 truncate">{label}</span>}
+              {!collapsed && highlight && (
+                <span className="text-[10px] font-bold bg-white/20 px-1.5 py-0.5 rounded-md">POS</span>
+              )}
+            </NavLink>
+          ))}
+
+          {isManager && (
+            <>
+              <div className={`pt-4 pb-1.5 ${collapsed ? 'flex justify-center' : 'px-3'}`}>
+                {collapsed
+                  ? <div className="w-5 border-t border-slate-700" />
+                  : <p className="text-xs font-semibold text-slate-500 uppercase tracking-widest">{t('nav.management')}</p>
+                }
+              </div>
+              {mgmtNav.map(({ to, label, icon }) => (
+                <NavLink key={to} to={to}
+                  title={collapsed ? label : undefined}
+                  className={({ isActive }) => navCls(isActive)}
+                >
+                  {icon}
+                  {!collapsed && <span className="flex-1 truncate">{label}</span>}
+                </NavLink>
+              ))}
+            </>
+          )}
+        </nav>
+
+        {/* Bottom: collapse toggle + logout */}
+        <div className={`border-t border-slate-700/60 shrink-0 py-3 space-y-1 ${collapsed ? 'px-1' : 'px-3'}`}>
+          <button onClick={toggleCollapse}
+            title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            className={`flex items-center gap-2 py-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-700/60 transition-all duration-150
+              ${collapsed ? 'justify-center w-10 mx-auto px-0' : 'px-3 w-full'}`}>
+            {collapsed ? Icons.chevronsRight : Icons.chevronsLeft}
+            {!collapsed && <span className="text-sm font-medium">{t('btn.collapse')}</span>}
+          </button>
+          <button onClick={handleLogout} title={t('btn.logout')}
+            className={`flex items-center gap-2 py-2 rounded-xl text-slate-400 hover:text-white hover:bg-red-600/20 transition-all duration-150
+              ${collapsed ? 'justify-center w-10 mx-auto px-0' : 'px-3 w-full'}`}>
+            {Icons.logout}
+            {!collapsed && <span className="text-sm font-medium">{t('btn.logout')}</span>}
+          </button>
+        </div>
+      </aside>
+
+      {/* ── Main area ──────────────────────────────────────────────────────── */}
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+
+        {/* Top header */}
+        {!hideHeader && (
+          <header className="h-14 bg-white border-b border-slate-200 flex items-center justify-between px-6 shrink-0 shadow-sm">
+            <div className="flex items-center gap-3">
+              <h1 className="text-base font-bold text-slate-800">{pageTitle}</h1>
+              {!isOnline && (
+                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-red-100 border border-red-200">
+                  <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
+                  <span className="text-xs font-semibold text-red-600">Offline</span>
+                </div>
+              )}
+              {isOnline && syncing && (
+                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-50 border border-blue-200">
+                  <svg className="w-3 h-3 text-blue-500 animate-spin" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+                  </svg>
+                  <span className="text-xs font-semibold text-blue-600">Syncing…</span>
+                </div>
+              )}
+            </div>
+
+            <div className="flex items-center gap-3">
+              <button onClick={() => setNotifOpen(o => !o)}
+                className="relative p-2 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition-colors">
+                {Icons.bell}
+                {notifCount > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center leading-none">
+                    {notifCount > 9 ? '9+' : notifCount}
+                  </span>
+                )}
+              </button>
+              <div className="w-px h-6 bg-slate-200" />
+              <div className="flex items-center gap-2.5 pl-1">
+                <div className={`w-8 h-8 rounded-full ${roleColor[role] || 'bg-slate-500'} flex items-center justify-center text-white font-bold text-sm shrink-0`}>
+                  {user?.name?.[0]?.toUpperCase() || 'U'}
+                </div>
+                <div className="text-sm leading-tight">
+                  <p className="font-semibold text-slate-700">{user?.name}</p>
+                  <p className="text-xs text-slate-400 capitalize">{role}</p>
+                </div>
+              </div>
+              <button onClick={handleLogout}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors">
+                {Icons.logout}
+                <span>{t('btn.logout')}</span>
+              </button>
+            </div>
+          </header>
+        )}
+
+        <main className={`flex-1 min-h-0 flex flex-col relative ${isPOS ? 'overflow-hidden' : 'overflow-y-auto'}`}>
+          {/* Floating offline badge for POS page (no header shown there) */}
+          {isPOS && !isOnline && (
+            <div className="absolute top-3 left-1/2 -translate-x-1/2 z-50 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-red-500 text-white text-xs font-bold shadow-lg pointer-events-none select-none">
+              <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+              Offline Mode
+            </div>
+          )}
+          {isPOS && isOnline && syncing && (
+            <div className="absolute top-3 left-1/2 -translate-x-1/2 z-50 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-blue-500 text-white text-xs font-bold shadow-lg pointer-events-none select-none">
+              <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+              </svg>
+              Syncing…
+            </div>
+          )}
+          <Outlet />
+        </main>
+      </div>
+
+      <NotificationDrawer open={notifOpen} onClose={() => setNotifOpen(false)} />
+    </div>
+  );
+}
