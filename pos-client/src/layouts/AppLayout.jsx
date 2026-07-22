@@ -3,6 +3,7 @@ import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { logout, selectCurrentUser, selectRole, selectToken } from '../features/auth/authSlice';
 import { useLocale } from '../contexts/LocaleContext';
+import { useTheme } from '../contexts/ThemeContext';
 import { useConnectivity } from '../contexts/ConnectivityContext';
 import { syncAll, syncOfflineQueue } from '../services/cacheSync';
 import NotificationDrawer, { useNotifBadge } from '../components/NotificationDrawer';
@@ -28,6 +29,7 @@ const Icons = {
   suppliers: <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v5m-4 0h4"/></svg>,
   users:     <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 1 1 0 5.292M15 21H3v-1a6 6 0 0 1 12 0v1zm0 0h6v-1a6 6 0 0 0-9-5.197"/></svg>,
   settings:  <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 0 0 2.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 0 0 1.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 0 0-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 0 0-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 0 0-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 0 0-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 0 0 1.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><circle cx="12" cy="12" r="3" strokeWidth={2}/></svg>,
+  reports:   <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2zm0 0V9a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v10m-6 0a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2m0 0V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v14a2 2 0 0 0-2 2h-2a2 2 0 0 1-2-2z"/></svg>,
   logout:    <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3V7a3 3 0 0 1 3-3h4a3 3 0 0 1 3 3v1"/></svg>,
   bell:      <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0 1 18 14.158V11a6.002 6.002 0 0 0-4-5.659V5a2 2 0 1 0-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 1 1-6 0v-1m6 0H9"/></svg>,
   chevronsRight: <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l7 7-7 7M6 5l7 7-7 7"/></svg>,
@@ -46,6 +48,7 @@ const PAGE_TITLE_KEYS = {
   '/suppliers':        'page.suppliers',
   '/users':            'page.users',
   '/settings':         'page.settings',
+  '/reports':          'page.reports',
 };
 
 const roleColor = { admin: 'bg-red-500', manager: 'bg-orange-500', cashier: 'bg-green-500' };
@@ -61,6 +64,7 @@ export default function AppLayout() {
   const token     = useSelector(selectToken);
 
   const { isOnline, wasOffline } = useConnectivity();
+  const { theme, setTheme } = useTheme();
   const [syncing, setSyncing]   = useState(false);
   const syncedOnceRef           = useRef(false);
 
@@ -72,6 +76,7 @@ export default function AppLayout() {
   const [collapsed, setCollapsed] = useState(
     () => localStorage.getItem('sidebar_collapsed') === 'true'
   );
+  const [mobileOpen, setMobileOpen] = useState(false);
   const [shopInfo, setShopInfo] = useState({ shop_name: '', shop_logo: '' });
 
   useEffect(() => {
@@ -80,6 +85,26 @@ export default function AppLayout() {
       .then(d => setShopInfo(d))
       .catch(() => {});
   }, []);
+
+  // Update favicon when shop logo changes
+  useEffect(() => {
+    if (!shopInfo.shop_logo) return;
+    let link = document.querySelector("link[rel~='icon']");
+    if (!link) {
+      link = document.createElement('link');
+      link.rel = 'icon';
+      document.head.appendChild(link);
+    }
+    link.href = shopInfo.shop_logo;
+  }, [shopInfo.shop_logo]);
+
+  // Update page title: "Page Name — Shop Name"
+  useEffect(() => {
+    const key = PAGE_TITLE_KEYS[location.pathname];
+    const page = key ? t(key) : '';
+    const shop = shopInfo.shop_name || 'POS';
+    document.title = page ? `${page} — ${shop}` : shop;
+  }, [location.pathname, shopInfo.shop_name, t]);
 
   // Sync local cache on first load; drain offline queue when connectivity restores
   useEffect(() => {
@@ -98,12 +123,14 @@ export default function AppLayout() {
     if (location.pathname === '/sales/create') {
       setCollapsed(true);
     }
+    setMobileOpen(false);
   }, [location.pathname]);
 
-  // Apply global zoom — same logic as old app.js
+  // Apply global zoom — same logic as old app.js (disabled on mobile)
   const [zoomScale, setZoomScale] = useState(1);
   useEffect(() => {
     if (!layoutSettings) return;
+    if (window.innerWidth < 768) { setZoomScale(1); return; }
     const autoScale = layoutSettings.pos_auto_scale !== '0' && layoutSettings.pos_auto_scale !== false;
     let scale = 1;
     if (autoScale) {
@@ -116,6 +143,9 @@ export default function AppLayout() {
 
   const isPOS       = location.pathname === '/sales/create';
   const hideHeader  = isPOS || /^\/sales\/\d+$/.test(location.pathname);
+
+  // On mobile drawer, always show full labels regardless of collapsed state
+  const displayCollapsed = collapsed && !mobileOpen;
 
   const pageTitleKey = Object.entries(PAGE_TITLE_KEYS).find(([path]) =>
     location.pathname === path || location.pathname.startsWith(path + '/')
@@ -133,8 +163,9 @@ export default function AppLayout() {
   ];
 
   const mgmtNav = [
-    { to: '/users',    label: t('nav.users'),    icon: Icons.users },
-    { to: '/settings', label: t('nav.settings'), icon: Icons.settings },
+    { to: '/reports',  label: t('nav.reports'),    icon: Icons.reports },
+    { to: '/users',    label: t('nav.users'),     icon: Icons.users },
+    { to: '/settings', label: t('nav.settings'),  icon: Icons.settings },
   ];
 
   function toggleCollapse() {
@@ -153,7 +184,7 @@ export default function AppLayout() {
   // Nav item class builder
   function navCls(isActive) {
     const base = `flex items-center py-2.5 rounded-xl text-sm font-medium transition-all duration-150 whitespace-nowrap overflow-hidden
-      ${collapsed ? 'justify-center px-0 w-10 mx-auto' : 'gap-3 px-3'}`;
+      ${displayCollapsed ? 'justify-center px-0 w-10 mx-auto' : 'gap-3 px-3'}`;
     if (isActive) {
       return `${base} bg-orange-500 text-white shadow-md shadow-orange-500/30`;
     }
@@ -169,20 +200,31 @@ export default function AppLayout() {
   return (
     <div style={zoomStyle} className="flex h-screen bg-slate-100 overflow-hidden">
 
+      {/* ── Mobile overlay backdrop ─────────────────────────────────────── */}
+      {mobileOpen && (
+        <div
+          className="fixed inset-0 z-[998] bg-black/50 md:hidden"
+          onClick={() => setMobileOpen(false)}
+        />
+      )}
+
       {/* ── Sidebar ────────────────────────────────────────────────────────── */}
-      <aside className={`bg-slate-900 flex flex-col flex-shrink-0 select-none transition-all duration-300 overflow-hidden
-        ${collapsed ? 'w-[62px]' : 'w-56'}`}>
+      <aside className={`bg-slate-900 flex flex-col shrink-0 select-none transition-all duration-300 overflow-hidden
+        fixed inset-y-0 left-0 z-[999] w-64
+        ${mobileOpen ? 'translate-x-0' : '-translate-x-full'}
+        md:static md:translate-x-0 md:z-auto md:inset-y-auto md:left-auto
+        ${collapsed ? 'md:w-[62px]' : 'md:w-56'}`}>
 
         {/* Brand / Logo */}
         <div className={`border-b border-slate-700/60 shrink-0 flex items-center transition-all duration-300
-          ${collapsed ? 'justify-center py-3 px-0' : 'px-4 py-3 gap-2.5'}`}>
+          ${displayCollapsed ? 'justify-center py-3 px-0' : 'px-4 py-3 gap-2.5'}`}>
           <div className="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center text-white font-extrabold text-sm shrink-0 overflow-hidden border-2 border-slate-600">
             {shopInfo.shop_logo
               ? <img src={shopInfo.shop_logo} alt="logo" className="w-full h-full object-cover" />
               : <span>{(shopInfo.shop_name || 'L')[0].toUpperCase()}</span>
             }
           </div>
-          {!collapsed && (
+          {!displayCollapsed && (
             <div className="min-w-0">
               <p className="text-white font-bold text-sm leading-tight truncate">
                 {shopInfo.shop_name || 'LMUC POS'}
@@ -193,16 +235,17 @@ export default function AppLayout() {
         </div>
 
         {/* Nav */}
-        <nav className={`flex-1 overflow-y-auto py-3 space-y-0.5 ${collapsed ? 'px-1' : 'px-2'}`}>
+        <nav className={`flex-1 overflow-y-auto py-3 space-y-0.5 ${displayCollapsed ? 'px-1' : 'px-2'}`}>
           {mainNav.map(({ to, label, icon, highlight }) => (
             <NavLink key={to} to={to}
               end={to === '/sales' || to === '/dashboard'}
-              title={collapsed ? label : undefined}
+              title={displayCollapsed ? label : undefined}
+              onClick={() => setMobileOpen(false)}
               className={({ isActive }) => navCls(isActive)}
             >
               {icon}
-              {!collapsed && <span className="flex-1 truncate">{label}</span>}
-              {!collapsed && highlight && (
+              {!displayCollapsed && <span className="flex-1 truncate">{label}</span>}
+              {!displayCollapsed && highlight && (
                 <span className="text-[10px] font-bold bg-white/20 px-1.5 py-0.5 rounded-md">POS</span>
               )}
             </NavLink>
@@ -210,19 +253,20 @@ export default function AppLayout() {
 
           {isManager && (
             <>
-              <div className={`pt-4 pb-1.5 ${collapsed ? 'flex justify-center' : 'px-3'}`}>
-                {collapsed
+              <div className={`pt-4 pb-1.5 ${displayCollapsed ? 'flex justify-center' : 'px-3'}`}>
+                {displayCollapsed
                   ? <div className="w-5 border-t border-slate-700" />
                   : <p className="text-xs font-semibold text-slate-500 uppercase tracking-widest">{t('nav.management')}</p>
                 }
               </div>
               {mgmtNav.map(({ to, label, icon }) => (
                 <NavLink key={to} to={to}
-                  title={collapsed ? label : undefined}
+                  title={displayCollapsed ? label : undefined}
+                  onClick={() => setMobileOpen(false)}
                   className={({ isActive }) => navCls(isActive)}
                 >
                   {icon}
-                  {!collapsed && <span className="flex-1 truncate">{label}</span>}
+                  {!displayCollapsed && <span className="flex-1 truncate">{label}</span>}
                 </NavLink>
               ))}
             </>
@@ -230,19 +274,20 @@ export default function AppLayout() {
         </nav>
 
         {/* Bottom: collapse toggle + logout */}
-        <div className={`border-t border-slate-700/60 shrink-0 py-3 space-y-1 ${collapsed ? 'px-1' : 'px-3'}`}>
+        <div className={`border-t border-slate-700/60 shrink-0 py-3 space-y-1 ${displayCollapsed ? 'px-1' : 'px-3'}`}>
+          {/* Hide collapse toggle on mobile drawer */}
           <button onClick={toggleCollapse}
             title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-            className={`flex items-center gap-2 py-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-700/60 transition-all duration-150
-              ${collapsed ? 'justify-center w-10 mx-auto px-0' : 'px-3 w-full'}`}>
+            className={`hidden md:flex items-center gap-2 py-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-700/60 transition-all duration-150
+              ${displayCollapsed ? 'justify-center w-10 mx-auto px-0' : 'px-3 w-full'}`}>
             {collapsed ? Icons.chevronsRight : Icons.chevronsLeft}
-            {!collapsed && <span className="text-sm font-medium">{t('btn.collapse')}</span>}
+            {!displayCollapsed && <span className="text-sm font-medium">{t('btn.collapse')}</span>}
           </button>
           <button onClick={handleLogout} title={t('btn.logout')}
             className={`flex items-center gap-2 py-2 rounded-xl text-slate-400 hover:text-white hover:bg-red-600/20 transition-all duration-150
-              ${collapsed ? 'justify-center w-10 mx-auto px-0' : 'px-3 w-full'}`}>
+              ${displayCollapsed ? 'justify-center w-10 mx-auto px-0' : 'px-3 w-full'}`}>
             {Icons.logout}
-            {!collapsed && <span className="text-sm font-medium">{t('btn.logout')}</span>}
+            {!displayCollapsed && <span className="text-sm font-medium">{t('btn.logout')}</span>}
           </button>
         </div>
       </aside>
@@ -252,27 +297,53 @@ export default function AppLayout() {
 
         {/* Top header */}
         {!hideHeader && (
-          <header className="h-14 bg-white border-b border-slate-200 flex items-center justify-between px-6 shrink-0 shadow-sm">
-            <div className="flex items-center gap-3">
-              <h1 className="text-base font-bold text-slate-800">{pageTitle}</h1>
+          <header className="h-14 bg-white border-b border-slate-200 flex items-center justify-between px-3 md:px-6 shrink-0 shadow-sm">
+            <div className="flex items-center gap-2 md:gap-3">
+              {/* Hamburger — mobile only */}
+              <button
+                onClick={() => setMobileOpen(o => !o)}
+                className="md:hidden p-2 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition-colors"
+                aria-label="Open menu"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16"/>
+                </svg>
+              </button>
+              <h1 className="text-sm md:text-base font-bold text-slate-800 truncate max-w-[140px] sm:max-w-none">{pageTitle}</h1>
               {!isOnline && (
-                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-red-100 border border-red-200">
+                <div className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-red-100 border border-red-200">
                   <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
-                  <span className="text-xs font-semibold text-red-600">Offline</span>
+                  <span className="text-xs font-semibold text-red-600 hidden sm:inline">Offline</span>
                 </div>
               )}
               {isOnline && syncing && (
-                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-50 border border-blue-200">
+                <div className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-blue-50 border border-blue-200">
                   <svg className="w-3 h-3 text-blue-500 animate-spin" fill="none" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
                   </svg>
-                  <span className="text-xs font-semibold text-blue-600">Syncing…</span>
+                  <span className="text-xs font-semibold text-blue-600 hidden sm:inline">Syncing…</span>
                 </div>
               )}
             </div>
 
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1.5 md:gap-3">
+              {/* Theme toggle */}
+              <button
+                onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                className="p-2 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition-colors"
+                title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}>
+                {theme === 'dark' ? (
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <circle cx="12" cy="12" r="5" strokeWidth={2}/>
+                    <path strokeLinecap="round" strokeWidth={2} d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+                  </svg>
+                ) : (
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+                  </svg>
+                )}
+              </button>
               <button onClick={() => setNotifOpen(o => !o)}
                 className="relative p-2 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition-colors">
                 {Icons.bell}
@@ -282,20 +353,20 @@ export default function AppLayout() {
                   </span>
                 )}
               </button>
-              <div className="w-px h-6 bg-slate-200" />
-              <div className="flex items-center gap-2.5 pl-1">
+              <div className="w-px h-6 bg-slate-200 hidden sm:block" />
+              <div className="flex items-center gap-2 pl-1">
                 <div className={`w-8 h-8 rounded-full ${roleColor[role] || 'bg-slate-500'} flex items-center justify-center text-white font-bold text-sm shrink-0`}>
                   {user?.name?.[0]?.toUpperCase() || 'U'}
                 </div>
-                <div className="text-sm leading-tight">
+                <div className="text-sm leading-tight hidden sm:block">
                   <p className="font-semibold text-slate-700">{user?.name}</p>
                   <p className="text-xs text-slate-400 capitalize">{role}</p>
                 </div>
               </div>
               <button onClick={handleLogout}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors">
+                className="flex items-center gap-1.5 px-2 md:px-3 py-1.5 text-sm font-medium text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors">
                 {Icons.logout}
-                <span>{t('btn.logout')}</span>
+                <span className="hidden sm:inline">{t('btn.logout')}</span>
               </button>
             </div>
           </header>

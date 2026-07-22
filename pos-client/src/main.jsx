@@ -6,16 +6,19 @@ import { store }  from './app/store';
 import { router } from './router/index.jsx';
 import { LocaleProvider } from './contexts/LocaleContext';
 import { ConnectivityProvider } from './contexts/ConnectivityContext';
+import { ThemeProvider } from './contexts/ThemeContext';
 import './index.css';
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <Provider store={store}>
-      <LocaleProvider>
-        <ConnectivityProvider>
-          <RouterProvider router={router} />
-        </ConnectivityProvider>
-      </LocaleProvider>
+      <ThemeProvider>
+        <LocaleProvider>
+          <ConnectivityProvider>
+            <RouterProvider router={router} />
+          </ConnectivityProvider>
+        </LocaleProvider>
+      </ThemeProvider>
     </Provider>
   </React.StrictMode>
 );

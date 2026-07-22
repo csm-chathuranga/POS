@@ -8,6 +8,7 @@ import useProductCache from '../../hooks/useProductCache';
 import { useConnectivity } from '../../contexts/ConnectivityContext';
 import { enqueueOfflineSale } from '../../services/offlineQueue';
 import { api } from '../../app/baseApi';
+import { useLocale } from '../../contexts/LocaleContext';
 
 const posApi = api.injectEndpoints({
   endpoints: b => ({
@@ -53,6 +54,7 @@ const CAT_COLORS = [
 
 // ─── Receipt ──────────────────────────────────────────────────────────────────
 function Receipt({ sale, settings, onClose }) {
+  const { t } = useLocale();
   useEffect(() => { window.print(); }, []);
   const f = n => Number(n || 0).toFixed(2);
   return (
@@ -64,9 +66,9 @@ function Receipt({ sale, settings, onClose }) {
           {settings?.phone   && <p>Tel: {settings.phone}</p>}
         </div>
         <div className="border-t border-b border-dashed border-slate-400 py-1 my-2">
-          <p>Invoice: {sale.invoice_no}</p>
-          <p>Date: {new Date(sale.created_at || Date.now()).toLocaleString('en-LK')}</p>
-          {sale.customer_name && <p>Customer: {sale.customer_name}</p>}
+          <p>{t('th.invoice')}: {sale.invoice_no}</p>
+          <p>{t('th.date')}: {new Date(sale.created_at || Date.now()).toLocaleString('en-LK')}</p>
+          {sale.customer_name && <p>{t('lbl.customer')}: {sale.customer_name}</p>}
         </div>
         <table className="w-full my-2">
           <tbody>
@@ -80,20 +82,19 @@ function Receipt({ sale, settings, onClose }) {
           </tbody>
         </table>
         <div className="border-t border-dashed border-slate-400 pt-1 space-y-0.5">
-          <div className="flex justify-between"><span>Subtotal</span><span>{f(sale.subtotal)}</span></div>
-          {parseFloat(sale.discount) > 0 && <div className="flex justify-between text-red-600"><span>Discount</span><span>-{f(sale.discount)}</span></div>}
-          <div className="flex justify-between font-bold text-sm"><span>TOTAL</span><span>Rs.{f(sale.total)}</span></div>
-          <div className="flex justify-between"><span>Paid</span><span>{f(sale.paid)}</span></div>
+          <div className="flex justify-between"><span>{t('lbl.subtotal')}</span><span>{f(sale.subtotal)}</span></div>
+          {parseFloat(sale.discount) > 0 && <div className="flex justify-between text-red-600"><span>{t('lbl.discount')}</span><span>-{f(sale.discount)}</span></div>}
+          <div className="flex justify-between font-bold text-sm"><span>{t('lbl.grand_total')}</span><span>Rs.{f(sale.total)}</span></div>
+          <div className="flex justify-between"><span>{t('th.paid')}</span><span>{f(sale.paid)}</span></div>
           {parseFloat(sale.paid) > parseFloat(sale.total) && (
-            <div className="flex justify-between"><span>Change</span><span>{f(sale.paid - sale.total)}</span></div>
+            <div className="flex justify-between"><span>{t('lbl.change')}</span><span>{f(sale.paid - sale.total)}</span></div>
           )}
         </div>
         {settings?.receipt_note && <p className="text-center mt-2">{settings.receipt_note}</p>}
-        <p className="text-center mt-2 text-slate-400">Thank you!</p>
       </div>
       <div className="text-center mt-6 print:hidden">
         <button onClick={onClose} className="px-6 py-2.5 bg-slate-800 text-white rounded-xl text-sm font-semibold hover:bg-slate-700">
-          Close &amp; New Sale
+          {t('btn.close')} &amp; {t('btn.new_sale')}
         </button>
       </div>
     </div>
@@ -102,6 +103,7 @@ function Receipt({ sale, settings, onClose }) {
 
 // ─── Size Picker Modal ────────────────────────────────────────────────────────
 function SizePickerModal({ product, onSelect, onClose }) {
+  const { t } = useLocale();
   const [qty, setQty]     = useState('');
   const [active, setActive] = useState(0);
   const qtyRef = useRef(null);
@@ -115,7 +117,7 @@ function SizePickerModal({ product, onSelect, onClose }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onKeyDown={handleKey}>
       <div className="bg-white rounded-2xl shadow-2xl p-5 w-full max-w-md">
-        <h3 className="text-base font-bold text-slate-800 mb-3">{product.name} — Select Size</h3>
+        <h3 className="text-base font-bold text-slate-800 mb-3">{product.name} — {t('pos.select_size')}</h3>
         <div className="flex flex-wrap gap-2 mb-4">
           {product.sizes.map((s, i) => (
             <button key={s.id} onClick={() => setActive(i)} onDoubleClick={() => onSelect(s, parseFloat(qty) || 1)}
@@ -126,13 +128,13 @@ function SizePickerModal({ product, onSelect, onClose }) {
         </div>
         <div className="flex gap-3 items-end">
           <div className="flex-1">
-            <label className="text-xs font-semibold text-slate-500 mb-1 block">Qty</label>
+            <label className="text-xs font-semibold text-slate-500 mb-1 block">{t('th.qty')}</label>
             <input ref={qtyRef} type="number" min="0.001" step="0.001" value={qty} onChange={e => setQty(e.target.value)} placeholder="1"
               className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-orange-400" />
           </div>
           <button onClick={() => onSelect(product.sizes[active], parseFloat(qty) || 1)}
-            className="px-5 py-2 bg-orange-500 text-white rounded-lg text-sm font-semibold hover:bg-orange-600">Add</button>
-          <button onClick={onClose} className="px-4 py-2 border border-slate-200 rounded-lg text-sm text-slate-600 hover:bg-slate-50">Cancel</button>
+            className="px-5 py-2 bg-orange-500 text-white rounded-lg text-sm font-semibold hover:bg-orange-600">{t('btn.add')}</button>
+          <button onClick={onClose} className="px-4 py-2 border border-slate-200 rounded-lg text-sm text-slate-600 hover:bg-slate-50">{t('btn.cancel')}</button>
         </div>
       </div>
     </div>
@@ -146,6 +148,7 @@ export default function SalesCreate2() {
   const user     = useSelector(selectCurrentUser);
   const role     = useSelector(selectRole);
 
+  const { t } = useLocale();
   const { products, ready, deductStock, invalidate } = useProductCache();
   const [createSale, { isLoading: submitting }] = useCreateSaleMutation();
   const [quickAdd]  = posApi.useQuickAddCustomerMutation();
@@ -191,6 +194,9 @@ export default function SalesCreate2() {
 
   // Receipt
   const [receipt, setReceipt] = useState(null);
+
+  // Mobile tab: 'products' | 'cart'
+  const [mobileTab, setMobileTab] = useState('products');
 
   // Grid keyboard navigation
   const [selectedIdx, setSelectedIdx] = useState(null);
@@ -405,7 +411,7 @@ export default function SalesCreate2() {
   useEffect(() => {
     const onKey = e => {
       if (e.key === 'F9')     { e.preventDefault(); if (cart.length > 0) setHoldModal(true); }
-      if (e.key === 'F10')    { e.preventDefault(); if (cart.length > 0) handleCompleteSale(false); }
+      if (e.key === 'F10')    { e.preventDefault(); if (cart.length > 0) handleCompleteSale(false, true); }
       if (e.key === 'Escape') { setShowHeld(false); setHoldModal(false); }
     };
     window.addEventListener('keydown', onKey);
@@ -478,38 +484,42 @@ export default function SalesCreate2() {
     <div className="flex-1 flex flex-col bg-slate-100 min-h-0 overflow-hidden">
 
       {/* ── Header ── */}
-      <div className="bg-white border-b border-slate-200 px-4 h-12 flex items-center justify-between shrink-0">
-        <div className="flex items-center gap-3">
+      <div className="bg-white border-b border-slate-200 px-3 h-12 flex items-center justify-between shrink-0 gap-2">
+        <div className="flex items-center gap-2 shrink-0">
           <button onClick={() => navigate('/sales')} className="text-slate-500 hover:text-slate-700 transition-colors">
             {Icon.back}
           </button>
-          <h1 className="font-bold text-slate-800 text-sm">New Sale</h1>
-          {!ready && <span className="text-xs text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">Loading…</span>}
-          {role === 'cashier' && (
-            <button onClick={() => navigate('/sales')}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-900 text-white text-xs font-semibold hover:bg-slate-700 transition-colors">
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
-              Home
-            </button>
-          )}
+          <h1 className="font-bold text-slate-800 text-sm hidden sm:block">{t('page.new_sale')}</h1>
+          {!ready && <span className="text-xs text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">{t('lbl.loading')}</span>}
         </div>
 
-        <div className="flex items-center gap-2">
+        {/* Mobile tab switcher */}
+        <div className="flex lg:hidden rounded-lg border border-slate-200 overflow-hidden text-xs font-bold">
+          <button onClick={() => setMobileTab('products')}
+            className={`px-4 py-1.5 transition-colors ${mobileTab === 'products' ? 'bg-slate-800 text-white' : 'bg-white text-slate-600'}`}>
+            {t('pos.add_products')}
+          </button>
+          <button onClick={() => setMobileTab('cart')}
+            className={`px-4 py-1.5 transition-colors border-l border-slate-200 ${mobileTab === 'cart' ? 'bg-blue-600 text-white' : 'bg-white text-slate-600'}`}>
+            {t('pos.payment_method_label')}
+          </button>
+        </div>
+
+        <div className="flex items-center gap-1.5 shrink-0">
           {heldBills.length > 0 && (
             <button onClick={() => setShowHeld(true)}
-              className="relative bg-amber-100 text-amber-700 text-xs font-bold px-3 py-1.5 rounded-lg hover:bg-amber-200 transition-colors">
-              Drafts ({heldBills.length})
+              className="relative bg-amber-100 text-amber-700 text-xs font-bold px-2.5 py-1.5 rounded-lg hover:bg-amber-200 transition-colors">
+              Held ({heldBills.length})
             </button>
           )}
           <button onClick={invalidate} title="Refresh products"
             className="text-slate-500 hover:text-slate-700 p-1.5 hover:bg-slate-100 rounded-lg transition-colors">
             {Icon.refresh}
           </button>
-          <div className="flex items-center gap-2 ml-1 pl-2 border-l border-slate-200">
+          <div className="flex items-center gap-1.5 pl-1.5 border-l border-slate-200">
             <div className="w-7 h-7 rounded-full bg-orange-500 text-white text-xs font-bold flex items-center justify-center shrink-0">
               {user?.name?.[0]?.toUpperCase() || 'U'}
             </div>
-            <span className="text-xs font-semibold text-slate-700">{user?.name}</span>
             <button onClick={handleLogout} className="text-slate-400 hover:text-slate-600 p-1 hover:bg-slate-100 rounded-lg transition-colors">
               {Icon.logout}
             </button>
@@ -520,8 +530,8 @@ export default function SalesCreate2() {
       {/* ── Main body ── */}
       <div className="flex flex-1 min-h-0">
 
-      {/* ═══ LEFT SECTION (60%) ════════════════════════════════════════════════ */}
-      <div className="w-[60%] flex min-h-0 overflow-hidden">
+      {/* ═══ LEFT SECTION (Products + Categories) ══════════════════════════════ */}
+      <div className={`flex min-h-0 overflow-hidden w-full lg:w-[60%] ${mobileTab === 'cart' ? 'hidden lg:flex' : 'flex'}`}>
 
         {/* ═══ CATEGORY SIDEBAR ══════════════════════════════════════════════ */}
         <div className="w-[72px] bg-white border-r border-slate-200 flex flex-col shrink-0 overflow-y-auto">
@@ -531,7 +541,7 @@ export default function SalesCreate2() {
             className={`flex flex-col items-center justify-center py-3.5 px-1 gap-1.5 border-b border-slate-100 transition-colors shrink-0
               ${activeCat === null ? 'bg-orange-500' : 'hover:bg-slate-50'}`}>
             <span className={activeCat === null ? 'text-white' : 'text-slate-500'}>{Icon.allCat}</span>
-            <span className={`text-[10px] font-bold ${activeCat === null ? 'text-white' : 'text-slate-600'}`}>All</span>
+            <span className={`text-[10px] font-bold ${activeCat === null ? 'text-white' : 'text-slate-600'}`}>{t('lbl.all')}</span>
           </button>
 
           {/* Category list */}
@@ -566,7 +576,7 @@ export default function SalesCreate2() {
                 ref={searchRef}
                 value={search}
                 onChange={e => setSearch(e.target.value)}
-                placeholder={ready ? 'Search by name or barcode…' : 'Loading products…'}
+                placeholder={ready ? t('pos.search_product') : t('lbl.loading')}
                 readOnly={!ready}
                 className="w-full pl-9 pr-9 py-2 rounded-lg border border-slate-200 text-sm outline-none focus:ring-2 focus:ring-orange-400"
               />
@@ -582,11 +592,11 @@ export default function SalesCreate2() {
           {/* Product grid */}
           <div className="flex-1 overflow-y-auto p-2">
             {!ready ? (
-              <div className="flex items-center justify-center h-full text-slate-400 text-sm">Loading products…</div>
+              <div className="flex items-center justify-center h-full text-slate-400 text-sm">{t('lbl.loading')}</div>
             ) : displayedProducts.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-full text-slate-300">
                 <span className="text-slate-300">{Icon.box}</span>
-                <p className="mt-3 text-sm text-slate-400 font-medium">No products found</p>
+                <p className="mt-3 text-sm text-slate-400 font-medium">{t('lbl.no_data')}</p>
               </div>
             ) : (
               <div ref={gridRef} className="grid grid-cols-5 gap-2">
@@ -611,7 +621,7 @@ export default function SalesCreate2() {
                         )}
                         {outOfStock && (
                           <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                            <span className="text-white text-[9px] font-bold bg-red-500 px-1.5 py-0.5 rounded-full">Out of Stock</span>
+                            <span className="text-white text-[9px] font-bold bg-red-500 px-1.5 py-0.5 rounded-full">{t('lbl.inactive')}</span>
                           </div>
                         )}
                       </div>
@@ -632,16 +642,16 @@ export default function SalesCreate2() {
         </div>
       </div>{/* end left 60% */}
 
-        {/* ═══ RIGHT PANEL (Cart + Payment) 40% ═══════════════════════════════ */}
-        <div className="w-[40%] bg-white border-l border-slate-200 flex flex-col shrink-0">
+        {/* ═══ RIGHT PANEL (Cart + Payment) ═══════════════════════════════════ */}
+        <div className={`bg-white border-l border-slate-200 flex-col shrink-0 w-full lg:w-[40%] ${mobileTab === 'products' ? 'hidden lg:flex' : 'flex'}`}>
 
           {/* Customer selector */}
           <div className="px-4 pt-3 pb-2 border-b border-slate-100 shrink-0">
             <div className="flex items-center justify-between mb-1.5">
-              <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Customer</span>
+              <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">{t('lbl.customer')}</span>
               <button onClick={() => setQcForm({ name: '', phone: '' })}
                 className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 font-semibold transition-colors">
-                {Icon.plus} Quick Add
+                {Icon.plus} {t('cust.quick_add')}
               </button>
             </div>
             <div className="relative">
@@ -649,7 +659,7 @@ export default function SalesCreate2() {
                 onChange={e => { setCustQuery(e.target.value); setShowCust(true); }}
                 onFocus={() => setShowCust(true)}
                 onBlur={() => setTimeout(() => setShowCust(false), 150)}
-                placeholder="Walk-in / Select customer"
+                placeholder={t('lbl.select_customer')}
                 className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-orange-400" />
               {customer && (
                 <button onClick={() => { setCustomer(null); setCustQuery(''); }}
@@ -674,8 +684,8 @@ export default function SalesCreate2() {
             {cart.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-full text-slate-300 py-8">
                 {Icon.cart}
-                <p className="mt-3 text-sm font-semibold text-slate-400">Tap products to add</p>
-                <p className="text-xs text-slate-300 mt-1">Items appear here</p>
+                <p className="mt-3 text-sm font-semibold text-slate-400">{t('pos.cart_empty')}</p>
+                <p className="text-xs text-slate-300 mt-1">{t('pos.add_products')}</p>
               </div>
             ) : (
               <div className="px-2 py-2 space-y-0.5">
@@ -724,14 +734,14 @@ export default function SalesCreate2() {
                   placeholder="Price"
                   className="w-20 rounded-lg border border-slate-200 px-2 py-1.5 text-xs text-right outline-none focus:ring-1 focus:ring-orange-400" />
                 <button onClick={addManualItem}
-                  className="px-2.5 py-1.5 bg-orange-500 text-white rounded-lg text-xs font-semibold hover:bg-orange-600 transition-colors">Add</button>
+                  className="px-2.5 py-1.5 bg-orange-500 text-white rounded-lg text-xs font-semibold hover:bg-orange-600 transition-colors">{t('btn.add')}</button>
                 <button onClick={() => setManualItem(null)}
                   className="text-slate-400 hover:text-slate-600 text-xl leading-none transition-colors">&times;</button>
               </div>
             ) : (
               <button onClick={() => setManualItem({ name: '', price: '' })}
                 className="w-full flex items-center justify-center gap-1.5 py-2 text-xs font-semibold text-slate-500 hover:text-orange-500 hover:bg-orange-50 rounded-xl transition-colors border border-dashed border-slate-200 hover:border-orange-300">
-                {Icon.plus} Add item manually
+                {Icon.plus} {t('pos.add_items')}
               </button>
             )}
           </div>
@@ -742,7 +752,7 @@ export default function SalesCreate2() {
             {/* Total row */}
             <div className="px-4 pt-4 pb-3 flex items-center justify-between">
               <div>
-                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-0.5">Total Amount</p>
+                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-0.5">{t('lbl.grand_total')}</p>
                 <p className="text-3xl font-extrabold text-slate-800">{fmtAmt(total)}</p>
               </div>
               <div className="text-right text-xs text-slate-400 space-y-0.5">
@@ -755,10 +765,10 @@ export default function SalesCreate2() {
             <div className="px-4 pb-3">
               <div className="flex rounded-xl border border-slate-200 overflow-hidden bg-white">
                 {[
-                  { id: 'cash',  label: 'Cash',  icon: Icon.cash  },
-                  { id: 'card',  label: 'Card',  icon: Icon.card  },
-                  { id: 'split', label: 'Split', icon: Icon.split },
-                  { id: 'paid',  label: 'Paid',  icon: Icon.check },
+                  { id: 'cash',  label: t('lbl.cash'),  icon: Icon.cash  },
+                  { id: 'card',  label: t('lbl.card'),  icon: Icon.card  },
+                  { id: 'split', label: 'Split',         icon: Icon.split },
+                  { id: 'paid',  label: t('th.paid'),   icon: Icon.check },
                 ].map((m, i, arr) => (
                   <button key={m.id} onClick={() => { setPayMethod(m.id); setErr(''); }}
                     className={`flex-1 flex flex-col items-center justify-center gap-1.5 py-3 text-xs font-semibold transition-all
@@ -783,17 +793,17 @@ export default function SalesCreate2() {
                       className={`flex-1 rounded-xl border-2 px-4 py-3 text-lg font-bold text-right outline-none transition-colors ${shakeInput ? 'shake border-red-500' : 'border-orange-200 focus:border-orange-400'}`} />
                     <button onClick={() => setCashPaid(fmt(total))}
                       className="px-4 py-3 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl text-sm font-bold whitespace-nowrap transition-colors">
-                      Exact
+                      {t('lbl.cash')}
                     </button>
                   </div>
                   {change > 0.005 && (
                     <p className="text-sm text-center font-bold text-green-600 bg-green-50 rounded-xl py-2.5">
-                      Change: Rs. {fmt(change)}
+                      {t('lbl.change')}: Rs. {fmt(change)}
                     </p>
                   )}
                   {change < -0.005 && cashNum > 0 && (
                     <p className="text-sm text-center font-bold text-red-500 bg-red-50 rounded-xl py-2.5">
-                      Short: Rs. {fmt(Math.abs(change))}
+                      {t('lbl.balance')}: Rs. {fmt(Math.abs(change))}
                     </p>
                   )}
                 </div>
@@ -806,7 +816,7 @@ export default function SalesCreate2() {
               {payMethod === 'split' && (
                 <div className="flex gap-3">
                   <div className="flex-1">
-                    <p className="text-[10px] text-slate-500 font-bold mb-1.5 uppercase tracking-wider">Cash</p>
+                    <p className="text-[10px] text-slate-500 font-bold mb-1.5 uppercase tracking-wider">{t('lbl.cash')}</p>
                     <input type="number" min="0" step="0.01" value={splitCash}
                       onChange={e => setSplitCash(e.target.value)} placeholder="0.00"
                       className="w-full rounded-xl border border-slate-200 px-3 py-3 text-sm outline-none focus:ring-2 focus:ring-orange-400" />
@@ -841,15 +851,15 @@ export default function SalesCreate2() {
                 onClick={() => setHoldModal(true)}
                 className="flex-1 flex items-center justify-center gap-1.5 py-3.5 bg-white border border-slate-200 hover:bg-slate-50 disabled:opacity-40 text-slate-700 rounded-xl text-sm font-bold transition-colors">
                 {Icon.pause}
-                <span>Draft</span>
+                <span>{t('pos.hold_btn')}</span>
                 <span className="text-[10px] text-slate-400 font-normal">[F9]</span>
               </button>
               <button
                 disabled={cart.length === 0 || submitting}
-                onClick={() => handleCompleteSale(false)}
+                onClick={() => handleCompleteSale(false, true)}
                 className="flex-[2] flex items-center justify-center gap-2 py-3.5 bg-orange-500 hover:bg-orange-600 disabled:bg-slate-200 disabled:text-slate-400 text-white rounded-xl text-sm font-bold transition-colors shadow-md">
                 {Icon.print}
-                <span>{submitting ? 'Processing…' : 'Complete Sale'}</span>
+                <span>{submitting ? t('pos.processing') : t('pos.complete_sale')}</span>
                 <span className="text-[10px] bg-white/20 px-1.5 py-0.5 rounded font-bold">[F10]</span>
               </button>
             </div>
@@ -870,9 +880,9 @@ export default function SalesCreate2() {
       {qcForm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
           <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm space-y-3">
-            <h2 className="font-bold text-slate-800">Quick Add Customer</h2>
+            <h2 className="font-bold text-slate-800">{t('cust.quick_add')}</h2>
             <input autoFocus value={qcForm.name} onChange={e => setQcForm(f => ({ ...f, name: e.target.value }))}
-              placeholder="Customer name *"
+              placeholder={`${t('cust.name')} *`}
               onKeyDown={e => { if (e.key === 'Enter') saveQuickCustomer(); if (e.key === 'Escape') setQcForm(null); }}
               className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-orange-400" />
             <input value={qcForm.phone || ''} onChange={e => setQcForm(f => ({ ...f, phone: e.target.value }))}
@@ -880,9 +890,9 @@ export default function SalesCreate2() {
               className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-orange-400" />
             <div className="flex gap-2 pt-1">
               <button onClick={() => setQcForm(null)}
-                className="flex-1 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-600 hover:bg-slate-50">Cancel</button>
+                className="flex-1 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-600 hover:bg-slate-50">{t('btn.cancel')}</button>
               <button onClick={saveQuickCustomer}
-                className="flex-1 py-2.5 bg-orange-500 text-white rounded-xl text-sm font-bold hover:bg-orange-600">Add</button>
+                className="flex-1 py-2.5 bg-orange-500 text-white rounded-xl text-sm font-bold hover:bg-orange-600">{t('btn.add')}</button>
             </div>
           </div>
         </div>
@@ -892,16 +902,16 @@ export default function SalesCreate2() {
       {showHoldModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
           <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm space-y-3">
-            <h2 className="font-bold text-slate-800">Save as Draft</h2>
+            <h2 className="font-bold text-slate-800">{t('pos.hold_title')}</h2>
             <input autoFocus value={holdNote} onChange={e => setHoldNote(e.target.value)}
-              placeholder="Note (optional — e.g. Table 3)"
+              placeholder={t('pos.hold_placeholder')}
               onKeyDown={e => { if (e.key === 'Enter') confirmHold(); if (e.key === 'Escape') setHoldModal(false); }}
               className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-orange-400" />
             <div className="flex gap-2 pt-1">
               <button onClick={() => setHoldModal(false)}
-                className="flex-1 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-600 hover:bg-slate-50">Cancel</button>
+                className="flex-1 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-600 hover:bg-slate-50">{t('btn.cancel')}</button>
               <button onClick={confirmHold}
-                className="flex-1 py-2.5 bg-amber-500 text-white rounded-xl text-sm font-bold hover:bg-amber-600">Save Draft</button>
+                className="flex-1 py-2.5 bg-amber-500 text-white rounded-xl text-sm font-bold hover:bg-amber-600">{t('btn.hold')}</button>
             </div>
           </div>
         </div>
@@ -912,14 +922,14 @@ export default function SalesCreate2() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
           <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-lg max-h-[80vh] overflow-y-auto space-y-3">
             <div className="flex items-center justify-between">
-              <h2 className="font-bold text-slate-800">Saved Drafts ({heldBills.length})</h2>
+              <h2 className="font-bold text-slate-800">{t('pos.held_bills')} ({heldBills.length})</h2>
               <button onClick={() => setShowHeld(false)} className="text-slate-400 hover:text-slate-600 text-xl leading-none">&times;</button>
             </div>
-            {heldBills.length === 0 && <p className="text-slate-400 text-sm text-center py-4">No saved drafts</p>}
+            {heldBills.length === 0 && <p className="text-slate-400 text-sm text-center py-4">{t('pos.no_held')}</p>}
             {heldBills.map((b, i) => (
               <div key={b.id} className="border border-slate-200 rounded-xl p-3 flex items-center justify-between">
                 <div>
-                  <p className="font-semibold text-slate-800">{b.note || `Draft ${i + 1}`}</p>
+                  <p className="font-semibold text-slate-800">{b.note || `${t('pos.hold_btn')} ${i + 1}`}</p>
                   <p className="text-xs text-slate-400 mt-0.5">
                     {b.cart?.length} item{b.cart?.length !== 1 ? 's' : ''} ·{' '}
                     {new Date(b.createdAt).toLocaleTimeString('en-LK', { hour: '2-digit', minute: '2-digit' })}
@@ -928,14 +938,14 @@ export default function SalesCreate2() {
                 <div className="flex gap-2">
                   <button onClick={() => resumeHeld(i)}
                     className="px-3 py-1.5 bg-orange-500 text-white rounded-lg text-xs font-semibold hover:bg-orange-600 transition-colors">
-                    Resume
+                    {t('btn.view')}
                   </button>
                   <button onClick={() => {
                     const u = heldBills.filter((_, j) => j !== i);
                     localStorage.setItem('pos_held', JSON.stringify(u));
                     setHeld(u);
                   }} className="px-3 py-1.5 border border-red-300 text-red-500 rounded-lg text-xs hover:bg-red-50 transition-colors">
-                    Delete
+                    {t('btn.delete')}
                   </button>
                 </div>
               </div>

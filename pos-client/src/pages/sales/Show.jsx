@@ -3,6 +3,8 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useGetSaleQuery, useReturnSaleMutation } from '../../features/sales/salesApi';
 import { useSelector } from 'react-redux';
 import { selectCurrentUser, selectRole } from '../../features/auth/authSlice';
+import { useLocale } from '../../contexts/LocaleContext';
+import { translations } from '../../i18n/translations';
 
 const API = import.meta.env.VITE_API_URL;
 
@@ -25,6 +27,7 @@ export default function SaleShow() {
   const location   = useLocation();
   const role       = useSelector(selectRole);
   const user       = useSelector(selectCurrentUser);
+  const { t }      = useLocale();
 
   const { data: sale, isLoading, refetch } = useGetSaleQuery(id);
   const [returnSale, { isLoading: returning }] = useReturnSaleMutation();
@@ -75,7 +78,9 @@ export default function SaleShow() {
     setPrinting(true);
     const is80 = paperSize === '80mm';
     const currency = shopInfo.currency || 'Rs.';
-    const isSinhala = (shopInfo.receipt_language || 'en') === 'si';
+    const receiptLang = shopInfo.receipt_language || 'en';
+    const isSinhala = receiptLang === 'si';
+    const rl = key => (translations[receiptLang] || translations.en)[key] ?? translations.en[key];
     const minDelay = new Promise(r => setTimeout(r, 2200));
 
     const itemsHtml = (sale.items || []).map((item, idx) => `
@@ -147,21 +152,21 @@ export default function SaleShow() {
     ${shopInfo.phone || ''}
   </div>
   <hr class="divider">
-  <div class="row"><span class="label">Invoice</span><span class="value">${sale.invoice_no}</span></div>
-  <div class="row"><span class="label">Date</span><span class="value">${fmtDate(sale.created_at)} ${fmtTime(sale.created_at)}</span></div>
-  <div class="row"><span class="label">Cashier</span><span class="value">${sale.user?.name || '—'}</span></div>
-  ${sale.customer?.name ? `<div class="row"><span class="label">Customer</span><span class="value">${sale.customer.name}</span></div>` : ''}
-  <div class="col-header"><span># Product</span><span>Total</span></div>
+  <div class="row"><span class="label">${rl('th.invoice')}</span><span class="value">${sale.invoice_no}</span></div>
+  <div class="row"><span class="label">${rl('th.date')}</span><span class="value">${fmtDate(sale.created_at)} ${fmtTime(sale.created_at)}</span></div>
+  <div class="row"><span class="label">${rl('lbl.cashier')}</span><span class="value">${sale.user?.name || '—'}</span></div>
+  ${sale.customer?.name ? `<div class="row"><span class="label">${rl('lbl.customer')}</span><span class="value">${sale.customer.name}</span></div>` : ''}
+  <div class="col-header"><span># ${rl('th.product')}</span><span>${rl('th.total')}</span></div>
   ${itemsHtml}
   <hr class="divider">
-  <div class="row"><span class="label">Subtotal</span><span>${fmt(sale.subtotal)}</span></div>
-  ${parseFloat(sale.discount) > 0 ? `<div class="disc-box"><span class="disc-label">ළද වට්ටම්</span><span class="disc-val">- ${fmt(sale.discount)}</span></div>` : ''}
-  ${parseFloat(sale.tax) > 0 ? `<div class="row"><span class="label">Tax</span><span>${fmt(sale.tax)}</span></div>` : ''}
-  <div class="total-row"><span class="total-label">Total</span><span class="total-val">${currency} ${fmt(sale.total)}</span></div>
-  ${paidCash > 0  ? `<div class="paid-row"><span>Paid (Cash)</span><span>${fmt(paidCash)}</span></div>` : ''}
-  ${paidCard > 0  ? `<div class="paid-row"><span>Paid (Card)</span><span>${fmt(paidCard)}</span></div>` : ''}
-  ${paidCredit > 0 ? `<div class="paid-row"><span>Credit</span><span>${fmt(paidCredit)}</span></div>` : ''}
-  ${change > 0    ? `<div class="change-row"><span>Change</span><span>${fmt(change)}</span></div>` : ''}
+  <div class="row"><span class="label">${rl('lbl.subtotal')}</span><span>${fmt(sale.subtotal)}</span></div>
+  ${parseFloat(sale.discount) > 0 ? `<div class="disc-box"><span class="disc-label">${rl('lbl.discount')}</span><span class="disc-val">- ${fmt(sale.discount)}</span></div>` : ''}
+  ${parseFloat(sale.tax) > 0 ? `<div class="row"><span class="label">${rl('lbl.tax')}</span><span>${fmt(sale.tax)}</span></div>` : ''}
+  <div class="total-row"><span class="total-label">${rl('lbl.grand_total')}</span><span class="total-val">${currency} ${fmt(sale.total)}</span></div>
+  ${paidCash > 0  ? `<div class="paid-row"><span>${rl('lbl.cash_paid')} (${rl('lbl.cash')})</span><span>${fmt(paidCash)}</span></div>` : ''}
+  ${paidCard > 0  ? `<div class="paid-row"><span>${rl('lbl.cash_paid')} (${rl('lbl.card')})</span><span>${fmt(paidCard)}</span></div>` : ''}
+  ${paidCredit > 0 ? `<div class="paid-row"><span>${rl('lbl.credit')}</span><span>${fmt(paidCredit)}</span></div>` : ''}
+  ${change > 0    ? `<div class="change-row"><span>${rl('lbl.change')}</span><span>${fmt(change)}</span></div>` : ''}
   <hr class="divider">
   <div class="footer">
     ${shopInfo.receipt_footer || 'Thank you for shopping with us!'}
@@ -207,7 +212,7 @@ export default function SaleShow() {
   const currency   = shopInfo.currency || 'Rs.';
 
   if (isLoading) return (
-    <div className="h-screen flex items-center justify-center text-slate-400 text-sm">Loading invoice…</div>
+    <div className="h-screen flex items-center justify-center text-slate-400 text-sm">{t('lbl.loading')}</div>
   );
   if (!sale) return (
     <div className="h-screen flex items-center justify-center text-slate-400 text-sm">Sale not found</div>
@@ -217,27 +222,27 @@ export default function SaleShow() {
     <div className="flex flex-col h-full bg-slate-100">
 
       {/* ── Custom top bar ──────────────────────────────────────────────── */}
-      <header className="bg-white border-b border-slate-200 shadow-sm px-4 py-2.5 flex items-center justify-between sticky top-0 z-10">
-        <div className="flex items-center gap-3">
+      <header className="bg-white border-b border-slate-200 shadow-sm px-3 py-2 flex items-center justify-between sticky top-0 z-10 gap-2">
+        <div className="flex items-center gap-2 min-w-0 shrink">
           <button onClick={() => navigate('/sales')}
-            className="p-1.5 rounded-lg text-slate-500 hover:text-slate-700 hover:bg-slate-100 transition-colors">
+            className="p-1.5 rounded-lg text-slate-500 hover:text-slate-700 hover:bg-slate-100 transition-colors shrink-0">
             {IcoBack}
           </button>
-          <span className="font-bold text-slate-800 font-mono text-sm">{sale.invoice_no}</span>
+          <span className="font-bold text-slate-800 font-mono text-xs sm:text-sm truncate">{sale.invoice_no}</span>
           {sale.status === 'returned' && (
-            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-red-100 text-red-600 uppercase tracking-wide">Returned</span>
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-red-100 text-red-600 uppercase tracking-wide shrink-0">{t('btn.return')}</span>
           )}
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 shrink-0">
           {/* Paper size toggle */}
           <div className="flex rounded-lg border border-slate-200 overflow-hidden text-xs font-semibold">
             <button onClick={() => setPaperSize('80mm')}
-              className={`px-3 py-1.5 transition-colors ${paperSize === '80mm' ? 'bg-slate-700 text-white' : 'bg-white text-slate-600 hover:bg-slate-50'}`}>
+              className={`px-2 py-1.5 transition-colors ${paperSize === '80mm' ? 'bg-slate-700 text-white' : 'bg-white text-slate-600 hover:bg-slate-50'}`}>
               80mm
             </button>
             <button onClick={() => setPaperSize('A4')}
-              className={`px-3 py-1.5 transition-colors border-l border-slate-200 ${paperSize === 'A4' ? 'bg-slate-700 text-white' : 'bg-white text-slate-600 hover:bg-slate-50'}`}>
+              className={`px-2 py-1.5 transition-colors border-l border-slate-200 ${paperSize === 'A4' ? 'bg-slate-700 text-white' : 'bg-white text-slate-600 hover:bg-slate-50'}`}>
               A4
             </button>
           </div>
@@ -245,17 +250,17 @@ export default function SaleShow() {
           {/* Return button */}
           {sale.status === 'completed' && (role === 'admin' || role === 'manager') && (
             <button onClick={openReturn}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-red-300 text-red-600 text-xs font-semibold hover:bg-red-50 transition-colors">
+              className="flex items-center gap-1 px-2 py-1.5 rounded-lg border border-red-300 text-red-600 text-xs font-semibold hover:bg-red-50 transition-colors">
               {IcoReturn}
-              <span>Returned</span>
+              <span className="hidden sm:inline">{t('btn.return')}</span>
             </button>
           )}
 
           {/* New Sale */}
           <button onClick={() => navigate('/sales/create')}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-green-500 text-white text-xs font-semibold hover:bg-green-600 transition-colors">
+            className="flex items-center gap-1 px-2 py-1.5 rounded-lg bg-green-500 text-white text-xs font-semibold hover:bg-green-600 transition-colors">
             {IcoPlus}
-            <span>New Sale</span>
+            <span className="hidden sm:inline">{t('btn.new_sale')}</span>
           </button>
 
           {/* Refresh */}
@@ -264,13 +269,13 @@ export default function SaleShow() {
             {IcoRefresh}
           </button>
 
-          <div className="w-px h-5 bg-slate-200" />
+          <div className="w-px h-5 bg-slate-200 hidden sm:block" />
 
           {/* User avatar */}
-          <div className={`w-7 h-7 rounded-full ${roleColor[role] || 'bg-slate-500'} flex items-center justify-center text-white font-bold text-xs`}>
+          <div className={`w-7 h-7 rounded-full ${roleColor[role] || 'bg-slate-500'} flex items-center justify-center text-white font-bold text-xs shrink-0`}>
             {user?.name?.[0]?.toUpperCase() || 'U'}
           </div>
-          <div className="text-xs leading-tight hidden sm:block">
+          <div className="text-xs leading-tight hidden md:block">
             <p className="font-semibold text-slate-700">{user?.name}</p>
             <p className="text-slate-400 capitalize">{role}</p>
           </div>
@@ -279,13 +284,13 @@ export default function SaleShow() {
 
       {/* ── Print button ────────────────────────────────────────────────── */}
       <button onClick={handlePrint} disabled={printing}
-        className="fixed bottom-6 right-6 z-20 flex items-center gap-2 px-6 py-3 rounded-full bg-blue-600 text-white font-semibold text-sm hover:bg-blue-700 disabled:opacity-70 disabled:cursor-not-allowed transition-all shadow-lg shadow-blue-600/40">
+        className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-20 flex items-center gap-2 px-4 sm:px-6 py-2.5 sm:py-3 rounded-full bg-blue-600 text-white font-semibold text-sm hover:bg-blue-700 disabled:opacity-70 disabled:cursor-not-allowed transition-all shadow-lg shadow-blue-600/40">
         {printing ? IcoSpinner : IcoPrint}
-        <span>{printing ? 'Printing…' : 'Print'}</span>
+        <span>{printing ? t('lbl.loading') : t('btn.print')}</span>
       </button>
 
       {/* ── Scrollable receipt area ──────────────────────────────────────── */}
-      <div className="flex-1 overflow-y-auto py-8 px-4 flex flex-col items-center">
+      <div className="flex-1 overflow-y-auto py-6 sm:py-8 px-3 sm:px-4 flex flex-col items-center pb-20">
 
         {/* Receipt card */}
         <div id="receipt"
@@ -313,10 +318,10 @@ export default function SaleShow() {
 
           {/* Invoice meta */}
           <div className="space-y-1.5">
-            <MetaRow label="Invoice" value={sale.invoice_no} mono />
-            <MetaRow label="Date"    value={`${fmtDate(sale.created_at)} ${fmtTime(sale.created_at)}`} />
-            <MetaRow label="Cashier" value={sale.user?.name || '—'} />
-            {sale.customer?.name && <MetaRow label="Customer" value={sale.customer.name} />}
+            <MetaRow label={t('th.invoice')}  value={sale.invoice_no} mono />
+            <MetaRow label={t('th.date')}     value={`${fmtDate(sale.created_at)} ${fmtTime(sale.created_at)}`} />
+            <MetaRow label={t('lbl.cashier')} value={sale.user?.name || '—'} />
+            {sale.customer?.name && <MetaRow label={t('lbl.customer')} value={sale.customer.name} />}
           </div>
 
           <hr className="border-slate-200 my-4" />
@@ -324,8 +329,8 @@ export default function SaleShow() {
           {/* Items */}
           <div className="mb-3">
             <div className="flex justify-between text-sm font-black text-slate-700 border-b-2 border-slate-200 pb-2 mb-3">
-              <span># Product</span>
-              <span>Total</span>
+              <span># {t('th.product')}</span>
+              <span>{t('th.total')}</span>
             </div>
             {(sale.items || []).map((item, idx) => (
               <div key={item.id} className="mb-3">
@@ -348,50 +353,50 @@ export default function SaleShow() {
           {/* Totals */}
           <div className="space-y-2">
             <div className="flex justify-between text-sm">
-              <span className="text-slate-500 font-semibold">Subtotal</span>
+              <span className="text-slate-500 font-semibold">{t('lbl.subtotal')}</span>
               <span className="font-bold text-slate-700">{fmt(sale.subtotal)}</span>
             </div>
 
             {parseFloat(sale.discount) > 0 && (
               <div className="flex justify-between items-center border-2 border-blue-300 rounded-lg px-3 py-1.5 bg-blue-50">
-                <span className="text-blue-700 font-bold text-sm">ළද වට්ටම්</span>
+                <span className="text-blue-700 font-bold text-sm">{t('lbl.discount')}</span>
                 <span className="text-red-500 font-extrabold text-sm">- {fmt(sale.discount)}</span>
               </div>
             )}
 
             {parseFloat(sale.tax) > 0 && (
               <div className="flex justify-between text-sm">
-                <span className="text-slate-500 font-semibold">Tax</span>
+                <span className="text-slate-500 font-semibold">{t('lbl.tax')}</span>
                 <span className="font-bold text-slate-700">{fmt(sale.tax)}</span>
               </div>
             )}
 
             <div className="flex justify-between items-baseline pt-1 border-t border-slate-100">
-              <span className="text-base font-black text-slate-900">Total</span>
+              <span className="text-base font-black text-slate-900">{t('lbl.grand_total')}</span>
               <span className="text-xl font-black text-blue-600">{currency} {fmt(sale.total)}</span>
             </div>
 
             {paidCash   > 0 && (
               <div className="flex justify-between text-sm">
-                <span className="text-slate-500 font-semibold">Paid (Cash)</span>
+                <span className="text-slate-500 font-semibold">{t('lbl.cash_paid')} ({t('lbl.cash')})</span>
                 <span className="font-bold text-slate-700">{fmt(paidCash)}</span>
               </div>
             )}
             {paidCard   > 0 && (
               <div className="flex justify-between text-sm">
-                <span className="text-slate-500 font-semibold">Paid (Card)</span>
+                <span className="text-slate-500 font-semibold">{t('lbl.cash_paid')} ({t('lbl.card')})</span>
                 <span className="font-bold text-slate-700">{fmt(paidCard)}</span>
               </div>
             )}
             {paidCredit > 0 && (
               <div className="flex justify-between text-sm">
-                <span className="text-slate-500 font-semibold">Credit</span>
+                <span className="text-slate-500 font-semibold">{t('lbl.credit')}</span>
                 <span className="font-bold text-red-500">{fmt(paidCredit)}</span>
               </div>
             )}
             {change > 0 && (
               <div className="flex justify-between text-sm font-bold text-green-600">
-                <span>Change</span>
+                <span>{t('lbl.change')}</span>
                 <span>{fmt(change)}</span>
               </div>
             )}
@@ -419,7 +424,7 @@ export default function SaleShow() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg p-6 space-y-4 max-h-[90vh] overflow-y-auto mx-4">
             <div className="flex items-center justify-between">
-              <h2 className="text-base font-bold text-slate-800">Process Return</h2>
+              <h2 className="text-base font-bold text-slate-800">{t('btn.return')}</h2>
               <span className="font-mono text-xs text-slate-400">{sale.invoice_no}</span>
             </div>
             <form onSubmit={handleReturn} className="space-y-4">
@@ -436,8 +441,8 @@ export default function SaleShow() {
                   <table className="w-full text-sm">
                     <thead className="bg-slate-50">
                       <tr>
-                        <th className="text-left px-3 py-2 text-xs font-semibold text-slate-500">Item</th>
-                        <th className="text-right px-3 py-2 text-xs font-semibold text-slate-500">Sold</th>
+                        <th className="text-left px-3 py-2 text-xs font-semibold text-slate-500">{t('th.product')}</th>
+                        <th className="text-right px-3 py-2 text-xs font-semibold text-slate-500">{t('th.qty')}</th>
                         <th className="text-right px-3 py-2 text-xs font-semibold text-slate-500">Return Qty</th>
                       </tr>
                     </thead>
@@ -465,11 +470,11 @@ export default function SaleShow() {
               <div className="flex justify-end gap-2 pt-1">
                 <button type="button" onClick={() => setReturnModal(false)}
                   className="px-4 py-2 rounded-xl border border-slate-200 text-sm text-slate-600 hover:bg-slate-50 transition-colors">
-                  Cancel
+                  {t('btn.cancel')}
                 </button>
                 <button type="submit" disabled={returning}
                   className="px-4 py-2 rounded-xl bg-red-600 text-white text-sm font-semibold disabled:opacity-60 hover:bg-red-700 transition-colors">
-                  {returning ? 'Processing…' : 'Process Return'}
+                  {returning ? t('lbl.loading') : t('btn.return')}
                 </button>
               </div>
             </form>

@@ -94,7 +94,7 @@ export default function Settings() {
   const [form, setForm]   = useState({});
   const [saved, setSaved] = useState(false);
   const logoInputRef      = useRef(null);
-  const { setLocale }     = useLocale();
+  const { setLocale, t }  = useLocale();
 
   useEffect(() => {
     if (data) {
@@ -146,31 +146,31 @@ export default function Settings() {
     reader.readAsDataURL(file);
   }
 
-  if (isLoading) return <div className="p-8 text-slate-400 text-sm">Loading settings…</div>;
+  if (isLoading) return <div className="p-8 text-slate-400 text-sm">{t('lbl.loading')}</div>;
 
   return (
-    <form onSubmit={handleSubmit} className="p-6">
+    <form onSubmit={handleSubmit} className="p-3 sm:p-6">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-xl font-bold text-slate-800">Settings</h1>
+        <h1 className="text-xl font-bold text-slate-800">{t('page.settings')}</h1>
         <div className="flex items-center gap-3">
-          {saved && <span className="text-sm text-green-600 font-semibold">✓ Saved!</span>}
+          {saved && <span className="text-sm text-green-600 font-semibold">✓ {t('btn.save')}!</span>}
           <button type="submit" disabled={saving}
             className="px-5 py-2 bg-blue-600 text-white text-sm font-semibold rounded-xl hover:bg-blue-700 disabled:opacity-60 transition-colors shadow-sm">
-            {saving ? 'Saving…' : 'Save Settings'}
+            {saving ? t('lbl.loading') : t('set.save')}
           </button>
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-5">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
 
         {/* ── LEFT COLUMN ─────────────────────────────────────────────────── */}
         <div className="space-y-5">
 
           {/* Shop Information */}
-          <Card title="Shop Information">
+          <Card title={t('set.shop_info')}>
             {/* Logo */}
             <div className="mb-5">
-              <label className="block text-sm font-medium text-slate-700 mb-2">Receipt Logo</label>
+              <label className="block text-sm font-medium text-slate-700 mb-2">{t('set.logo')}</label>
               <div className="flex items-start gap-4">
                 <div className="w-16 h-16 rounded-xl border-2 border-dashed border-slate-200 flex items-center justify-center overflow-hidden bg-slate-50 shrink-0">
                   {form.shop_logo ? (
@@ -186,13 +186,13 @@ export default function Settings() {
                   <button type="button" onClick={() => logoInputRef.current?.click()}
                     className="flex items-center gap-1.5 px-3 py-1.5 border border-slate-200 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors">
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-1M12 12V4m0 0L8 8m4-4 4 4"/></svg>
-                    Upload
+                    {t('btn.add')}
                   </button>
                   {form.shop_logo && (
                     <button type="button" onClick={() => set('shop_logo', '')}
                       className="flex items-center gap-1.5 px-3 py-1.5 border border-red-200 rounded-lg text-sm font-medium text-red-500 hover:bg-red-50 transition-colors">
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0 1 16.138 21H7.862a2 2 0 0 1-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v3M4 7h16"/></svg>
-                      Delete
+                      {t('btn.delete')}
                     </button>
                   )}
                   <p className="text-xs text-slate-400">PNG / JPG · max 2 MB</p>
@@ -201,17 +201,17 @@ export default function Settings() {
             </div>
 
             <div className="space-y-4">
-              <Field label="Shop Name">
+              <Field label={t('set.shop_name')}>
                 <input value={form.shop_name ?? ''} onChange={e => set('shop_name', e.target.value)} className={inputCls} />
               </Field>
-              <Field label="Address">
+              <Field label={t('set.address')}>
                 <textarea value={form.address ?? ''} onChange={e => set('address', e.target.value)} rows={2} className={inputCls + ' resize-none'} />
               </Field>
-              <div className="grid grid-cols-2 gap-3">
-                <Field label="Phone Number">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <Field label={t('set.phone')}>
                   <input value={form.phone ?? ''} onChange={e => set('phone', e.target.value)} className={inputCls} />
                 </Field>
-                <Field label="Email">
+                <Field label={t('set.email')}>
                   <input type="email" value={form.email ?? ''} onChange={e => set('email', e.target.value)} className={inputCls} />
                 </Field>
               </div>
@@ -235,17 +235,17 @@ export default function Settings() {
           </Card>
 
           {/* Receipt Settings */}
-          <Card title="Receipt Settings">
+          <Card title={t('set.receipt_settings')}>
             <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-3">
-                <Field label="Currency">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <Field label={t('set.currency')}>
                   <input value={form.currency ?? 'Rs.'} onChange={e => set('currency', e.target.value)} className={inputCls} />
                 </Field>
-                <Field label="Tax Rate (%)">
+                <Field label={t('set.tax_rate')}>
                   <input type="number" min="0" step="0.01" value={form.tax_rate ?? '0'} onChange={e => set('tax_rate', e.target.value)} className={inputCls} />
                 </Field>
               </div>
-              <Field label="Receipt Footer">
+              <Field label={t('set.receipt_footer')}>
                 <textarea value={form.receipt_note ?? ''} onChange={e => set('receipt_note', e.target.value)} rows={3}
                   placeholder="Thank you for shopping with us!" className={inputCls + ' resize-none'} />
               </Field>
@@ -257,45 +257,45 @@ export default function Settings() {
         <div className="space-y-5">
 
           {/* Interface Language */}
-          <Card title="Interface Language">
+          <Card title={t('set.ui_language')}>
             <div className="space-y-4">
               <div>
-                <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Interface Language</p>
+                <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">{t('set.ui_language')}</p>
                 <LangPicker value={form.interface_language ?? 'en'} onChange={v => set('interface_language', v)} />
               </div>
               <div className="border-t border-slate-100 pt-4">
-                <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Bill / Receipt Language</p>
+                <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">{t('set.bill_language')}</p>
                 <LangPicker value={form.receipt_language ?? 'en'} onChange={v => set('receipt_language', v)} />
               </div>
             </div>
           </Card>
 
           {/* Appearance */}
-          <Card title="Appearance">
+          <Card title={t('set.appearance')}>
             <div className="space-y-5">
               {/* Sidebar theme */}
               <div>
-                <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Sidebar Theme</p>
+                <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">{t('set.sidebar_theme')}</p>
                 <div className="flex gap-2.5">
-                  {SIDEBAR_THEMES.map(t => (
-                    <button key={t.value} type="button" onClick={() => set('sidebar_theme', t.value)}
-                      title={t.label}
-                      className={`w-9 h-9 rounded-full transition-all duration-150 relative ${form.sidebar_theme === t.value ? 'ring-2 ring-offset-2 ring-orange-400 scale-110' : 'hover:scale-105'}`}
-                      style={{ backgroundColor: t.color }}>
+                  {SIDEBAR_THEMES.map(theme => (
+                    <button key={theme.value} type="button" onClick={() => set('sidebar_theme', theme.value)}
+                      title={theme.label}
+                      className={`w-9 h-9 rounded-full transition-all duration-150 relative ${form.sidebar_theme === theme.value ? 'ring-2 ring-offset-2 ring-orange-400 scale-110' : 'hover:scale-105'}`}
+                      style={{ backgroundColor: theme.color }}>
                       {/* small dot accent */}
                       <span className="absolute bottom-0.5 right-0.5 w-2 h-2 rounded-full border border-white/60"
-                        style={{ backgroundColor: t.value === 'coffee' ? '#f97316' : t.value === 'teal' ? '#38bdf8' : 'transparent' }} />
+                        style={{ backgroundColor: theme.value === 'coffee' ? '#f97316' : theme.value === 'teal' ? '#38bdf8' : 'transparent' }} />
                     </button>
                   ))}
                 </div>
                 <p className="text-xs text-slate-400 mt-2 capitalize">
-                  {SIDEBAR_THEMES.find(t => t.value === (form.sidebar_theme ?? 'slate'))?.label}
+                  {SIDEBAR_THEMES.find(theme => theme.value === (form.sidebar_theme ?? 'slate'))?.label}
                 </p>
               </div>
 
               {/* Primary color */}
               <div className="border-t border-slate-100 pt-4">
-                <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Primary Color</p>
+                <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">{t('set.primary_color')}</p>
                 <div className="flex gap-2.5">
                   {PRIMARY_COLORS.map(c => (
                     <button key={c.value} type="button" onClick={() => set('primary_color', c.value)}

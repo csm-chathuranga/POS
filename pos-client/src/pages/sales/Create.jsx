@@ -1,11 +1,12 @@
 import { useState, useRef, useCallback, useMemo, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { logout, selectCurrentUser, selectRole } from '../../features/auth/authSlice';
 import { useCreateSaleMutation } from '../../features/sales/salesApi';
 import useProductCache from '../../hooks/useProductCache';
 import { useConnectivity } from '../../contexts/ConnectivityContext';
 import { enqueueOfflineSale } from '../../services/offlineQueue';
+import { useLocale } from '../../contexts/LocaleContext';
 import { api } from '../../app/baseApi';
 
 const posApi = api.injectEndpoints({
@@ -76,6 +77,7 @@ function ProductDropdown({ items, activeIdx, onSelect }) {
 
 // ─── Size Picker Modal ────────────────────────────────────────────────────────
 function SizePickerModal({ product, onSelect, onClose }) {
+  const { t } = useLocale();
   const [qty, setQty] = useState('');
   const [active, setActive] = useState(0);
   const qtyRef = useRef(null);
@@ -89,7 +91,7 @@ function SizePickerModal({ product, onSelect, onClose }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onKeyDown={handleKey}>
       <div className="bg-white rounded-2xl shadow-2xl p-5 w-full max-w-md">
-        <h3 className="text-base font-bold text-slate-800 mb-3">{product.name} — Select Size</h3>
+        <h3 className="text-base font-bold text-slate-800 mb-3">{product.name} — {t('pos.select_size')}</h3>
         <div className="flex flex-wrap gap-2 mb-4">
           {product.sizes.map((s, i) => (
             <button key={s.id} onClick={() => setActive(i)} onDoubleClick={() => onSelect(s, parseFloat(qty) || 1)}
@@ -100,13 +102,85 @@ function SizePickerModal({ product, onSelect, onClose }) {
         </div>
         <div className="flex gap-3 items-end">
           <div className="flex-1">
-            <label className="text-xs font-semibold text-slate-500 mb-1 block">Qty</label>
+            <label className="text-xs font-semibold text-slate-500 mb-1 block">{t('th.qty')}</label>
             <input ref={qtyRef} type="number" min="0.001" step="0.001" value={qty} onChange={e => setQty(e.target.value)} placeholder="1"
               className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500" />
           </div>
           <button onClick={() => onSelect(product.sizes[active], parseFloat(qty) || 1)}
-            className="px-5 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700">Add</button>
-          <button onClick={onClose} className="px-4 py-2 border border-slate-200 rounded-lg text-sm text-slate-600 hover:bg-slate-50">Cancel</button>
+            className="px-5 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700">{t('btn.add')}</button>
+          <button onClick={onClose} className="px-4 py-2 border border-slate-200 rounded-lg text-sm text-slate-600 hover:bg-slate-50">{t('btn.cancel')}</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Cart Item Zoom Modal ─────────────────────────────────────────────────────
+function CartItemZoomModal({ item, onChange, onRemove, onClose }) {
+  const { t } = useLocale();
+  const [local, setLocal] = useState({ qty: item.qty, unit_price: item.unit_price, discount: item.discount || 0 });
+  const total = Math.max(0, local.qty * local.unit_price - (local.discount || 0));
+
+  function apply(changes) {
+    const next = { ...local, ...changes };
+    setLocal(next);
+    onChange(next);
+  }
+
+  return (
+    <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center bg-black/50" onClick={onClose}>
+      <div className="bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl w-full sm:max-w-sm p-5"
+        onClick={e => e.stopPropagation()}>
+        <div className="flex items-start justify-between mb-4">
+          <div className="min-w-0 pr-2">
+            <p className="font-bold text-slate-800 text-base leading-snug">{item.name}</p>
+            {item.barcode && <p className="text-xs text-slate-400 font-mono mt-0.5">{item.barcode}</p>}
+          </div>
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 text-2xl leading-none shrink-0">&times;</button>
+        </div>
+
+        <div className="space-y-3 mb-4">
+          <div>
+            <label className="block text-xs font-semibold text-slate-500 mb-1">{t('th.qty')}</label>
+            <input type="number" min="0.001" step="0.001" value={local.qty}
+              onChange={e => apply({ qty: parseFloat(e.target.value) || local.qty })}
+              onFocus={e => e.target.select()}
+              onKeyDown={e => e.key === 'Enter' && onClose()}
+              className="w-full rounded-xl border border-slate-200 px-4 py-3 text-xl font-bold text-right outline-none focus:ring-2 focus:ring-blue-500" />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-slate-500 mb-1">{t('th.price')}</label>
+            <input type="number" min="0" step="0.01" value={local.unit_price}
+              onChange={e => apply({ unit_price: parseFloat(e.target.value) || 0 })}
+              onFocus={e => e.target.select()}
+              onKeyDown={e => e.key === 'Enter' && onClose()}
+              className="w-full rounded-xl border border-slate-200 px-4 py-3 text-xl font-bold text-right outline-none focus:ring-2 focus:ring-blue-500" />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-slate-500 mb-1">{t('lbl.discount')}</label>
+            <input type="number" min="0" step="0.01" value={local.discount}
+              onChange={e => apply({ discount: parseFloat(e.target.value) || 0 })}
+              onFocus={e => e.target.select()}
+              onKeyDown={e => e.key === 'Enter' && onClose()}
+              placeholder="0"
+              className="w-full rounded-xl border border-slate-200 px-4 py-3 text-xl font-bold text-right outline-none focus:ring-2 focus:ring-blue-500" />
+          </div>
+        </div>
+
+        <div className="flex items-center justify-between py-3 border-t border-b border-slate-100 mb-4">
+          <span className="text-sm font-semibold text-slate-500">{t('th.total')}</span>
+          <span className="text-2xl font-bold text-slate-800">Rs.{fmt(total)}</span>
+        </div>
+
+        <div className="flex gap-3">
+          <button onClick={() => { onRemove(); onClose(); }}
+            className="flex-1 py-3 bg-red-500 text-white rounded-xl text-sm font-bold hover:bg-red-600 active:bg-red-700 transition-colors">
+            {t('btn.delete')}
+          </button>
+          <button onClick={onClose}
+            className="flex-1 py-3 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 active:bg-blue-800 transition-colors">
+            {t('btn.done')}
+          </button>
         </div>
       </div>
     </div>
@@ -114,31 +188,39 @@ function SizePickerModal({ product, onSelect, onClose }) {
 }
 
 // ─── Cart Row ─────────────────────────────────────────────────────────────────
-function CartRow({ item, onChange, onRemove, highlight }) {
+function CartRow({ item, onChange, onRemove, onZoom, onEnter, highlight }) {
+  const qtyRef = useRef(null);
+  useEffect(() => { if (highlight) qtyRef.current?.focus(); }, [highlight]);
+
   return (
     <div className={`grid items-center gap-1.5 px-3 py-2 rounded-lg text-sm transition-colors ${highlight ? 'bg-blue-50 ring-1 ring-blue-200' : 'hover:bg-slate-50'}`}
       style={{ gridTemplateColumns: '1fr 60px 72px 60px 72px 24px' }}>
-      <div className="min-w-0">
+      <button type="button" onClick={onZoom} className="min-w-0 text-left">
         <p className="font-semibold text-slate-800 truncate leading-tight">{item.name}</p>
         {item.barcode && <p className="text-xs text-slate-400 font-mono leading-tight">{item.barcode}</p>}
-      </div>
-      <input type="number" min="0.001" step="0.001" value={item.qty}
+      </button>
+      <input ref={qtyRef} type="number" min="0.001" step="0.001" value={item.qty}
         onChange={e => onChange({ qty: parseFloat(e.target.value) || item.qty })}
+        onFocus={e => e.target.select()}
+        onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); onEnter?.(); } }}
         className="cart-qty-input text-right rounded-lg border border-slate-200 px-1.5 py-1 text-sm outline-none focus:ring-1 focus:ring-blue-500 w-full" />
       <input type="number" min="0" step="0.01" value={item.unit_price}
         onChange={e => onChange({ unit_price: parseFloat(e.target.value) || 0 })}
+        onFocus={e => e.target.select()}
         className="text-right rounded-lg border border-slate-200 px-1.5 py-1 text-sm outline-none focus:ring-1 focus:ring-blue-500 w-full" />
       <input type="number" min="0" step="0.01" value={item.discount} onChange={e => onChange({ discount: parseFloat(e.target.value) || 0 })}
+        onFocus={e => e.target.select()}
         placeholder="0"
         className="text-right rounded-lg border border-slate-200 px-1.5 py-1 text-sm outline-none focus:ring-1 focus:ring-blue-500 w-full" />
       <p className="text-right font-bold text-slate-800">{fmt(item.total)}</p>
-      <button onClick={onRemove} className="text-red-400 hover:text-red-600 text-xl leading-none flex items-center justify-center">&times;</button>
+      <button onClick={onRemove} className="text-red-400 hover:text-red-600 text-2xl leading-none flex items-center justify-center w-6 h-6">&times;</button>
     </div>
   );
 }
 
 // ─── Receipt ──────────────────────────────────────────────────────────────────
 function Receipt({ sale, settings, onClose }) {
+  const { t } = useLocale();
   useEffect(() => { window.print(); }, []);
   const f = n => Number(n || 0).toFixed(2);
   return (
@@ -150,9 +232,9 @@ function Receipt({ sale, settings, onClose }) {
           {settings?.phone   && <p>Tel: {settings.phone}</p>}
         </div>
         <div className="border-t border-b border-dashed border-slate-400 py-1 my-2">
-          <p>Invoice: {sale.invoice_no}</p>
-          <p>Date: {new Date(sale.created_at || Date.now()).toLocaleString('en-LK')}</p>
-          {sale.customer_name && <p>Customer: {sale.customer_name}</p>}
+          <p>{t('th.invoice')}: {sale.invoice_no}</p>
+          <p>{t('th.date')}: {new Date(sale.created_at || Date.now()).toLocaleString('en-LK')}</p>
+          {sale.customer_name && <p>{t('lbl.customer')}: {sale.customer_name}</p>}
         </div>
         <table className="w-full my-2">
           <tbody>
@@ -166,12 +248,12 @@ function Receipt({ sale, settings, onClose }) {
           </tbody>
         </table>
         <div className="border-t border-dashed border-slate-400 pt-1 space-y-0.5">
-          <div className="flex justify-between"><span>Subtotal</span><span>{f(sale.subtotal)}</span></div>
-          {parseFloat(sale.discount) > 0 && <div className="flex justify-between text-red-600"><span>Discount</span><span>-{f(sale.discount)}</span></div>}
-          <div className="flex justify-between font-bold text-sm"><span>TOTAL</span><span>Rs.{f(sale.total)}</span></div>
-          <div className="flex justify-between"><span>Paid</span><span>{f(sale.paid)}</span></div>
+          <div className="flex justify-between"><span>{t('lbl.subtotal')}</span><span>{f(sale.subtotal)}</span></div>
+          {parseFloat(sale.discount) > 0 && <div className="flex justify-between text-red-600"><span>{t('lbl.discount')}</span><span>-{f(sale.discount)}</span></div>}
+          <div className="flex justify-between font-bold text-sm"><span>{t('lbl.grand_total')}</span><span>Rs.{f(sale.total)}</span></div>
+          <div className="flex justify-between"><span>{t('th.paid')}</span><span>{f(sale.paid)}</span></div>
           {parseFloat(sale.paid) > parseFloat(sale.total) && (
-            <div className="flex justify-between"><span>Change</span><span>{f(sale.paid - sale.total)}</span></div>
+            <div className="flex justify-between"><span>{t('lbl.change')}</span><span>{f(sale.paid - sale.total)}</span></div>
           )}
         </div>
         {settings?.receipt_note && <p className="text-center mt-2">{settings.receipt_note}</p>}
@@ -179,7 +261,7 @@ function Receipt({ sale, settings, onClose }) {
       </div>
       <div className="text-center mt-6 print:hidden">
         <button onClick={onClose} className="px-6 py-2.5 bg-slate-800 text-white rounded-xl text-sm font-semibold hover:bg-slate-700">
-          Close &amp; New Sale
+          {t('btn.close')} &amp; {t('btn.new_sale')}
         </button>
       </div>
     </div>
@@ -199,10 +281,12 @@ function Step({ n, label }) {
 // ─── Main POS ─────────────────────────────────────────────────────────────────
 export default function SalesCreate() {
   const navigate = useNavigate();
+  const location = useLocation();
   const dispatch = useDispatch();
   const user     = useSelector(selectCurrentUser);
   const role     = useSelector(selectRole);
 
+  const { t } = useLocale();
   const { products, ready, deductStock, invalidate } = useProductCache();
   const [createSale, { isLoading: submitting }] = useCreateSaleMutation();
   const [quickAdd] = posApi.useQuickAddCustomerMutation();
@@ -229,6 +313,7 @@ export default function SalesCreate() {
   const [billDiscount, setBillDisc] = useState('');
   const [discType, setDiscType]     = useState('amount');
   const [customItem, setCustom]     = useState(null);
+  const [zoomedItem, setZoomed]     = useState(null);
   const [err, setErr]           = useState('');
 
   // Payment (inline)
@@ -256,6 +341,9 @@ export default function SalesCreate() {
   // Receipt
   const [receipt, setReceipt] = useState(null);
 
+  // Mobile tab: 'cart' | 'pay'
+  const [mobileTab, setMobileTab] = useState('cart');
+
   // ─── Derived ─────────────────────────────────────────────────────────────────
   const dropdownItems = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -269,7 +357,7 @@ export default function SalesCreate() {
 
   const fastProducts = useMemo(() => {
     const fast = products.filter(p => p.is_fast_moving);
-    return (fast.length > 0 ? fast : products).slice(0, 10);
+    return (fast.length > 0 ? fast : products).slice(0, 6);
   }, [products]);
 
   const subtotal    = cart.reduce((s, i) => s + i.qty * i.unit_price, 0);
@@ -308,12 +396,24 @@ export default function SalesCreate() {
       if (e.key === 'F3')  { e.preventDefault(); setPayMethod('card'); }
       if (e.key === 'F4')  { e.preventDefault(); setPayMethod('credit'); }
       if (e.key === 'F5')  { e.preventDefault(); setPayMethod('split'); }
-      if (e.key === 'F10') { e.preventDefault(); if (cart.length > 0) handleCompleteSale(false); }
+      if (e.key === 'F10') { e.preventDefault(); if (cart.length > 0) handleCompleteSale(false, true); }
       if (e.key === 'F11') { e.preventDefault(); if (cart.length > 0) handleCompleteSale(true); }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [cart, total, payMethod, cashPaid, cardRef, splitCash, splitCardRef, customer]);
+
+  // ─── Auto-add product when navigated here with a scanned barcode ─────────
+  const autoBarcodeDone = useRef(false);
+  useEffect(() => {
+    const bc = location.state?.barcode;
+    if (!bc || !ready || autoBarcodeDone.current) return;
+    autoBarcodeDone.current = true;
+    const hit = products.find(p => p.barcode === bc);
+    if (hit) addToCart(hit, null, false);
+    else setErr(`Barcode "${bc}" not found`);
+    navigate(location.pathname, { replace: true, state: {} });
+  }, [ready, location.state?.barcode]);
 
   // ─── Cart helpers ─────────────────────────────────────────────────────────
   function flash(key) {
@@ -398,7 +498,7 @@ export default function SalesCreate() {
   // ─── Complete sale ────────────────────────────────────────────────────────
   async function handleCompleteSale(saveOnly = false, redirectAndPrint = false) {
     setErr('');
-    if (payMethod === 'credit' && !customer) { setErr('Select a customer for credit sale'); return; }
+    if (payMethod === 'credit' && !customer) { setErr(t('lbl.credit_warn')); return; }
     if (payMethod === 'cash' && !saveOnly && cashNum < total) {
       setErr('Cash paid is less than total');
       cashInputRef.current?.focus();
@@ -523,55 +623,54 @@ export default function SalesCreate() {
     <div className="flex-1 flex flex-col bg-slate-100 min-h-0 overflow-hidden">
 
       {/* ── Top header bar ── */}
-      <div className="bg-white border-b border-slate-200 px-4 h-12 flex items-center justify-between shrink-0">
-        <div className="flex items-center gap-3">
+      <div className="bg-white border-b border-slate-200 px-3 h-12 flex items-center justify-between shrink-0 gap-2">
+        <div className="flex items-center gap-2 shrink-0">
           <button onClick={() => navigate('/sales')} className="text-slate-500 hover:text-slate-700 transition-colors">{Icon.back}</button>
-          <h1 className="font-bold text-slate-800 text-sm">New Sale / POS Billing</h1>
-          {role === 'cashier' && (
-            <button onClick={() => navigate('/sales')}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-900 text-white text-xs font-semibold hover:bg-slate-700 transition-colors">
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
-              Home
-            </button>
-          )}
+          <h1 className="font-bold text-slate-800 text-sm hidden sm:block">{t('page.new_sale')}</h1>
         </div>
 
-        {/* Shortcut pills */}
-        <div className="flex items-center gap-1.5 text-xs">
-          {[['F1','Search'],['F2','Cash'],['F3','Card'],['F4','Credit'],['F5','Split'],['F10','Complete']].map(([k,l]) => (
+        {/* Shortcut pills — desktop only */}
+        <div className="hidden lg:flex items-center gap-1.5 text-xs">
+          {[['F1', t('btn.search')],['F2', t('lbl.cash')],['F3', t('lbl.card')],['F4', t('lbl.credit')],['F5','Split'],['F10', t('btn.complete')]].map(([k,l]) => (
             <span key={k} className="bg-slate-100 text-slate-600 rounded px-1.5 py-0.5 font-medium">
               <span className="text-slate-400">{k} </span>{l}
             </span>
           ))}
         </div>
 
-        <div className="flex items-center gap-2">
+        {/* Mobile tab switcher */}
+        <div className="flex lg:hidden rounded-lg border border-slate-200 overflow-hidden text-xs font-bold">
+          <button onClick={() => setMobileTab('cart')}
+            className={`px-4 py-1.5 transition-colors ${mobileTab === 'cart' ? 'bg-slate-800 text-white' : 'bg-white text-slate-600'}`}>
+            {t('pos.add_products')}
+          </button>
+          <button onClick={() => setMobileTab('pay')}
+            className={`px-4 py-1.5 transition-colors border-l border-slate-200 ${mobileTab === 'pay' ? 'bg-blue-600 text-white' : 'bg-white text-slate-600'}`}>
+            {t('pos.payment_method_label')}
+          </button>
+        </div>
+
+        <div className="flex items-center gap-1.5 shrink-0">
           {/* Day End */}
-          <button className="flex items-center gap-1.5 bg-blue-600 text-white text-xs font-bold px-3 py-1.5 rounded-lg hover:bg-blue-700 transition-colors">
-            {Icon.sun} Day End
+          <button className="hidden sm:flex items-center gap-1.5 bg-blue-600 text-white text-xs font-bold px-2.5 py-1.5 rounded-lg hover:bg-blue-700 transition-colors">
+            {Icon.sun} <span className="hidden md:inline">{t('rep.day_end')}</span>
           </button>
 
           {/* Held bills badge */}
           {heldBills.length > 0 && (
-            <button onClick={() => setShowHeld(true)} className="relative bg-orange-100 text-orange-700 text-xs font-bold px-3 py-1.5 rounded-lg hover:bg-orange-200 transition-colors">
+            <button onClick={() => setShowHeld(true)} className="relative bg-orange-100 text-orange-700 text-xs font-bold px-2.5 py-1.5 rounded-lg hover:bg-orange-200 transition-colors">
               Held ({heldBills.length})
             </button>
           )}
 
-          {/* Utility icons */}
-          <button className="text-slate-500 hover:text-slate-700 p-1.5 hover:bg-slate-100 rounded-lg transition-colors">{Icon.fullscreen}</button>
           <button onClick={invalidate} className="text-slate-500 hover:text-slate-700 p-1.5 hover:bg-slate-100 rounded-lg transition-colors" title="Refresh products">{Icon.refresh}</button>
 
-          {/* User */}
-          <div className="flex items-center gap-2 ml-1 pl-2 border-l border-slate-200">
+          {/* User avatar */}
+          <div className="flex items-center gap-1.5 pl-1.5 border-l border-slate-200">
             <div className="w-7 h-7 rounded-full bg-green-500 text-white text-xs font-bold flex items-center justify-center shrink-0">
               {user?.name?.[0]?.toUpperCase() || 'U'}
             </div>
-            <div className="text-xs leading-tight">
-              <p className="font-semibold text-slate-700">{user?.name}</p>
-              <p className="text-slate-400 capitalize">{role}</p>
-            </div>
-            <button onClick={handleLogout} className="ml-1 text-slate-400 hover:text-slate-600 p-1 hover:bg-slate-100 rounded-lg transition-colors">{Icon.logout}</button>
+            <button onClick={handleLogout} className="text-slate-400 hover:text-slate-600 p-1 hover:bg-slate-100 rounded-lg transition-colors">{Icon.logout}</button>
           </div>
         </div>
       </div>
@@ -579,12 +678,14 @@ export default function SalesCreate() {
       {/* ── Main body ── */}
       <div className="flex flex-1 min-h-0 gap-0">
 
-        {/* ═══ LEFT PANEL ══════════════════════════════════════════════════════ */}
-        <div className="w-[60%] flex flex-col min-w-0 overflow-hidden">
+        {/* ═══ LEFT PANEL (Cart / Products) ════════════════════════════════════ */}
+        <div className={`flex flex-col min-w-0 overflow-hidden
+          w-full lg:w-[60%]
+          ${mobileTab === 'pay' ? 'hidden lg:flex' : 'flex'}`}>
 
           {/* Section header + search + tabs */}
           <div className="px-4 pt-3 pb-2 space-y-2 shrink-0">
-            <Step n="1" label="ADD PRODUCTS" />
+            <Step n="1" label={t('pos.add_products').toUpperCase()} />
 
             {/* Search bar */}
             <div className="flex gap-2">
@@ -597,7 +698,7 @@ export default function SalesCreate() {
                   onFocus={() => setShowDrop(ready && dropdownItems.length > 0)}
                   onBlur={() => setTimeout(() => setShowDrop(false), 150)}
                   onKeyDown={onSearchKeyDown}
-                  placeholder={ready ? 'Search product (F1)' : 'Loading products…'}
+                  placeholder={ready ? t('pos.search_product') : t('lbl.loading')}
                   readOnly={!ready}
                   autoFocus
                   className="w-full pl-9 pr-4 py-2 rounded-xl border border-slate-200 bg-white text-sm outline-none focus:ring-2 focus:ring-blue-500 shadow-sm"
@@ -617,12 +718,12 @@ export default function SalesCreate() {
               <button onClick={() => setPriceMode('retail')}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
                   priceMode === 'retail' ? 'bg-blue-600 text-white shadow-sm' : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200'}`}>
-                {Icon.retail} Retail
+                {Icon.retail} {t('pos.retail_mode')}
               </button>
               <button onClick={() => setPriceMode('wholesale')}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
                   priceMode === 'wholesale' ? 'bg-blue-600 text-white shadow-sm' : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200'}`}>
-                {Icon.tag} Wholesale
+                {Icon.tag} {t('pos.wholesale_mode')}
               </button>
               <button onClick={() => setCustom({ name: '', price: '' })}
                 className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold bg-white text-slate-600 hover:bg-slate-50 border border-slate-200 transition-colors">
@@ -649,21 +750,23 @@ export default function SalesCreate() {
             {cart.length > 0 ? (
               <>
                 {/* Cart header */}
-                <div className="grid px-3 py-2 text-xs font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 sticky top-0 bg-white"
+                <div className="grid gap-1.5 px-3 py-2 text-xs font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 sticky top-0 bg-white"
                   style={{ gridTemplateColumns: '1fr 60px 72px 60px 72px 24px' }}>
-                  <span>Item</span>
-                  <span className="text-right">Qty</span>
-                  <span className="text-right">Price</span>
-                  <span className="text-right">Disc</span>
-                  <span className="text-right">Total</span>
+                  <span>{t('th.product')}</span>
+                  <span className="text-right">{t('th.qty')}</span>
+                  <span className="text-right">{t('th.price')}</span>
+                  <span className="text-right">{t('lbl.discount')}</span>
+                  <span className="text-right">{t('th.total')}</span>
                   <span></span>
                 </div>
-                <div className="p-1 space-y-0.5">
+                <div className="py-1 space-y-0.5">
                   {cart.map((item, i) => (
                     <CartRow key={itemKey(item)} item={item}
                       highlight={!!highlights[itemKey(item)]}
                       onChange={changes => setCart(prev => prev.map((it, j) => j === i ? recalc({ ...it, ...changes }) : it))}
                       onRemove={() => setCart(prev => prev.filter((_, j) => j !== i))}
+                      onZoom={() => setZoomed({ item, idx: i })}
+                      onEnter={() => searchRef.current?.focus()}
                     />
                   ))}
                 </div>
@@ -671,8 +774,8 @@ export default function SalesCreate() {
             ) : (
               <div className="flex flex-col items-center justify-center h-full py-16 text-slate-300">
                 {Icon.bag}
-                <p className="mt-4 text-base font-semibold text-slate-400">No items added yet</p>
-                <p className="text-sm text-slate-300 mt-1">Scan barcode or search product to start sale</p>
+                <p className="mt-4 text-base font-semibold text-slate-400">{t('pos.cart_empty')}</p>
+                <p className="text-sm text-slate-300 mt-1">{t('pos.add_products')}</p>
               </div>
             )}
           </div>
@@ -682,7 +785,7 @@ export default function SalesCreate() {
             <div className="shrink-0 px-4 pb-3">
               <div className="flex items-center gap-1.5 mb-2">
                 <span className="text-yellow-500">{Icon.lightning}</span>
-                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Fast</span>
+                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">{t('pos.fast_moving')}</span>
               </div>
               <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
                 {fastProducts.map(p => (
@@ -706,14 +809,16 @@ export default function SalesCreate() {
           )}
         </div>
 
-        {/* ═══ RIGHT PANEL ═════════════════════════════════════════════════════ */}
-        <div className="w-[40%] bg-white border-l border-slate-200 flex flex-col shrink-0 overflow-y-auto">
+        {/* ═══ RIGHT PANEL (Payment) ═══════════════════════════════════════════ */}
+        <div className={`bg-white border-l border-slate-200 flex-col shrink-0 overflow-y-auto
+          w-full lg:w-[40%]
+          ${mobileTab === 'cart' ? 'hidden lg:flex' : 'flex'}`}>
 
           {/* Discount + Grand Total */}
           <div className="px-4 pt-4 pb-3 border-b border-slate-100">
             {/* Discount row */}
             <div className="flex items-center gap-2 mb-3">
-              <span className="text-sm font-bold text-orange-500 w-20 shrink-0">Discount</span>
+              <span className="text-sm font-bold text-orange-500 w-20 shrink-0">{t('lbl.discount')}</span>
               <input type="number" min="0" step="0.01" value={billDiscount}
                 onChange={e => setBillDisc(e.target.value)} placeholder="0"
                 className="w-20 rounded-lg border border-slate-200 px-2 py-1.5 text-sm outline-none focus:ring-1 focus:ring-orange-400 text-right" />
@@ -729,7 +834,7 @@ export default function SalesCreate() {
 
             {/* Grand Total */}
             <div className="flex items-center justify-between bg-slate-50 rounded-xl px-4 py-3">
-              <span className="text-base font-bold text-slate-800">Grand Total</span>
+              <span className="text-base font-bold text-slate-800">{t('lbl.grand_total')}</span>
               <span className="text-2xl font-extrabold text-blue-600">{fmtAmt(total)}</span>
             </div>
 
@@ -742,23 +847,24 @@ export default function SalesCreate() {
 
           {/* Payment method */}
           <div className="px-4 py-3 border-b border-slate-100">
-            <Step n="2" label="SELECT PAYMENT METHOD" />
+            <Step n="2" label={t('pos.payment_method_label').toUpperCase()} />
             <div className="flex rounded-2xl border border-slate-200 overflow-hidden bg-white">
               {[
-                { id: 'cash',   label: 'Cash',   shortcut: 'F2', icon: Icon.cash },
-                { id: 'card',   label: 'Card',   shortcut: 'F3', icon: Icon.card },
-                { id: 'credit', label: 'Credit', shortcut: 'F4', icon: Icon.credit },
-                { id: 'split',  label: 'Split',  shortcut: null,  icon: Icon.split },
+                { id: 'cash',   label: t('lbl.cash'),   shortcut: 'F2', icon: Icon.cash },
+                { id: 'card',   label: t('lbl.card'),   shortcut: 'F3', icon: Icon.card },
+                { id: 'credit', label: t('lbl.credit'), shortcut: 'F4', icon: Icon.credit },
+                { id: 'split',  label: 'Split',          shortcut: null,  icon: Icon.split },
               ].map((m, i, arr) => (
                 <button key={m.id} onClick={() => setPayMethod(m.id)}
-                  className={`flex-1 flex items-center justify-center gap-2 py-5 text-sm font-semibold transition-all
+                  className={`flex-1 flex flex-col items-center justify-center gap-1 py-3 lg:py-4 text-xs font-semibold transition-all
                     ${i < arr.length - 1 ? 'border-r border-slate-200' : ''}
                     ${payMethod === m.id
                       ? 'bg-green-500 text-white shadow-inner'
                       : 'text-slate-500 hover:bg-slate-50'
                     }`}>
                   {m.icon}
-                  <span>{m.label}{m.shortcut ? ` [${m.shortcut}]` : ''}</span>
+                  <span>{m.label}</span>
+                  {m.shortcut && <span className="hidden lg:block text-[10px] opacity-60">[{m.shortcut}]</span>}
                 </button>
               ))}
             </div>
@@ -766,14 +872,14 @@ export default function SalesCreate() {
 
           {/* Cash paid / customer */}
           <div className="px-4 py-3 border-b border-slate-100">
-            <Step n="3" label={payMethod === 'cash' ? 'ENTER CASH PAID' : payMethod === 'card' ? 'CARD DETAILS' : payMethod === 'credit' ? 'CREDIT SALE' : 'SPLIT PAYMENT'} />
+            <Step n="3" label={payMethod === 'cash' ? t('pos.cash_paid_label').toUpperCase() : payMethod === 'card' ? 'CARD DETAILS' : payMethod === 'credit' ? t('lbl.credit').toUpperCase() : 'SPLIT PAYMENT'} />
 
             {/* Customer row */}
             <div className="flex items-center justify-between mb-1">
-              <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Customer</span>
+              <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">{t('lbl.customer')}</span>
               <button onClick={() => setQcForm({ name: '', phone: '' })}
                 className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 font-semibold transition-colors">
-                {Icon.user} Quick Add Customer
+                {Icon.user} {t('cust.quick_add')}
               </button>
             </div>
             <div className="relative mb-3">
@@ -781,7 +887,7 @@ export default function SalesCreate() {
                 onChange={e => { setCustQuery(e.target.value); setShowCust(true); }}
                 onFocus={() => setShowCust(true)}
                 onBlur={() => setTimeout(() => setShowCust(false), 150)}
-                placeholder="Select Customer"
+                placeholder={t('lbl.select_customer')}
                 className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-blue-500" />
               {customer && (
                 <button onClick={() => { setCustomer(null); setCustQuery(''); }}
@@ -804,9 +910,9 @@ export default function SalesCreate() {
             {payMethod === 'cash' && (
               <>
                 <div className="flex items-center justify-between mb-1">
-                  <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Cash Paid</span>
+                  <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">{t('pos.cash_paid_label')}</span>
                   {change > 0 && (
-                    <span className="text-xs font-bold text-green-600">= ශේෂය Rs.{fmt(change)}</span>
+                    <span className="text-xs font-bold text-green-600">{t('lbl.change')}: Rs.{fmt(change)}</span>
                   )}
                   {change < 0 && cashNum > 0 && (
                     <span className="text-xs font-bold text-red-500">= අඩුපාඩු Rs.{fmt(Math.abs(change))}</span>
@@ -847,7 +953,7 @@ export default function SalesCreate() {
             {payMethod === 'credit' && (
               <p className="text-sm text-slate-500 bg-orange-50 rounded-xl p-3 text-center">
                 Amount will be added to customer's credit balance.
-                {!customer && <span className="block mt-1 text-red-500 font-semibold text-xs">⚠ Please select a customer first</span>}
+                {!customer && <span className="block mt-1 text-red-500 font-semibold text-xs">⚠ {t('pos.credit_warn_msg')}</span>}
               </p>
             )}
 
@@ -877,19 +983,17 @@ export default function SalesCreate() {
           )}
 
           {/* Complete Sale */}
-          <div className="px-4 py-4 mt-auto">
-            <Step n="4" label="COMPLETE SALE" />
-
+          <div className="px-4 py-4 mt-auto sticky bottom-0 bg-white border-t border-slate-100 shadow-[0_-4px_12px_rgba(0,0,0,0.06)]">
             <div className="flex gap-2 mb-2">
               {/* Main button */}
               <button
                 disabled={cart.length === 0 || submitting}
-                onClick={() => handleCompleteSale(false)}
-                className="flex-1 flex items-center justify-center gap-2 py-3.5 bg-blue-500 hover:bg-blue-600 disabled:bg-slate-300 text-white rounded-xl font-bold text-sm transition-colors shadow-md"
+                onClick={() => handleCompleteSale(false, true)}
+                className="flex-1 flex items-center justify-center gap-2 py-4 bg-blue-500 hover:bg-blue-600 disabled:bg-slate-300 text-white rounded-xl font-bold text-sm transition-colors shadow-md"
               >
                 {Icon.print}
-                <span>Print Bill &amp; Complete Sale</span>
-                <span className="ml-1 bg-white/20 text-white text-xs px-1.5 py-0.5 rounded font-bold">F10</span>
+                <span>{t('pos.complete_sale')}</span>
+                <span className="hidden lg:inline ml-1 bg-white/20 text-white text-xs px-1.5 py-0.5 rounded font-bold">F10</span>
               </button>
 
               {/* Save only */}
@@ -899,8 +1003,8 @@ export default function SalesCreate() {
                 className="flex flex-col items-center justify-center gap-0.5 px-3 py-2 border-2 border-slate-200 hover:border-slate-300 disabled:opacity-40 text-slate-600 rounded-xl text-xs font-semibold transition-colors"
               >
                 {Icon.save}
-                <span>Save Only</span>
-                <span className="text-slate-400 font-normal">F11</span>
+                <span>{t('btn.save')}</span>
+                <span className="hidden lg:block text-slate-400 font-normal">F11</span>
               </button>
             </div>
 
@@ -910,7 +1014,7 @@ export default function SalesCreate() {
               onClick={() => setHoldModal(true)}
               className="w-full flex items-center justify-center gap-2 py-3 bg-amber-400 hover:bg-amber-500 disabled:bg-slate-200 disabled:text-slate-400 text-amber-900 rounded-xl font-bold text-sm transition-colors"
             >
-              {Icon.pause} Hold Bill
+              {Icon.pause} {t('pos.hold_btn')}
             </button>
           </div>
         </div>
@@ -929,15 +1033,15 @@ export default function SalesCreate() {
       {showHoldModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
           <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm space-y-4">
-            <h2 className="font-bold text-slate-800">Hold Bill</h2>
+            <h2 className="font-bold text-slate-800">{t('pos.hold_title')}</h2>
             <div>
-              <label className="block text-xs font-semibold text-slate-600 mb-1">Note (optional)</label>
-              <input autoFocus value={holdNote} onChange={e => setHoldNote(e.target.value)} placeholder="Table 3, customer name…"
+              <label className="block text-xs font-semibold text-slate-600 mb-1">{t('pos.hold_note_label')}</label>
+              <input autoFocus value={holdNote} onChange={e => setHoldNote(e.target.value)} placeholder={t('pos.hold_placeholder')}
                 className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500" />
             </div>
             <div className="flex gap-2">
-              <button onClick={() => setHoldModal(false)} className="flex-1 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-600 hover:bg-slate-50">Cancel</button>
-              <button onClick={confirmHold} className="flex-1 py-2.5 bg-amber-500 text-white rounded-xl text-sm font-bold hover:bg-amber-600">Hold</button>
+              <button onClick={() => setHoldModal(false)} className="flex-1 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-600 hover:bg-slate-50">{t('btn.cancel')}</button>
+              <button onClick={confirmHold} className="flex-1 py-2.5 bg-amber-500 text-white rounded-xl text-sm font-bold hover:bg-amber-600">{t('btn.hold')}</button>
             </div>
           </div>
         </div>
@@ -948,10 +1052,10 @@ export default function SalesCreate() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
           <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-lg max-h-[80vh] overflow-y-auto space-y-4">
             <div className="flex items-center justify-between">
-              <h2 className="font-bold text-slate-800">Held Bills ({heldBills.length})</h2>
+              <h2 className="font-bold text-slate-800">{t('pos.held_bills')} ({heldBills.length})</h2>
               <button onClick={() => setShowHeld(false)} className="text-slate-400 hover:text-slate-600 text-xl">&times;</button>
             </div>
-            {heldBills.length === 0 && <p className="text-slate-400 text-sm text-center py-4">No held bills</p>}
+            {heldBills.length === 0 && <p className="text-slate-400 text-sm text-center py-4">{t('pos.no_held')}</p>}
             {heldBills.map((b, i) => (
               <div key={b.id} className="border border-slate-200 rounded-xl p-3 flex items-center justify-between">
                 <div>
@@ -959,9 +1063,9 @@ export default function SalesCreate() {
                   <p className="text-xs text-slate-400">{b.cart?.length} items · {new Date(b.createdAt).toLocaleTimeString('en-LK', { hour: '2-digit', minute: '2-digit' })}</p>
                 </div>
                 <div className="flex gap-2">
-                  <button onClick={() => resumeHeld(i)} className="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-semibold hover:bg-blue-700">Resume</button>
+                  <button onClick={() => resumeHeld(i)} className="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-semibold hover:bg-blue-700">{t('btn.view')}</button>
                   <button onClick={() => { const u = heldBills.filter((_, j) => j !== i); localStorage.setItem('pos_held', JSON.stringify(u)); setHeld(u); }}
-                    className="px-3 py-1.5 border border-red-300 text-red-500 rounded-lg text-xs hover:bg-red-50">Delete</button>
+                    className="px-3 py-1.5 border border-red-300 text-red-500 rounded-lg text-xs hover:bg-red-50">{t('btn.delete')}</button>
                 </div>
               </div>
             ))}
@@ -969,24 +1073,34 @@ export default function SalesCreate() {
         </div>
       )}
 
+      {/* Cart item zoom */}
+      {zoomedItem && (
+        <CartItemZoomModal
+          item={zoomedItem.item}
+          onChange={changes => setCart(prev => prev.map((it, j) => j === zoomedItem.idx ? recalc({ ...it, ...changes }) : it))}
+          onRemove={() => setCart(prev => prev.filter((_, j) => j !== zoomedItem.idx))}
+          onClose={() => setZoomed(null)}
+        />
+      )}
+
       {/* Quick add customer */}
       {qcForm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
           <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm space-y-3">
-            <h2 className="font-bold text-slate-800">Quick Add Customer</h2>
+            <h2 className="font-bold text-slate-800">{t('cust.quick_add')}</h2>
             <div>
-              <label className="block text-xs font-semibold text-slate-600 mb-1">Name *</label>
+              <label className="block text-xs font-semibold text-slate-600 mb-1">{t('cust.name')} *</label>
               <input autoFocus value={qcForm.name} onChange={e => setQcForm(f => ({ ...f, name: e.target.value }))} required
                 className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500" />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-slate-600 mb-1">Phone</label>
+              <label className="block text-xs font-semibold text-slate-600 mb-1">{t('cust.phone')}</label>
               <input value={qcForm.phone} onChange={e => setQcForm(f => ({ ...f, phone: e.target.value }))}
                 className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500" />
             </div>
             <div className="flex gap-2 pt-1">
-              <button onClick={() => setQcForm(null)} className="flex-1 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-600 hover:bg-slate-50">Cancel</button>
-              <button onClick={saveQuickCustomer} className="flex-1 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700">Add</button>
+              <button onClick={() => setQcForm(null)} className="flex-1 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-600 hover:bg-slate-50">{t('btn.cancel')}</button>
+              <button onClick={saveQuickCustomer} className="flex-1 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700">{t('btn.add')}</button>
             </div>
           </div>
         </div>

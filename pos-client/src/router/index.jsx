@@ -16,6 +16,8 @@ import SalesShow      from '../pages/sales/Show';
 import CustomersIndex from '../pages/customers/Index';
 import PurchasesIndex from '../pages/purchases/Index';
 import PurchasesCreate from '../pages/purchases/Create';
+import PurchasesShow   from '../pages/purchases/Show';
+import Reports         from '../pages/reports/Index';
 import UsersIndex     from '../pages/users/Index';
 import SuppliersIndex from '../pages/suppliers/Index';
 import Settings       from '../pages/Settings';
@@ -61,10 +63,12 @@ export const router = createBrowserRouter([
         { path: 'customers',            element: <CustomersIndex /> },
         { path: 'purchases',            element: <PurchasesIndex /> },
         { path: 'purchases/create',     element: <PurchasesCreate /> },
+        { path: 'purchases/:id',        element: <PurchasesShow /> },
         { path: 'suppliers',            element: <SuppliersIndex /> },
         {
           element: <AdminRoute />,
           children: [
+            { path: 'reports',  element: <Reports /> },
             { path: 'users',    element: <UsersIndex /> },
             { path: 'settings', element: <Settings /> },
           ],

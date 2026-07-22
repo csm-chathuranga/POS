@@ -3,9 +3,11 @@ import { Link } from 'react-router-dom';
 import { useGetPurchasesQuery, useDeletePurchaseMutation } from '../../features/purchases/purchasesApi';
 import { useSelector } from 'react-redux';
 import { selectRole } from '../../features/auth/authSlice';
+import { useLocale } from '../../contexts/LocaleContext';
 
 export default function PurchasesIndex() {
   const role = useSelector(selectRole);
+  const { t } = useLocale();
   const [page, setPage] = useState(1);
   const { data, isLoading } = useGetPurchasesQuery({ page });
   const [del] = useDeletePurchaseMutation();
@@ -24,59 +26,107 @@ export default function PurchasesIndex() {
   };
 
   return (
-    <div className="p-6 space-y-4">
+    <div className="p-3 sm:p-6 space-y-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold text-slate-800">Purchases</h1>
+        <h1 className="text-xl font-bold text-slate-800">{t('page.purchases')}</h1>
         <Link to="/purchases/create" className="px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition-colors">
-          + New Purchase
+          + {t('btn.new_purchase')}
         </Link>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
-        {isLoading ? <div className="p-8 text-center text-slate-400 text-sm">Loading…</div> : (
-          <table className="w-full text-sm">
+      {/* Mobile cards */}
+      <div className="md:hidden space-y-2">
+        {isLoading && <div className="p-8 text-center text-slate-400 text-sm bg-white rounded-xl border border-slate-100">{t('lbl.loading')}</div>}
+        {!isLoading && !(data?.data?.length) && (
+          <div className="p-8 text-center text-slate-400 text-sm bg-white rounded-xl border border-slate-100">{t('pur.no_purchases')}</div>
+        )}
+        {(data?.data || []).map(p => (
+          <Link key={p.id} to={`/purchases/${p.id}`}
+            className="block bg-white rounded-xl border border-slate-100 shadow-sm p-4 hover:border-blue-200 hover:shadow-md transition-all active:scale-[0.99]">
+            <div className="flex items-center justify-between mb-2">
+              <span className="font-mono text-blue-600 font-bold text-sm">{p.grn_no}</span>
+              {statusBadge(p.status)}
+            </div>
+            <div className="flex items-center justify-between mb-2">
+              <div>
+                <p className="text-xs text-slate-500">{fmtDate(p.purchase_date)}</p>
+                <p className="text-xs text-slate-400 mt-0.5">{p.supplier?.name || t('lbl.all')} · {p.user?.name}</p>
+              </div>
+              <div className="text-right">
+                <p className="text-base font-extrabold text-slate-800">{fmt(p.total)}</p>
+                <p className="text-xs text-slate-400">{t('th.paid')}: {fmt(p.paid)}</p>
+              </div>
+            </div>
+            {role === 'admin' && (
+              <div className="pt-2 border-t border-slate-50 flex justify-end">
+                <button onClick={e => { e.preventDefault(); e.stopPropagation(); handleDelete(p); }}
+                  className="text-xs text-red-400 hover:text-red-600 font-medium px-2 py-0.5 hover:bg-red-50 rounded transition-colors">
+                  {t('btn.delete')}
+                </button>
+              </div>
+            )}
+          </Link>
+        ))}
+        {data && data.last_page > 1 && (
+          <div className="flex items-center justify-between px-2 py-2 text-sm text-slate-500">
+            <span>{data.total} {t('nav.purchases')}</span>
+            <div className="flex gap-2">
+              <button disabled={page <= 1} onClick={() => setPage(p => p - 1)} className="px-3 py-1.5 rounded-lg border border-slate-200 disabled:opacity-40 hover:bg-slate-50">{'‹'}</button>
+              <span className="px-2 py-1">{page} / {data.last_page}</span>
+              <button disabled={page >= data.last_page} onClick={() => setPage(p => p + 1)} className="px-3 py-1.5 rounded-lg border border-slate-200 disabled:opacity-40 hover:bg-slate-50">{'›'}</button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Desktop table */}
+      <div className="hidden md:block bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
+        {isLoading ? <div className="p-8 text-center text-slate-400 text-sm">{t('lbl.loading')}</div> : (
+          <div className="overflow-x-auto"><table className="w-full text-sm">
             <thead className="bg-slate-50 text-xs text-slate-500 uppercase tracking-wider">
               <tr>
-                <th className="px-4 py-3 text-left font-semibold">GRN No.</th>
-                <th className="px-4 py-3 text-left font-semibold">Date</th>
-                <th className="px-4 py-3 text-left font-semibold">Supplier</th>
-                <th className="px-4 py-3 text-left font-semibold">By</th>
-                <th className="px-4 py-3 text-right font-semibold">Total</th>
-                <th className="px-4 py-3 text-right font-semibold">Paid</th>
-                <th className="px-4 py-3 text-center font-semibold">Status</th>
-                {role === 'admin' && <th className="px-4 py-3 text-right font-semibold">Actions</th>}
+                <th className="px-4 py-3 text-left font-semibold">{t('pur.grn')}</th>
+                <th className="px-4 py-3 text-left font-semibold">{t('th.date')}</th>
+                <th className="px-4 py-3 text-left font-semibold">{t('pur.supplier')}</th>
+                <th className="px-4 py-3 text-left font-semibold">{t('lbl.cashier')}</th>
+                <th className="px-4 py-3 text-right font-semibold">{t('th.total')}</th>
+                <th className="px-4 py-3 text-right font-semibold">{t('th.paid')}</th>
+                <th className="px-4 py-3 text-center font-semibold">{t('th.status')}</th>
+                {role === 'admin' && <th className="px-4 py-3 text-right font-semibold">{t('th.actions')}</th>}
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
               {(data?.data || []).map(p => (
                 <tr key={p.id} className="hover:bg-slate-50">
-                  <td className="px-4 py-3 font-mono font-semibold text-blue-600">{p.grn_no}</td>
+                  <td className="px-4 py-3 font-mono font-semibold text-blue-600">
+                    <Link to={`/purchases/${p.id}`} className="hover:underline">{p.grn_no}</Link>
+                  </td>
                   <td className="px-4 py-3 text-slate-500">{fmtDate(p.purchase_date)}</td>
-                  <td className="px-4 py-3 text-slate-600">{p.supplier?.name || 'Direct'}</td>
+                  <td className="px-4 py-3 text-slate-600">{p.supplier?.name || t('lbl.all')}</td>
                   <td className="px-4 py-3 text-slate-500">{p.user?.name}</td>
                   <td className="px-4 py-3 text-right font-semibold text-slate-800">{fmt(p.total)}</td>
                   <td className="px-4 py-3 text-right text-slate-600">{fmt(p.paid)}</td>
                   <td className="px-4 py-3 text-center">{statusBadge(p.status)}</td>
                   {role === 'admin' && (
                     <td className="px-4 py-3 text-right">
-                      <button onClick={() => handleDelete(p)} className="text-red-500 hover:text-red-700 font-medium">Delete</button>
+                      <button onClick={() => handleDelete(p)} className="text-red-500 hover:text-red-700 font-medium">{t('btn.delete')}</button>
                     </td>
                   )}
                 </tr>
               ))}
               {!(data?.data?.length) && (
-                <tr><td colSpan={role === 'admin' ? 8 : 7} className="px-4 py-8 text-center text-slate-400">No purchases yet</td></tr>
+                <tr><td colSpan={role === 'admin' ? 8 : 7} className="px-4 py-8 text-center text-slate-400">{t('pur.no_purchases')}</td></tr>
               )}
             </tbody>
-          </table>
+          </table></div>
         )}
         {data && data.last_page > 1 && (
           <div className="flex items-center justify-between px-4 py-3 border-t border-slate-100 text-sm text-slate-500">
-            <span>{data.total} purchases</span>
+            <span>{data.total} {t('nav.purchases')}</span>
             <div className="flex gap-2">
-              <button disabled={page <= 1} onClick={() => setPage(p => p - 1)} className="px-3 py-1 rounded border border-slate-200 disabled:opacity-40 hover:bg-slate-50">Prev</button>
+              <button disabled={page <= 1} onClick={() => setPage(p => p - 1)} className="px-3 py-1 rounded border border-slate-200 disabled:opacity-40 hover:bg-slate-50">{'‹'}</button>
               <span className="px-2 py-1">{page} / {data.last_page}</span>
-              <button disabled={page >= data.last_page} onClick={() => setPage(p => p + 1)} className="px-3 py-1 rounded border border-slate-200 disabled:opacity-40 hover:bg-slate-50">Next</button>
+              <button disabled={page >= data.last_page} onClick={() => setPage(p => p + 1)} className="px-3 py-1 rounded border border-slate-200 disabled:opacity-40 hover:bg-slate-50">{'›'}</button>
             </div>
           </div>
         )}

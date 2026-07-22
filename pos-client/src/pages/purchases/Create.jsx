@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useCreatePurchaseMutation } from '../../features/purchases/purchasesApi';
 import { useGetSuppliersQuery } from '../../features/suppliers/suppliersApi';
 import { api } from '../../app/baseApi';
+import { useLocale } from '../../contexts/LocaleContext';
 
 const searchApi = api.injectEndpoints({
   endpoints: build => ({
@@ -22,6 +23,7 @@ const emptyItem = (p = null) => ({
 
 export default function PurchaseCreate() {
   const navigate = useNavigate();
+  const { t } = useLocale();
   const [create, { isLoading }] = useCreatePurchaseMutation();
   const { data: suppliers = [] } = useGetSuppliersQuery();
 
@@ -66,63 +68,63 @@ export default function PurchaseCreate() {
   async function handleSubmit(e) {
     e.preventDefault();
     setErr('');
-    if (!items.length) return setErr('Add at least one item');
+    if (!items.length) return setErr(t('pur.add_row'));
     try {
       await create({ ...form, total, items }).unwrap();
       navigate('/purchases');
-    } catch (e) { setErr(e?.data?.error || 'Failed to save'); }
+    } catch (e) { setErr(e?.data?.error || t('lbl.error')); }
   }
 
   const set = f => e => setForm(p => ({ ...p, [f]: e.target.value }));
 
   return (
-    <div className="p-6 max-w-4xl mx-auto space-y-5">
-      <h1 className="text-xl font-bold text-slate-800">New Purchase (GRN)</h1>
+    <div className="p-3 sm:p-6 max-w-4xl mx-auto space-y-5">
+      <h1 className="text-xl font-bold text-slate-800">{t('pur.grn')}</h1>
       {err && <p className="text-sm text-red-600 bg-red-50 rounded-lg px-4 py-2">{err}</p>}
 
       {/* Header */}
       <div className="bg-white rounded-xl p-5 shadow-sm border border-slate-100 grid grid-cols-2 md:grid-cols-4 gap-4">
         <div>
-          <label className="block text-xs font-semibold text-slate-600 mb-1">Supplier</label>
+          <label className="block text-xs font-semibold text-slate-600 mb-1">{t('pur.supplier')}</label>
           <select value={form.supplier_id} onChange={set('supplier_id')}
             className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500">
-            <option value="">— Direct —</option>
+            <option value="">{t('pur.select_supplier')}</option>
             {suppliers.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
           </select>
         </div>
         <div>
-          <label className="block text-xs font-semibold text-slate-600 mb-1">Purchase Date</label>
+          <label className="block text-xs font-semibold text-slate-600 mb-1">{t('th.date')}</label>
           <input type="date" value={form.purchase_date} onChange={set('purchase_date')}
             className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500" />
         </div>
         <div>
-          <label className="block text-xs font-semibold text-slate-600 mb-1">Status</label>
+          <label className="block text-xs font-semibold text-slate-600 mb-1">{t('th.status')}</label>
           <select value={form.status} onChange={set('status')}
             className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500">
             <option value="received">Received</option>
-            <option value="pending">Pending</option>
+            <option value="pending">{t('lbl.pending')}</option>
             <option value="partial">Partial</option>
           </select>
         </div>
         <div>
-          <label className="block text-xs font-semibold text-slate-600 mb-1">Paid Amount</label>
+          <label className="block text-xs font-semibold text-slate-600 mb-1">{t('th.paid')}</label>
           <input type="number" min="0" step="0.01" value={form.paid} onChange={set('paid')} placeholder="0.00"
             className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500" />
         </div>
         <div className="col-span-2 md:col-span-4">
-          <label className="block text-xs font-semibold text-slate-600 mb-1">Note</label>
-          <input value={form.note} onChange={set('note')} placeholder="Optional note"
+          <label className="block text-xs font-semibold text-slate-600 mb-1">{t('lbl.note')}</label>
+          <input value={form.note} onChange={set('note')} placeholder={t('pur.optional_note')}
             className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500" />
         </div>
       </div>
 
       {/* Product search */}
       <div className="bg-white rounded-xl p-5 shadow-sm border border-slate-100 space-y-3">
-        <h2 className="text-sm font-bold text-slate-700">Add Items</h2>
+        <h2 className="text-sm font-bold text-slate-700">{t('pur.items_title')}</h2>
         <div className="relative">
           <input ref={searchRef} value={search}
             onChange={e => { setSearch(e.target.value); doSearch(e.target.value); }}
-            placeholder="Search product by name or barcode…"
+            placeholder={t('pos.search_product')}
             className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-500" />
           {results.length > 0 && (
             <div className="absolute z-20 left-0 right-0 mt-1 bg-white rounded-xl shadow-lg border border-slate-200 max-h-60 overflow-y-auto">
@@ -143,11 +145,11 @@ export default function PurchaseCreate() {
             <table className="w-full text-sm">
               <thead className="text-xs text-slate-500 uppercase tracking-wider">
                 <tr>
-                  <th className="text-left pb-2 font-semibold">Product</th>
-                  <th className="text-right pb-2 font-semibold w-24">Qty</th>
-                  <th className="text-right pb-2 font-semibold w-28">Cost Price</th>
-                  <th className="text-right pb-2 font-semibold w-28">Sale Price</th>
-                  <th className="text-right pb-2 font-semibold w-28">Line Total</th>
+                  <th className="text-left pb-2 font-semibold">{t('th.product')}</th>
+                  <th className="text-right pb-2 font-semibold w-24">{t('th.qty')}</th>
+                  <th className="text-right pb-2 font-semibold w-28">{t('pur.unit_price')}</th>
+                  <th className="text-right pb-2 font-semibold w-28">{t('th.price')}</th>
+                  <th className="text-right pb-2 font-semibold w-28">{t('th.total')}</th>
                   <th className="w-8"></th>
                 </tr>
               </thead>
@@ -182,7 +184,7 @@ export default function PurchaseCreate() {
               </tbody>
               <tfoot>
                 <tr className="border-t-2 border-slate-200">
-                  <td colSpan={4} className="pt-3 text-right font-bold text-slate-700 pr-2">Total</td>
+                  <td colSpan={4} className="pt-3 text-right font-bold text-slate-700 pr-2">{t('pur.grand_total')}</td>
                   <td className="pt-3 text-right font-bold text-slate-800 pr-2">Rs. {fmt(total)}</td>
                   <td></td>
                 </tr>
@@ -195,11 +197,11 @@ export default function PurchaseCreate() {
       <div className="flex justify-end gap-3">
         <button type="button" onClick={() => navigate('/purchases')}
           className="px-5 py-2 rounded-lg border border-slate-200 text-sm font-medium text-slate-600 hover:bg-slate-50 transition-colors">
-          Cancel
+          {t('btn.cancel')}
         </button>
         <button type="button" disabled={isLoading || !items.length} onClick={handleSubmit}
           className="px-5 py-2 rounded-lg bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 disabled:opacity-60 transition-colors">
-          {isLoading ? 'Saving…' : 'Save Purchase'}
+          {isLoading ? t('lbl.loading') : t('pur.save_purchase')}
         </button>
       </div>
     </div>

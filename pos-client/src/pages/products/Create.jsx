@@ -12,7 +12,7 @@ export default function ProductCreate() {
   }
 
   return (
-    <div className="p-6">
+    <div className="p-3 sm:p-6">
       <ProductForm onSubmit={handleSubmit} isSaving={isLoading} />
     </div>
   );

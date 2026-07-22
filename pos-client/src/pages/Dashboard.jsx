@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../app/baseApi';
+import { useLocale } from '../contexts/LocaleContext';
 
 const dashboardApi = api.injectEndpoints({
   endpoints: build => ({
@@ -286,14 +287,15 @@ function Heatmap({ heatmap }) {
 
 // ─── Recent Sales ─────────────────────────────────────────────────────────────
 function RecentSales({ sales, onView }) {
+  const { t } = useLocale();
   return (
     <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
       <div className="flex items-center justify-between mb-4">
-        <p className="font-bold text-slate-800 text-sm">Recent Sales</p>
-        <button onClick={onView} className="text-xs font-semibold text-blue-600 hover:text-blue-800">View All</button>
+        <p className="font-bold text-slate-800 text-sm">{t('dash.recent_sales')}</p>
+        <button onClick={onView} className="text-xs font-semibold text-blue-600 hover:text-blue-800">{t('dash.view_all')}</button>
       </div>
       {!sales?.length ? (
-        <p className="text-sm text-slate-400 text-center py-6">No sales yet</p>
+        <p className="text-sm text-slate-400 text-center py-6">{t('dash.no_sales')}</p>
       ) : (
         <div className="space-y-2">
           {sales.map(s => (
@@ -319,15 +321,16 @@ function RecentSales({ sales, onView }) {
 
 // ─── Fast Moving ──────────────────────────────────────────────────────────────
 function FastMoving({ items }) {
+  const { t } = useLocale();
   const max = Math.max(...(items || []).map(i => parseInt(i.total_qty)), 1);
   return (
     <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
       <div className="flex items-center justify-between mb-4">
-        <p className="font-bold text-slate-800 text-sm">🔥 Fast Moving</p>
-        <span className="text-xs text-slate-400">last 30 days</span>
+        <p className="font-bold text-slate-800 text-sm">🔥 {t('pos.fast_moving')}</p>
+        <span className="text-xs text-slate-400">{t('lbl.this_month')}</span>
       </div>
       {!items?.length ? (
-        <p className="text-sm text-slate-400 text-center py-6">No data</p>
+        <p className="text-sm text-slate-400 text-center py-6">{t('lbl.no_data')}</p>
       ) : (
         <div className="space-y-3">
           {items.map((item, i) => (
@@ -362,9 +365,10 @@ function FastMoving({ items }) {
 export default function Dashboard() {
   const { data, isLoading, refetch } = dashboardApi.useGetDashboardQuery();
   const navigate = useNavigate();
+  const { t } = useLocale();
 
   if (isLoading) return (
-    <div className="flex-1 flex items-center justify-center text-slate-400 text-sm">Loading…</div>
+    <div className="flex-1 flex items-center justify-center text-slate-400 text-sm">{t('lbl.loading')}</div>
   );
 
   // Build the 3 day dates (day-before-yesterday, yesterday, today)
@@ -417,59 +421,59 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="p-6 space-y-5">
+    <div className="p-3 sm:p-6 space-y-4 sm:space-y-5">
 
       {/* ── Row 1: Stats + Chart ─────────────────────────────────────────── */}
-      <div className="grid grid-cols-5 gap-5">
-        <div className="col-span-2 grid grid-cols-2 gap-4 content-start">
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-5">
+        <div className="lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4 content-start">
           <StatCard
-            label="Today's Sales" icon={icons.dollar} iconBg="bg-green-100"
+            label={t('dash.today_sales')} icon={icons.dollar} iconBg="bg-green-100"
             value={fmtRs(data?.todaySales)}
             sub={`${data?.todayBills || 0} bills today`}
             valueColor="text-green-600"
           />
           <StatCard
-            label="Monthly Sales" icon={icons.chart} iconBg="bg-blue-100"
+            label={t('dash.month_sales')} icon={icons.chart} iconBg="bg-blue-100"
             value={fmtRs(data?.monthSales)}
             sub={`${data?.monthBills || 0} bills this month`}
             valueColor="text-blue-600"
           />
           <StatCard
-            label="Products" icon={icons.box} iconBg="bg-violet-100"
+            label={t('dash.total_products')} icon={icons.box} iconBg="bg-violet-100"
             value={data?.totalProducts ?? 0}
             sub="active products"
             valueColor="text-violet-600"
           />
           <StatCard
-            label="Low Stock" icon={icons.alert} iconBg="bg-red-100"
+            label={t('dash.low_stock')} icon={icons.alert} iconBg="bg-red-100"
             value={data?.lowStockCount ?? 0}
             sub="needs attention"
             valueColor="text-red-500"
           />
         </div>
 
-        <div className="col-span-3">
+        <div className="lg:col-span-3">
           <HourlyChart hourlySales={data?.hourlySales || []} dates={dates} />
         </div>
       </div>
 
       {/* ── Quick Actions ────────────────────────────────────────────────── */}
-      <div className="flex gap-4">
-        <QuickBtn label="New Sale"     icon={icons.pos}      gradient="bg-gradient-to-br from-blue-500 to-blue-700"    onClick={() => navigate('/sales/create')} />
-        <QuickBtn label="New Product"  icon={icons.product}  gradient="bg-gradient-to-br from-violet-500 to-violet-700" onClick={() => navigate('/products/create')} />
-        <QuickBtn label="New Purchase" icon={icons.purchase}  gradient="bg-gradient-to-br from-emerald-500 to-emerald-700" onClick={() => navigate('/purchases/create')} />
-        <QuickBtn label="Report"       icon={icons.report}   gradient="bg-gradient-to-br from-orange-400 to-orange-600" onClick={() => navigate('/reports')} />
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+        <QuickBtn label={t('btn.new_sale')}     icon={icons.pos}      gradient="bg-gradient-to-br from-blue-400 via-blue-600 to-indigo-700"      onClick={() => navigate('/sales/create')} />
+        <QuickBtn label={t('btn.new_product')}  icon={icons.product}  gradient="bg-gradient-to-br from-violet-500 via-purple-600 to-pink-700"     onClick={() => navigate('/products/create')} />
+        <QuickBtn label={t('btn.new_purchase')} icon={icons.purchase} gradient="bg-gradient-to-br from-emerald-400 via-teal-500 to-cyan-700"      onClick={() => navigate('/purchases/create')} />
+        <QuickBtn label={t('btn.report')}       icon={icons.report}   gradient="bg-gradient-to-br from-orange-400 via-orange-500 to-rose-600"     onClick={() => navigate('/reports')} />
       </div>
 
       {/* ── Heatmap ──────────────────────────────────────────────────────── */}
       <Heatmap heatmap={data?.heatmap || []} />
 
       {/* ── Bottom: Recent Sales + Fast Moving ───────────────────────────── */}
-      <div className="grid grid-cols-5 gap-5">
-        <div className="col-span-3">
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-5">
+        <div className="lg:col-span-3">
           <RecentSales sales={data?.recentSales} onView={() => navigate('/sales')} />
         </div>
-        <div className="col-span-2">
+        <div className="lg:col-span-2">
           <FastMoving items={data?.fastMoving} />
         </div>
       </div>

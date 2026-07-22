@@ -29,6 +29,8 @@ export default function ProductForm({ initial = {}, onSubmit, isSaving }) {
   const cameraInputRef = useRef(null);
   const [uploading, setUploading] = useState(false);
   const [uploadErr, setUploadErr] = useState('');
+  const [pendingFile, setPendingFile] = useState(null);     // File object waiting to upload
+  const [pendingPreview, setPendingPreview] = useState(''); // local object URL for preview
 
   const [form, setForm] = useState({
     name: '', name_si: '', barcode: '', sku: '',
@@ -52,38 +54,37 @@ export default function ProductForm({ initial = {}, onSubmit, isSaving }) {
     return val => setForm(f => ({ ...f, [field]: val }));
   }
 
-  async function handleImageFile(e) {
+  function handleImageFile(e) {
     const file = e.target.files?.[0];
     if (!file) return;
     setUploadErr('');
-    setUploading(true);
-    try {
-      const authRes = await fetch(`${API}/api/imagekit/auth`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const auth = await authRes.json();
+    if (pendingPreview) URL.revokeObjectURL(pendingPreview);
+    const preview = URL.createObjectURL(file);
+    setPendingFile(file);
+    setPendingPreview(preview);
+    if (fileInputRef.current)   fileInputRef.current.value   = '';
+    if (cameraInputRef.current) cameraInputRef.current.value = '';
+  }
 
-      const fd = new FormData();
-      fd.append('file', file);
-      fd.append('fileName', `product_${Date.now()}`);
-      fd.append('folder', '/pos/products');
-      fd.append('publicKey',  auth.publicKey);
-      fd.append('signature',  auth.signature);
-      fd.append('expire',     auth.expire);
-      fd.append('token',      auth.token);
+  async function uploadPendingFile() {
+    const authRes = await fetch(`${API}/api/imagekit/auth`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const auth = await authRes.json();
 
-      const upRes  = await fetch(IK_URL, { method: 'POST', body: fd });
-      const upData = await upRes.json();
+    const fd = new FormData();
+    fd.append('file', pendingFile);
+    fd.append('fileName', `product_${Date.now()}`);
+    fd.append('folder', '/pos/products');
+    fd.append('publicKey',  auth.publicKey);
+    fd.append('signature',  auth.signature);
+    fd.append('expire',     auth.expire);
+    fd.append('token',      auth.token);
 
-      if (!upRes.ok) throw new Error(upData.message || 'Upload failed');
-      setForm(f => ({ ...f, image: upData.url }));
-    } catch (err) {
-      setUploadErr(err.message || 'Image upload failed');
-    } finally {
-      setUploading(false);
-      if (fileInputRef.current)   fileInputRef.current.value   = '';
-      if (cameraInputRef.current) cameraInputRef.current.value = '';
-    }
+    const upRes  = await fetch(IK_URL, { method: 'POST', body: fd });
+    const upData = await upRes.json();
+    if (!upRes.ok) throw new Error(upData.message || 'Upload failed');
+    return upData.url;
   }
 
   function addVariant()           { setVariants(v => [...v, emptyVariant()]); }
@@ -93,9 +94,36 @@ export default function ProductForm({ initial = {}, onSubmit, isSaving }) {
   async function handleSubmit(e) {
     e.preventDefault();
     setError('');
+    setUploadErr('');
     if (!form.name.trim())    return setError('Product name is required');
     if (!form.selling_price)  return setError('Selling price is required');
-    try { await onSubmit({ ...form, variants }); }
+    let imageUrl = form.image;
+    if (pendingFile) {
+      setUploading(true);
+      try {
+        imageUrl = await uploadPendingFile();
+        setPendingFile(null);
+        URL.revokeObjectURL(pendingPreview);
+        setPendingPreview('');
+      } catch (err) {
+        setUploadErr(err.message || 'Image upload failed');
+        setUploading(false);
+        return;
+      }
+      setUploading(false);
+    }
+    const nullIfEmpty = v => (v === '' || v === undefined) ? null : v;
+    const payload = {
+      ...form,
+      image:            imageUrl,
+      promo_price:      nullIfEmpty(form.promo_price),
+      promo_start_date: nullIfEmpty(form.promo_start_date),
+      promo_end_date:   nullIfEmpty(form.promo_end_date),
+      expiry_date:      nullIfEmpty(form.expiry_date),
+      category_id:      nullIfEmpty(form.category_id),
+      variants,
+    };
+    try { await onSubmit(payload); }
     catch (err) { setError(err?.data?.error || 'Failed to save product'); }
   }
 
@@ -124,7 +152,7 @@ export default function ProductForm({ initial = {}, onSubmit, isSaving }) {
           </div>
 
           {/* Name row */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-slate-600 mb-1.5">{t('prod.name')} <span className="text-red-500">*</span></label>
               <input value={form.name} onChange={set('name')} required placeholder={t('prod.name')} className={inp} />
@@ -136,7 +164,7 @@ export default function ProductForm({ initial = {}, onSubmit, isSaving }) {
           </div>
 
           {/* Barcode + SKU */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-slate-600 mb-1.5">{t('prod.barcode')}</label>
               <input value={form.barcode} onChange={set('barcode')} placeholder="1234567890" className={inp} />
@@ -148,7 +176,7 @@ export default function ProductForm({ initial = {}, onSubmit, isSaving }) {
           </div>
 
           {/* Qty unit + Initial Stock + Alert */}
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
               <label className="block text-sm font-medium text-slate-600 mb-1.5">{t('prod.unit')}</label>
               <select value={form.unit} onChange={set('unit')} className={inp}>
@@ -187,6 +215,14 @@ export default function ProductForm({ initial = {}, onSubmit, isSaving }) {
                     </svg>
                     <span className="text-[10px] text-slate-400">Uploading…</span>
                   </div>
+                ) : pendingPreview ? (
+                  <>
+                    <img src={pendingPreview} alt="preview" className="w-full h-full object-cover" />
+                    <button type="button" onClick={() => { URL.revokeObjectURL(pendingPreview); setPendingFile(null); setPendingPreview(''); }}
+                      className="absolute top-0.5 right-0.5 w-5 h-5 rounded-full bg-red-500 text-white text-xs flex items-center justify-center leading-none shadow">
+                      ×
+                    </button>
+                  </>
                 ) : form.image ? (
                   <>
                     <img src={form.image} alt="product" className="w-full h-full object-cover" />
@@ -219,7 +255,8 @@ export default function ProductForm({ initial = {}, onSubmit, isSaving }) {
                   {t('prod.take_photo')}
                 </button>
 
-                <p className="text-xs text-slate-400">Max 5MB · Stored on ImageKit CDN</p>
+                <p className="text-xs text-slate-400">Max 5MB · Uploaded on save</p>
+                {pendingFile && <p className="text-xs text-blue-500 font-medium">Image ready — will upload on save</p>}
                 {uploadErr && <p className="text-xs text-red-500">{uploadErr}</p>}
               </div>
             </div>
@@ -281,7 +318,7 @@ export default function ProductForm({ initial = {}, onSubmit, isSaving }) {
                   className="w-full rounded-lg border border-orange-300 bg-white px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent transition" />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-sm font-medium text-orange-600 mb-1.5">{t('prod.promo_start')}</label>
                   <input type="date" value={form.promo_start_date} onChange={set('promo_start_date')}
@@ -347,9 +384,15 @@ export default function ProductForm({ initial = {}, onSubmit, isSaving }) {
 
       {/* ── Save / Cancel ─────────────────────────────────────────────────── */}
       <div className="grid grid-cols-2 gap-4">
-        <button type="submit" disabled={isSaving}
-          className="py-3 rounded-xl bg-blue-600 text-white text-sm font-bold hover:bg-blue-700 disabled:opacity-60 transition-colors shadow-md shadow-blue-600/20">
-          {isSaving ? 'Saving…' : t('btn.save')}
+        <button type="submit" disabled={uploading || isSaving}
+          className="py-3 rounded-xl bg-blue-600 text-white text-sm font-bold hover:bg-blue-700 disabled:opacity-70 transition-colors shadow-md shadow-blue-600/20 flex items-center justify-center gap-2">
+          {(uploading || isSaving) && (
+            <svg className="w-4 h-4 animate-spin shrink-0" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+            </svg>
+          )}
+          {uploading ? 'Uploading…' : isSaving ? 'Saving…' : t('btn.save')}
         </button>
         <button type="button" onClick={() => history.back()}
           className="py-3 rounded-xl text-slate-500 text-sm font-medium hover:bg-slate-100 transition-colors">

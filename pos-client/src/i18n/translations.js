@@ -54,6 +54,7 @@ export const translations = {
     'btn.return':      'ආපසු',
     'btn.full':        'සම්පූර්ණ',
     'btn.collapse':    'හකුලන්න',
+    'btn.done':        'හරි',
 
     'th.name':         'නම',
     'th.phone':        'දුරකථනය',
@@ -434,6 +435,7 @@ export const translations = {
     'btn.return':      'Return',
     'btn.full':        'Full',
     'btn.collapse':    'Collapse',
+    'btn.done':        'Done',
 
     'th.name':         'Name',
     'th.phone':        'Phone',
@@ -814,6 +816,7 @@ export const translations = {
     'btn.return':      'திரும்ப',
     'btn.full':        'முழுமை',
     'btn.collapse':    'சுருக்கு',
+    'btn.done':        'முடிந்தது',
 
     'th.name':         'பெயர்',
     'th.phone':        'தொலைபேசி',
