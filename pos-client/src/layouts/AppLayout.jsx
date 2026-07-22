@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
+import { Outlet, NavLink, useNavigate, useLocation, useNavigation } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { logout, selectCurrentUser, selectRole, selectToken } from '../features/auth/authSlice';
 import { useLocale } from '../contexts/LocaleContext';
@@ -65,6 +65,7 @@ export default function AppLayout() {
 
   const { isOnline, wasOffline } = useConnectivity();
   const { theme, setTheme } = useTheme();
+  const navigation = useNavigation();
   const [syncing, setSyncing]   = useState(false);
   const syncedOnceRef           = useRef(false);
 
@@ -370,6 +371,13 @@ export default function AppLayout() {
               </button>
             </div>
           </header>
+        )}
+
+        {/* Route-change progress bar */}
+        {navigation.state !== 'idle' && (
+          <div className="fixed top-0 left-0 right-0 z-[9999] h-0.5 overflow-hidden">
+            <div className="h-full bg-blue-500 animate-route-progress" />
+          </div>
         )}
 
         <main className={`flex-1 min-h-0 flex flex-col relative ${isPOS ? 'overflow-hidden' : 'overflow-y-auto'}`}>

@@ -246,7 +246,15 @@ export default function ProductsIndex() {
 
       {/* Mobile cards */}
       <div className="md:hidden space-y-2">
-        {isLoading && <div className="p-8 text-center text-slate-400 text-sm bg-white rounded-xl border border-slate-100">{t('lbl.loading')}</div>}
+        {isLoading && (
+          <div className="flex flex-col items-center justify-center py-16 bg-white rounded-xl border border-slate-100 gap-3">
+            <svg className="w-8 h-8 animate-spin text-blue-500" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+            </svg>
+            <span className="text-sm text-slate-400">{t('lbl.loading')}</span>
+          </div>
+        )}
         {!isLoading && rows.length === 0 && (
           <div className="p-8 text-center text-slate-400 text-sm bg-white rounded-xl border border-slate-100">{t('prod.no_products')}</div>
         )}
@@ -334,7 +342,13 @@ export default function ProductsIndex() {
       {/* Desktop table */}
       <div className="hidden md:block bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
         {isLoading ? (
-          <div className="p-10 text-center text-slate-400 text-sm">{t('lbl.loading')}</div>
+          <div className="flex flex-col items-center justify-center py-20 gap-3">
+            <svg className="w-8 h-8 animate-spin text-blue-500" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+            </svg>
+            <span className="text-sm text-slate-400">{t('lbl.loading')}</span>
+          </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">

@@ -28,6 +28,15 @@ input, select, textarea {
   font-family: inherit;
 }
 
+@keyframes route-progress {
+  0%   { transform: translateX(-100%); }
+  50%  { transform: translateX(-10%); }
+  100% { transform: translateX(0%); }
+}
+.animate-route-progress {
+  animation: route-progress 1.2s ease-out forwards;
+}
+
 @keyframes shake {
   0%, 100% { transform: translateX(0); }
   15%       { transform: translateX(-7px); }
