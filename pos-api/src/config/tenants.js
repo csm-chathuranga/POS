@@ -1,21 +1,21 @@
 // Port of config/tenants.php — maps each subdomain to its MySQL database
 module.exports = {
-  'lover-kahatagasdigiliya.lumac.cc': {
+  'kahatagasdigiliya-pos.lumac.cc': {
     database: 'lover_kahatagasdigiliya',
     username: 'pos_user',
     password: 'Pos@2026Strong',
   },
-  'chandana.lumac.cc': {
+  'chandana-pos.lumac.cc': {
     database: 'chandana_super',
     username: 'pos_user',
     password: 'Pos@2026Strong',
   },
-  'hiruna-marketing.lumac.cc': {
+  'hiruna-pos.lumac.cc': {
     database: 'hiruna_marketing',
     username: 'pos_user',
     password: 'Pos@2026Strong',
   },
-  'pos.lumac.cc': {
+  'pos-pos.lumac.cc': {
     database: 'senewirathna_super',
     username: 'pos_user',
     password: 'Pos@2026Strong',
