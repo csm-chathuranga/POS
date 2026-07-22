@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { api } from '../app/baseApi';
 import { store } from '../app/store';
+import { db } from '../db/localDb';
 
 const allApi = api.injectEndpoints({
   endpoints: build => ({
@@ -34,6 +35,14 @@ export default function useProductCache() {
       setReady(true);
       localStorage.setItem(LS_KEY, JSON.stringify(result.data));
       localStorage.setItem(LS_VER, serverVersion?.version || '');
+    } else {
+      // API unreachable (offline) — fall back to Dexie cache
+      const local = await db.products.toArray();
+      if (local.length > 0) {
+        setProducts(local);
+        setReady(true);
+        localStorage.setItem(LS_KEY, JSON.stringify(local));
+      }
     }
   }, [serverVersion]);
 
@@ -57,9 +66,13 @@ export default function useProductCache() {
   }, [serverVersion, ready, fetchAll]);
 
   function deductStock(productId, qty) {
-    setProducts(prev => prev.map(p =>
-      p.id === productId ? { ...p, stock_qty: Math.max(0, (p.stock_qty || 0) - qty) } : p
-    ));
+    setProducts(prev => {
+      const updated = prev.map(p =>
+        p.id === productId ? { ...p, stock_qty: Math.max(0, (p.stock_qty || 0) - qty) } : p
+      );
+      localStorage.setItem(LS_KEY, JSON.stringify(updated));
+      return updated;
+    });
   }
 
   function invalidate() {
