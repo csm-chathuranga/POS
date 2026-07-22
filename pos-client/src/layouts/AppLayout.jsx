@@ -6,6 +6,8 @@ import { useLocale } from '../contexts/LocaleContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { useConnectivity } from '../contexts/ConnectivityContext';
 import { syncAll, syncOfflineQueue } from '../services/cacheSync';
+import { getPendingCount } from '../services/offlineQueue';
+import { electronAPI } from '../services/electronBridge';
 import NotificationDrawer, { useNotifBadge } from '../components/NotificationDrawer';
 import { api } from '../app/baseApi';
 
@@ -117,7 +119,11 @@ export default function AppLayout() {
     const work = firstSync
       ? syncAll()
       : syncOfflineQueue().then(() => syncAll());
-    work.finally(() => setSyncing(false));
+    work.finally(async () => {
+      setSyncing(false);
+      const pending = await getPendingCount();
+      electronAPI.reportSyncStatus({ pending });
+    });
   }, [isOnline, wasOffline, token]);
 
   useEffect(() => {
