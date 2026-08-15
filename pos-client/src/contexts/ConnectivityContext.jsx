@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
+import { getApiUrl } from '../config/runtimeConfig';
 
 const ConnectivityContext = createContext({
   isOnline: true,
@@ -6,7 +7,7 @@ const ConnectivityContext = createContext({
   checkNow: () => {},
 });
 
-const API           = import.meta.env.VITE_API_URL;
+const API           = getApiUrl();
 const PING_INTERVAL = 15_000; // ms between background polls
 const PING_TIMEOUT  = 5_000;  // ms before a ping is considered failed
 

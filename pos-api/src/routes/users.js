@@ -3,7 +3,7 @@ const bcrypt  = require('bcryptjs');
 const auth    = require('../middleware/auth');
 const role    = require('../middleware/role');
 
-router.get('/', auth, role('admin'), async (req, res) => {
+router.get('/', auth, role('admin', 'manager'), async (req, res) => {
   const { User, Role } = req.models;
   const users = await User.findAll({
     include: [{ model: Role, through: { attributes: [] } }],
@@ -13,7 +13,7 @@ router.get('/', auth, role('admin'), async (req, res) => {
   res.json(users.map(u => ({ ...u.toJSON(), role: u.Roles?.[0]?.name ?? 'cashier' })));
 });
 
-router.post('/', auth, role('admin'), async (req, res) => {
+router.post('/', auth, role('admin', 'manager'), async (req, res) => {
   const { User, Role } = req.models;
   const { role: roleName, password, ...data } = req.body;
   data.password = await bcrypt.hash(password, 12);
@@ -23,7 +23,7 @@ router.post('/', auth, role('admin'), async (req, res) => {
   res.status(201).json({ ...user.toJSON(), password: undefined, role: roleName });
 });
 
-router.put('/:id', auth, role('admin'), async (req, res) => {
+router.put('/:id', auth, role('admin', 'manager'), async (req, res) => {
   const { User, Role } = req.models;
   const user = await User.findByPk(req.params.id);
   if (!user) return res.status(404).json({ error: 'Not found' });

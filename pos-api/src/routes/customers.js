@@ -15,9 +15,18 @@ router.get('/', auth, async (req, res) => {
   res.json({ data: rows, total: count, page, last_page: Math.ceil(count / limit) });
 });
 
+function sanitise(body) {
+  const { client_id, ...data } = body;
+  if (data.phone === '') data.phone = null;
+  if (data.email === '') data.email = null;
+  return data;
+}
+
 router.post('/', auth, async (req, res) => {
   const { Customer } = req.models;
-  res.status(201).json(await Customer.create(req.body));
+  try {
+    res.status(201).json(await Customer.create(sanitise(req.body)));
+  } catch (e) { res.status(422).json({ error: e.message }); }
 });
 
 router.post('/quick-add', auth, async (req, res) => {
@@ -35,10 +44,12 @@ router.get('/:id', auth, async (req, res) => {
 
 router.put('/:id', auth, async (req, res) => {
   const { Customer } = req.models;
-  const c = await Customer.findByPk(req.params.id);
-  if (!c) return res.status(404).json({ error: 'Not found' });
-  await c.update(req.body);
-  res.json(c);
+  try {
+    const c = await Customer.findByPk(req.params.id);
+    if (!c) return res.status(404).json({ error: 'Not found' });
+    await c.update(sanitise(req.body));
+    res.json(c);
+  } catch (e) { res.status(422).json({ error: e.message }); }
 });
 
 router.delete('/:id', auth, async (req, res) => {

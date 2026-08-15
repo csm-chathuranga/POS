@@ -6,6 +6,7 @@ import { useLocale } from '../contexts/LocaleContext';
 import { useConnectivity } from '../contexts/ConnectivityContext';
 import { syncAll, syncOfflineQueue } from '../services/cacheSync';
 import { api } from '../app/baseApi';
+import { getApiUrl } from '../config/runtimeConfig';
 
 const settingsApi = api.injectEndpoints({
   endpoints: b => ({
@@ -14,7 +15,7 @@ const settingsApi = api.injectEndpoints({
   overrideExisting: false,
 });
 
-const API = import.meta.env.VITE_API_URL;
+const API = getApiUrl();
 
 const IcoPos = <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7H6a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3m-1-4H9m0 0a2 2 0 0 0 0 4h6a2 2 0 0 0 0-4M9 3h6"/></svg>;
 const IcoSales = <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2m-6 9l2 2 4-4"/></svg>;
@@ -96,6 +97,10 @@ export default function CashierLayout() {
       ? `${base} bg-white/15 text-white`
       : `${base} text-slate-300 hover:text-white hover:bg-white/10`;
   }
+
+  // Sales history / Customers need a live server connection (no offline
+  // fallback) — grey them out and make them non-clickable while offline.
+  const navClsLocked = 'flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold opacity-40 text-slate-500 cursor-not-allowed';
 
   return (
     <div style={zoomStyle} className="flex flex-col h-screen bg-slate-100 overflow-hidden">

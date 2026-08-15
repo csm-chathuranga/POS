@@ -4,12 +4,14 @@ export const salesApi = api.injectEndpoints({
   endpoints: build => ({
     getSales: build.query({
       query: params => ({ url: '/sales', params }),
+      keepUnusedDataFor: 300,
       providesTags: (r) =>
         r ? [...r.data.map(s => ({ type: 'Sales', id: s.id })), { type: 'Sales', id: 'LIST' }]
           : [{ type: 'Sales', id: 'LIST' }],
     }),
     getSale: build.query({
       query: id => `/sales/${id}`,
+      keepUnusedDataFor: 86400,
       providesTags: (r, e, id) => [{ type: 'Sales', id }],
     }),
     createSale: build.mutation({
@@ -22,6 +24,7 @@ export const salesApi = api.injectEndpoints({
     }),
     getHeldSales: build.query({
       query: () => '/sales/held',
+      keepUnusedDataFor: 30,
       providesTags: [{ type: 'Sales', id: 'HELD' }],
     }),
     deleteSale: build.mutation({

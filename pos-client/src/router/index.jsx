@@ -1,4 +1,4 @@
-import { createBrowserRouter, Navigate, Outlet } from 'react-router-dom';
+import { createBrowserRouter, createHashRouter, Navigate, Outlet } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { selectToken, selectRole } from '../features/auth/authSlice';
 import AppLayout      from '../layouts/AppLayout';
@@ -19,8 +19,9 @@ import PurchasesCreate from '../pages/purchases/Create';
 import PurchasesShow   from '../pages/purchases/Show';
 import Reports         from '../pages/reports/Index';
 import UsersIndex     from '../pages/users/Index';
-import SuppliersIndex from '../pages/suppliers/Index';
-import Settings       from '../pages/Settings';
+import SuppliersIndex   from '../pages/suppliers/Index';
+import CategoriesIndex  from '../pages/categories/Index';
+import Settings         from '../pages/Settings';
 
 function ProtectedRoute() {
   const token = useSelector(selectToken);
@@ -42,7 +43,17 @@ function AdminRoute() {
   return (role === 'admin' || role === 'manager') ? <Outlet /> : <Navigate to="/dashboard" replace />;
 }
 
-export const router = createBrowserRouter([
+// Electron's packaged renderer loads index.html via the `file://` protocol,
+// where `window.location.pathname` resolves to the absolute file path on
+// disk instead of `/`. createBrowserRouter can never match a route against
+// that, so it falls straight to the router's default 404 error screen.
+// createHashRouter keeps all routing state after a `#`, which is untouched
+// by `file://` resolution, so it works correctly in the packaged app. The
+// web/PWA build still gets clean URLs via createBrowserRouter.
+const isElectron = typeof window !== 'undefined' && !!window.electronAPI?.isElectron;
+const createAppRouter = isElectron ? createHashRouter : createBrowserRouter;
+
+export const router = createAppRouter([
   {
     path: '/login',
     element: <GuestLayout><Login /></GuestLayout>,
@@ -65,6 +76,7 @@ export const router = createBrowserRouter([
         { path: 'purchases/create',     element: <PurchasesCreate /> },
         { path: 'purchases/:id',        element: <PurchasesShow /> },
         { path: 'suppliers',            element: <SuppliersIndex /> },
+        { path: 'categories',           element: <CategoriesIndex /> },
         {
           element: <AdminRoute />,
           children: [

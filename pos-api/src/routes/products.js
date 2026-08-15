@@ -159,6 +159,11 @@ router.post('/', auth, role('admin', 'manager'), async (req, res) => {
 
   if (!data.barcode) data.barcode = data.name.replace(/\s+/g, '').toUpperCase().slice(0, 8) + '-' + Math.random().toString(36).slice(2, 8).toUpperCase();
 
+  if (data.barcode) {
+    const existing = await Product.findOne({ where: { barcode: data.barcode } });
+    if (existing) return res.status(409).json({ error: `Barcode already used by "${existing.name}"` });
+  }
+
   const product = await Product.create(data);
   for (const v of variants) await ProductVariant.create({ ...v, product_id: product.id });
 
@@ -186,6 +191,12 @@ router.put('/:id', auth, role('admin', 'manager'), async (req, res) => {
   if (!product) return res.status(404).json({ error: 'Not found' });
 
   const { variants = [], ...data } = req.body;
+
+  if (data.barcode) {
+    const existing = await Product.findOne({ where: { barcode: data.barcode } });
+    if (existing && existing.id !== product.id) return res.status(409).json({ error: `Barcode already used by "${existing.name}"` });
+  }
+
   await product.update(data);
 
   // Sync variants

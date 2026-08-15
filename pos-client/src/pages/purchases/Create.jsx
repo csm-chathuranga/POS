@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCreatePurchaseMutation } from '../../features/purchases/purchasesApi';
 import { useGetSuppliersQuery } from '../../features/suppliers/suppliersApi';
@@ -33,14 +33,25 @@ export default function PurchaseCreate() {
   const [items, setItems]     = useState([]);
   const [search, setSearch]   = useState('');
   const [results, setResults] = useState([]);
+  const [activeIdx, setActiveIdx] = useState(-1);
+
+  useEffect(() => {
+    const onKey = e => {
+      if (e.key === 'F1') { e.preventDefault(); searchRef.current?.focus(); }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
   const [err, setErr]         = useState('');
   const searchRef = useRef(null);
+  const qtyRefs   = useRef({});
   const [trigger] = searchApi.useLazySearchProductsQuery();
 
   async function doSearch(q) {
-    if (!q.trim()) { setResults([]); return; }
+    if (!q.trim()) { setResults([]); setActiveIdx(-1); return; }
     const r = await trigger(q);
     setResults(r.data || []);
+    setActiveIdx(-1);
   }
 
   function addProduct(p) {
@@ -53,7 +64,11 @@ export default function PurchaseCreate() {
     });
     setSearch('');
     setResults([]);
-    searchRef.current?.focus();
+    setActiveIdx(-1);
+    setTimeout(() => {
+      const el = qtyRefs.current[p.id];
+      if (el) { el.focus(); el.select(); }
+    }, 0);
   }
 
   function removeItem(i) { setItems(prev => prev.filter((_, idx) => idx !== i)); }
@@ -68,6 +83,7 @@ export default function PurchaseCreate() {
   async function handleSubmit(e) {
     e.preventDefault();
     setErr('');
+    if (!form.supplier_id) return setErr('Please select a supplier');
     if (!items.length) return setErr(t('pur.add_row'));
     try {
       await create({ ...form, total, items }).unwrap();
@@ -125,12 +141,19 @@ export default function PurchaseCreate() {
           <input ref={searchRef} value={search}
             onChange={e => { setSearch(e.target.value); doSearch(e.target.value); }}
             placeholder={t('pos.search_product')}
-            className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-500" />
+            className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-500"
+            onKeyDown={e => {
+              if (!results.length) return;
+              if (e.key === 'ArrowDown') { e.preventDefault(); setActiveIdx(i => Math.min(i + 1, results.length - 1)); }
+              else if (e.key === 'ArrowUp') { e.preventDefault(); setActiveIdx(i => Math.max(i - 1, 0)); }
+              else if (e.key === 'Enter') { e.preventDefault(); if (activeIdx >= 0) addProduct(results[activeIdx]); }
+              else if (e.key === 'Escape') { setResults([]); setActiveIdx(-1); }
+            }} />
           {results.length > 0 && (
             <div className="absolute z-20 left-0 right-0 mt-1 bg-white rounded-xl shadow-lg border border-slate-200 max-h-60 overflow-y-auto">
-              {results.map(p => (
+              {results.map((p, idx) => (
                 <button key={p.id} type="button" onClick={() => addProduct(p)}
-                  className="w-full text-left px-4 py-2.5 hover:bg-blue-50 border-b border-slate-100 last:border-0">
+                  className={`w-full text-left px-4 py-2.5 border-b border-slate-100 last:border-0 ${idx === activeIdx ? 'bg-blue-50' : 'hover:bg-blue-50'}`}>
                   <p className="font-medium text-slate-800 text-sm">{p.name}</p>
                   <p className="text-xs text-slate-400">Cost: Rs.{parseFloat(p.cost_price).toFixed(2)} | Stock: {p.stock_qty}</p>
                 </button>
@@ -159,17 +182,22 @@ export default function PurchaseCreate() {
                     <td className="py-2 pr-3 font-medium text-slate-800">{item.product_name}</td>
                     <td className="py-2 pr-2">
                       <input type="number" min="0.001" step="0.001" value={item.qty}
+                        ref={el => { if (el) qtyRefs.current[item.product_id] = el; }}
                         onChange={e => updateItem(i, 'qty', e.target.value)}
+                        onFocus={e => e.target.select()}
+                        onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); searchRef.current?.focus(); } }}
                         className="w-full rounded border border-slate-200 px-2 py-1 text-sm text-right outline-none focus:ring-1 focus:ring-blue-500" />
                     </td>
                     <td className="py-2 pr-2">
                       <input type="number" min="0" step="0.01" value={item.cost_price}
                         onChange={e => updateItem(i, 'cost_price', e.target.value)}
+                        onFocus={e => e.target.select()}
                         className="w-full rounded border border-slate-200 px-2 py-1 text-sm text-right outline-none focus:ring-1 focus:ring-blue-500" />
                     </td>
                     <td className="py-2 pr-2">
                       <input type="number" min="0" step="0.01" value={item.selling_price}
                         onChange={e => updateItem(i, 'selling_price', e.target.value)}
+                        onFocus={e => e.target.select()}
                         className="w-full rounded border border-slate-200 px-2 py-1 text-sm text-right outline-none focus:ring-1 focus:ring-blue-500" />
                     </td>
                     <td className="py-2 text-right font-semibold text-slate-700 pr-2">
@@ -177,7 +205,9 @@ export default function PurchaseCreate() {
                     </td>
                     <td className="py-2">
                       <button type="button" onClick={() => removeItem(i)}
-                        className="text-red-400 hover:text-red-600 text-lg leading-none">&times;</button>
+                        className="text-red-400 hover:text-red-600 transition-colors">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                      </button>
                     </td>
                   </tr>
                 ))}

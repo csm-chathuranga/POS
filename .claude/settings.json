@@ -35,7 +35,42 @@
       "Read(//e/LMUC/project_backup/POS-sinhala/resources/js/**)",
       "Read(//e/LMUC/project_backup/POS-sinhala/resources//**)",
       "Bash(taskkill /F /IM electron.exe)",
-      "Bash(npm start *)"
+      "Bash(npm start *)",
+      "Bash(graphify query *)",
+      "Bash(npx electron-rebuild *)",
+      "Bash(node -e \"const electron = require\\('electron'\\); console.log\\('electron path:', electron\\); const { execSync } = require\\('child_process'\\); try { const v = execSync\\('\\\\\"' + electron + '\\\\\" --version 2>&1'\\).toString\\(\\).trim\\(\\); console.log\\('electron version:', v\\); } catch\\(e\\) { console.log\\('err:', e.message\\) }\")",
+      "Bash(node -p \"require\\('./node_modules/electron/dist/electron.exe'\\)\")",
+      "Bash(npx prebuild-install *)",
+      "Bash(npm uninstall *)",
+      "Bash(cross-env BUILD_TARGET=electron vite build)",
+      "Bash(npx cross-env *)",
+      "Bash(node -p \"require\\('e:/LMUC/POS-sinhala/pos-client/node_modules/vite-plugin-electron/package.json'\\).version\")",
+      "Bash(node -p \"require\\('e:/LMUC/POS-sinhala/pos-client/node_modules/vite-plugin-electron/package.json'\\).main\")",
+      "Bash(node -p \"JSON.stringify\\(require\\('e:/LMUC/POS-sinhala/pos-client/node_modules/electron/package.json'\\).exports, null, 2\\)\")",
+      "Bash(node -p \"require\\('e:/LMUC/POS-sinhala/pos-client/node_modules/electron/package.json'\\).main\")",
+      "Bash(powershell -Command \"Add-MpPreference -ExclusionPath 'E:\\\\LMUC\\\\POS-sinhala\\\\pos-client\\\\release'\")"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash|Grep",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "C:/Users/DELL/.local/bin/graphify.EXE hook-guard search"
+          }
+        ]
+      },
+      {
+        "matcher": "Read|Glob",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "C:/Users/DELL/.local/bin/graphify.EXE hook-guard read"
+          }
+        ]
+      }
     ]
   }
 }

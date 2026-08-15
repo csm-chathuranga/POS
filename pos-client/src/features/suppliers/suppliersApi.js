@@ -4,6 +4,7 @@ export const suppliersApi = api.injectEndpoints({
   endpoints: build => ({
     getSuppliers: build.query({
       query: () => '/suppliers',
+      keepUnusedDataFor: 7200,
       providesTags: (r) =>
         r ? [...r.map(s => ({ type: 'Suppliers', id: s.id })), { type: 'Suppliers', id: 'LIST' }]
           : [{ type: 'Suppliers', id: 'LIST' }],

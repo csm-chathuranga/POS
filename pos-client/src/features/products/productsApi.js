@@ -4,6 +4,7 @@ export const productsApi = api.injectEndpoints({
   endpoints: build => ({
     getProducts: build.query({
       query: params => ({ url: '/products', params }),
+      keepUnusedDataFor: 300,
       providesTags: (result) =>
         result
           ? [...result.data.map(p => ({ type: 'Products', id: p.id })), { type: 'Products', id: 'LIST' }]
@@ -11,6 +12,7 @@ export const productsApi = api.injectEndpoints({
     }),
     getProduct: build.query({
       query: id => `/products/${id}`,
+      keepUnusedDataFor: 1800,
       providesTags: (r, e, id) => [{ type: 'Products', id }],
     }),
     createProduct: build.mutation({
@@ -27,6 +29,7 @@ export const productsApi = api.injectEndpoints({
     }),
     getCategories: build.query({
       query: () => '/categories',
+      keepUnusedDataFor: 7200,
       providesTags: ['Categories'],
     }),
     importProducts: build.mutation({

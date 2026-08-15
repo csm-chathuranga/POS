@@ -5,8 +5,10 @@ import { logout, selectCurrentUser, selectRole } from '../../features/auth/authS
 import { useCreateSaleMutation } from '../../features/sales/salesApi';
 import useProductCache from '../../hooks/useProductCache';
 import { useConnectivity } from '../../contexts/ConnectivityContext';
-import { enqueueOfflineSale } from '../../services/offlineQueue';
+import { enqueueOfflineSale, getPendingCount, OFFLINE_LIMIT } from '../../services/offlineQueue';
+import { getLocalCustomers } from '../../services/cacheSync';
 import { useLocale } from '../../contexts/LocaleContext';
+import { translations } from '../../i18n/translations';
 import { api } from '../../app/baseApi';
 
 const posApi = api.injectEndpoints({
@@ -47,6 +49,7 @@ const Icon = {
   refresh: <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 0 0 4.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 0 1-15.357-2m15.357 2H15"/></svg>,
   logout: <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3V7a3 3 0 0 1 3-3h4a3 3 0 0 1 3 3v1"/></svg>,
   back: <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7"/></svg>,
+  home: <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7m-9-9v9m0 0h9M5 10v9a1 1 0 0 0 1 1h3m5-10v9a1 1 0 0 0-1 1h-3m0-4h4"/></svg>,
 };
 
 // ─── Product Dropdown ─────────────────────────────────────────────────────────
@@ -78,10 +81,10 @@ function ProductDropdown({ items, activeIdx, onSelect }) {
 // ─── Size Picker Modal ────────────────────────────────────────────────────────
 function SizePickerModal({ product, onSelect, onClose }) {
   const { t } = useLocale();
-  const [qty, setQty] = useState('');
+  const [qty, setQty] = useState(1);
   const [active, setActive] = useState(0);
   const qtyRef = useRef(null);
-  useEffect(() => { qtyRef.current?.focus(); }, []);
+  useEffect(() => { qtyRef.current?.focus(); qtyRef.current?.select(); }, []);
   function handleKey(e) {
     if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') { e.preventDefault(); setActive(a => Math.max(0, a - 1)); }
     if (e.key === 'ArrowRight' || e.key === 'ArrowDown') { e.preventDefault(); setActive(a => Math.min(product.sizes.length - 1, a + 1)); }
@@ -100,15 +103,15 @@ function SizePickerModal({ product, onSelect, onClose }) {
             </button>
           ))}
         </div>
-        <div className="flex gap-3 items-end">
-          <div className="flex-1">
-            <label className="text-xs font-semibold text-slate-500 mb-1 block">{t('th.qty')}</label>
-            <input ref={qtyRef} type="number" min="0.001" step="0.001" value={qty} onChange={e => setQty(e.target.value)} placeholder="1"
-              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500" />
-          </div>
+        <div className="mb-3">
+          <label className="text-xs font-semibold text-slate-500 mb-1 block">{t('th.qty')}</label>
+          <input ref={qtyRef} type="number" min="0.001" step="0.001" value={qty} onChange={e => setQty(e.target.value)}
+            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500" />
+        </div>
+        <div className="flex gap-2">
           <button onClick={() => onSelect(product.sizes[active], parseFloat(qty) || 1)}
-            className="px-5 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700">{t('btn.add')}</button>
-          <button onClick={onClose} className="px-4 py-2 border border-slate-200 rounded-lg text-sm text-slate-600 hover:bg-slate-50">{t('btn.cancel')}</button>
+            className="flex-1 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700">{t('btn.add')}</button>
+          <button onClick={onClose} className="px-5 py-2.5 border border-slate-200 rounded-lg text-sm text-slate-600 hover:bg-slate-50">{t('btn.cancel')}</button>
         </div>
       </div>
     </div>
@@ -190,79 +193,266 @@ function CartItemZoomModal({ item, onChange, onRemove, onClose }) {
 // ─── Cart Row ─────────────────────────────────────────────────────────────────
 function CartRow({ item, onChange, onRemove, onZoom, onEnter, highlight }) {
   const qtyRef = useRef(null);
+  const [qtyStr, setQtyStr] = useState(String(item.qty));
   useEffect(() => { if (highlight) qtyRef.current?.focus(); }, [highlight]);
+  useEffect(() => { setQtyStr(String(item.qty)); }, [item.qty]);
 
   return (
-    <div className={`grid items-center gap-1.5 px-3 py-2 rounded-lg text-sm transition-colors ${highlight ? 'bg-blue-50 ring-1 ring-blue-200' : 'hover:bg-slate-50'}`}
-      style={{ gridTemplateColumns: '1fr 60px 72px 60px 72px 24px' }}>
+    <div className={`grid items-center gap-2 px-4 py-2.5 rounded-lg text-sm transition-all duration-700 ${highlight ? 'bg-green-100 ring-2 ring-green-400' : 'bg-slate-100 hover:bg-slate-200'}`}
+      style={{ gridTemplateColumns: '1fr 64px 76px 64px 84px 24px' }}>
       <button type="button" onClick={onZoom} className="min-w-0 text-left">
         <p className="font-semibold text-slate-800 truncate leading-tight">{item.name}</p>
         {item.barcode && <p className="text-xs text-slate-400 font-mono leading-tight">{item.barcode}</p>}
       </button>
-      <input ref={qtyRef} type="number" min="0.001" step="0.001" value={item.qty}
-        onChange={e => onChange({ qty: parseFloat(e.target.value) || item.qty })}
+      <input ref={qtyRef} type="number" min="0.001" step="0.001" value={qtyStr}
+        onChange={e => { setQtyStr(e.target.value); const v = parseFloat(e.target.value); if (v > 0) onChange({ qty: v }); }}
         onFocus={e => e.target.select()}
         onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); onEnter?.(); } }}
         className="cart-qty-input text-right rounded-lg border border-slate-200 px-1.5 py-1 text-sm outline-none focus:ring-1 focus:ring-blue-500 w-full" />
       <input type="number" min="0" step="0.01" value={item.unit_price}
         onChange={e => onChange({ unit_price: parseFloat(e.target.value) || 0 })}
         onFocus={e => e.target.select()}
-        className="text-right rounded-lg border border-slate-200 px-1.5 py-1 text-sm outline-none focus:ring-1 focus:ring-blue-500 w-full" />
+        className="cart-cell-input text-right rounded-lg border border-slate-200 px-1.5 py-1 text-sm outline-none focus:ring-1 focus:ring-blue-500 w-full" />
       <input type="number" min="0" step="0.01" value={item.discount} onChange={e => onChange({ discount: parseFloat(e.target.value) || 0 })}
         onFocus={e => e.target.select()}
         placeholder="0"
-        className="text-right rounded-lg border border-slate-200 px-1.5 py-1 text-sm outline-none focus:ring-1 focus:ring-blue-500 w-full" />
+        className="cart-cell-input text-right rounded-lg border border-slate-200 px-1.5 py-1 text-sm outline-none focus:ring-1 focus:ring-blue-500 w-full" />
       <p className="text-right font-bold text-slate-800">{fmt(item.total)}</p>
-      <button onClick={onRemove} className="text-red-400 hover:text-red-600 text-2xl leading-none flex items-center justify-center w-6 h-6">&times;</button>
+      <button onClick={onRemove} className="text-red-400 hover:text-red-600 transition-colors flex items-center justify-center w-6 h-6">
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+      </button>
     </div>
   );
 }
 
 // ─── Receipt ──────────────────────────────────────────────────────────────────
-function Receipt({ sale, settings, onClose }) {
+function Receipt({ sale, settings, user, onClose }) {
   const { t } = useLocale();
-  useEffect(() => { window.print(); }, []);
-  const f = n => Number(n || 0).toFixed(2);
-  return (
-    <div className="fixed inset-0 z-[70] bg-white p-6 print:p-2 overflow-y-auto">
-      <div className="max-w-xs mx-auto text-xs font-mono">
-        <div className="text-center mb-3">
-          <p className="text-base font-bold">{settings?.shop_name || 'LMUC POS'}</p>
-          {settings?.address && <p>{settings.address}</p>}
-          {settings?.phone   && <p>Tel: {settings.phone}</p>}
-        </div>
-        <div className="border-t border-b border-dashed border-slate-400 py-1 my-2">
-          <p>{t('th.invoice')}: {sale.invoice_no}</p>
-          <p>{t('th.date')}: {new Date(sale.created_at || Date.now()).toLocaleString('en-LK')}</p>
-          {sale.customer_name && <p>{t('lbl.customer')}: {sale.customer_name}</p>}
-        </div>
-        <table className="w-full my-2">
-          <tbody>
-            {(sale.items || []).map((item, i) => (
-              <tr key={i}>
-                <td className="pb-0.5 pr-1">{item.name}</td>
-                <td className="text-right pb-0.5 whitespace-nowrap">{f(item.qty)} × {f(item.unit_price)}</td>
-                <td className="text-right pb-0.5 whitespace-nowrap pl-2">{f(item.total)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        <div className="border-t border-dashed border-slate-400 pt-1 space-y-0.5">
-          <div className="flex justify-between"><span>{t('lbl.subtotal')}</span><span>{f(sale.subtotal)}</span></div>
-          {parseFloat(sale.discount) > 0 && <div className="flex justify-between text-red-600"><span>{t('lbl.discount')}</span><span>-{f(sale.discount)}</span></div>}
-          <div className="flex justify-between font-bold text-sm"><span>{t('lbl.grand_total')}</span><span>Rs.{f(sale.total)}</span></div>
-          <div className="flex justify-between"><span>{t('th.paid')}</span><span>{f(sale.paid)}</span></div>
-          {parseFloat(sale.paid) > parseFloat(sale.total) && (
-            <div className="flex justify-between"><span>{t('lbl.change')}</span><span>{f(sale.paid - sale.total)}</span></div>
-          )}
-        </div>
-        {settings?.receipt_note && <p className="text-center mt-2">{settings.receipt_note}</p>}
-        <p className="text-center mt-2 text-slate-400">Thank you!</p>
+  const [printing, setPrinting] = useState(false);
+  const printedRef = useRef(false);
+
+  const f       = n => Number(n || 0).toLocaleString('en-LK', { minimumFractionDigits: 2 });
+  const fmtDate = s => new Date(s).toLocaleDateString('en-LK', { day: '2-digit', month: 'short', year: 'numeric' });
+  const fmtTime = s => new Date(s).toLocaleTimeString('en-LK', { hour: '2-digit', minute: '2-digit', hour12: true });
+
+  const payments   = sale.payments || [];
+  const paidCash   = payments.filter(p => p.method === 'cash').reduce((s, p) => s + parseFloat(p.amount || 0), 0);
+  const paidCard   = payments.filter(p => p.method === 'card').reduce((s, p) => s + parseFloat(p.amount || 0), 0);
+  const paidCredit = payments.filter(p => p.method === 'credit').reduce((s, p) => s + parseFloat(p.amount || 0), 0);
+  const change     = Math.max(0, parseFloat(sale.paid || 0) - parseFloat(sale.total || 0));
+  const currency   = settings?.currency || 'Rs.';
+
+  async function handlePrint() {
+    if (printing) return;
+    setPrinting(true);
+    const paperSize   = '80mm';
+    const receiptLang = settings?.receipt_language || 'en';
+    const isSinhala   = receiptLang === 'si';
+    const rl = key => (translations[receiptLang] || translations.en)[key] ?? translations.en[key];
+    const minDelay = new Promise(r => setTimeout(r, 1200));
+
+    const itemsHtml = (sale.items || []).map((item, idx) => `
+      <div class="item-row">
+        <div class="item-name">${idx + 1} ${item.name}</div>
+        <div class="item-total">${f(item.total)}</div>
       </div>
-      <div className="text-center mt-6 print:hidden">
-        <button onClick={onClose} className="px-6 py-2.5 bg-slate-800 text-white rounded-xl text-sm font-semibold hover:bg-slate-700">
-          {t('btn.close')} &amp; {t('btn.new_sale')}
-        </button>
+      <div class="item-sub">
+        <span>${Number(item.qty)} × ${f(item.unit_price)}</span>
+        ${parseFloat(item.discount) > 0 ? `<span class="disc-inline">- ${f(item.discount)}</span>` : ''}
+      </div>
+    `).join('');
+
+    const html = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>${sale.invoice_no}</title>
+  ${isSinhala ? '<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Sinhala:wght@700;800;900&display=swap" rel="stylesheet">' : ''}
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    html, body {
+      font-family: ${isSinhala ? "'Noto Sans Sinhala', sans-serif" : "'Courier New', Courier, monospace"};
+      font-size: 13px;
+      font-weight: 900;
+      width: 80mm;
+      max-width: 80mm;
+      color: #000;
+      word-break: break-word;
+      overflow-wrap: break-word;
+    }
+    body { padding: 5mm 4mm; }
+    .logo { width:56px; height:56px; object-fit:contain; margin:0 auto 6px; display:block; border-radius:50%; }
+    .shop-name { font-size:16px; font-weight:900; text-align:center; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:3px; word-break:break-word; }
+    .shop-meta { font-size:12px; font-weight:900; text-align:center; line-height:1.6; word-break:break-word; }
+    .divider { border:none; border-top:2px solid #000; margin:8px 0; }
+    .row { display:flex; justify-content:space-between; gap:6px; padding:3px 0; font-size:12px; }
+    .row span:first-child { flex-shrink:0; }
+    .row span:last-child { text-align:right; word-break:break-word; min-width:0; }
+    .col-header { display:flex; justify-content:space-between; font-weight:900; padding:4px 0 3px; border-top:2px solid #000; border-bottom:2px solid #000; margin:6px 0; font-size:12px; }
+    .item-row { display:flex; justify-content:space-between; align-items:flex-start; gap:6px; font-weight:900; padding-top:5px; font-size:13px; }
+    .item-name { flex:1; min-width:0; word-break:break-word; overflow-wrap:break-word; }
+    .item-total { flex-shrink:0; text-align:right; }
+    .item-sub { display:flex; justify-content:space-between; padding-left:10px; font-weight:900; padding-bottom:4px; font-size:12px; }
+    .disc-inline { font-weight:900; }
+    .disc-box { border:2px solid #000; border-radius:4px; padding:3px 8px; display:flex; justify-content:space-between; gap:6px; margin:5px 0; }
+    .total-row { display:flex; justify-content:space-between; align-items:baseline; gap:6px; font-weight:900; font-size:15px; padding:6px 0 4px; border-top:2px solid #000; margin-top:4px; }
+    .paid-row { display:flex; justify-content:space-between; gap:6px; padding:3px 0; font-weight:900; font-size:12px; }
+    .change-row { display:flex; justify-content:space-between; gap:6px; font-weight:900; padding:3px 0; font-size:13px; }
+    .footer { text-align:center; margin-top:10px; font-size:12px; font-weight:900; line-height:1.8; word-break:break-word; }
+    @media print {
+      html, body { overflow: visible !important; height: auto !important; }
+      @page { margin: 0; size: 80mm auto; }
+      body { padding: 3mm; width: 80mm !important; }
+    }
+  </style>
+</head>
+<body>
+  ${settings?.shop_logo ? `<img class="logo" src="${settings.shop_logo}" alt="logo">` : ''}
+  <div class="shop-name">${settings?.shop_name || 'LMUC POS'}</div>
+  <div class="shop-meta">
+    ${settings?.address ? settings.address + '<br>' : ''}
+    ${settings?.phone || ''}
+  </div>
+  <hr class="divider">
+  <div class="row"><span>${rl('th.invoice')}</span><span>${sale.invoice_no}</span></div>
+  <div class="row"><span>${rl('th.date')}</span><span>${fmtDate(sale.created_at)} ${fmtTime(sale.created_at)}</span></div>
+  <div class="row"><span>${rl('lbl.cashier')}</span><span>${user?.name || '—'}</span></div>
+  ${sale.customer_name ? `<div class="row"><span>${rl('lbl.customer')}</span><span>${sale.customer_name}</span></div>` : ''}
+  <div class="col-header"><span># ${rl('th.product')}</span><span>${rl('th.total')}</span></div>
+  ${itemsHtml}
+  <hr class="divider">
+  <div class="row"><span>${rl('lbl.subtotal')}</span><span>${f(sale.subtotal)}</span></div>
+  ${parseFloat(sale.discount) > 0 ? `<div class="disc-box"><span>${rl('lbl.discount')}</span><span>- ${f(sale.discount)}</span></div>` : ''}
+  <div class="total-row"><span>${rl('lbl.grand_total')}</span><span>${currency} ${f(sale.total)}</span></div>
+  ${paidCash > 0  ? `<div class="paid-row"><span>${rl('lbl.cash_paid')} (${rl('lbl.cash')})</span><span>${f(paidCash)}</span></div>` : ''}
+  ${paidCard > 0  ? `<div class="paid-row"><span>${rl('lbl.cash_paid')} (${rl('lbl.card')})</span><span>${f(paidCard)}</span></div>` : ''}
+  ${paidCredit > 0 ? `<div class="paid-row"><span>${rl('lbl.credit')}</span><span>${f(paidCredit)}</span></div>` : ''}
+  ${change > 0    ? `<div class="change-row"><span>${rl('lbl.change')}</span><span>${f(change)}</span></div>` : ''}
+  <hr class="divider">
+  <div class="footer">
+    ${settings?.receipt_footer || 'Thank you for shopping with us!'}
+    ${settings?.shop_name ? `<br>${(settings.shop_name || '').toLowerCase().replace(/\s+/g, '') + '.lk'}` : ''}
+  </div>
+</body>
+</html>`;
+
+    try {
+      if (window.electronAPI?.printReceiptHtml) {
+        const [r] = await Promise.all([window.electronAPI.printReceiptHtml(html, { paperSize }), minDelay]);
+        if (r && !r.success) alert('Print failed: ' + (r.error || 'unknown error'));
+      } else {
+        const win = window.open('', '_blank', 'width=400,height=700,scrollbars=yes');
+        if (win) { win.document.write(html); win.document.close(); win.onload = () => win.print(); }
+        await minDelay;
+      }
+    } catch (err) {
+      alert('Print error: ' + err.message);
+    } finally {
+      setPrinting(false);
+    }
+  }
+
+  useEffect(() => {
+    if (printedRef.current) return;
+    printedRef.current = true;
+    handlePrint();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  return (
+    <div className="fixed inset-0 z-[70] bg-black/40 flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm max-h-[90vh] overflow-y-auto">
+        <div className="px-8 py-7" style={{ fontFamily: "'Outfit', 'Noto Sans Sinhala', sans-serif" }}>
+          <div className="text-center mb-5">
+            {settings?.shop_logo ? (
+              <img src={settings.shop_logo} alt="logo" className="w-24 h-24 object-contain mx-auto mb-3 rounded-full" />
+            ) : (
+              <div className="w-24 h-24 bg-slate-100 rounded-full mx-auto mb-3 flex items-center justify-center text-slate-400 text-4xl font-black">
+                {(settings?.shop_name || 'L')[0]}
+              </div>
+            )}
+            <p className="font-black text-slate-900 text-xl tracking-wide uppercase">{settings?.shop_name || 'LMUC POS'}</p>
+            {settings?.address && <p className="text-slate-500 text-sm font-medium mt-0.5">{settings.address}</p>}
+            {settings?.phone && <p className="text-slate-500 text-sm font-medium">{settings.phone}</p>}
+          </div>
+
+          <hr className="border-slate-200 mb-4" />
+
+          <div className="space-y-1.5">
+            <div className="flex justify-between text-sm"><span className="text-slate-500 font-semibold">{t('th.invoice')}</span><span className="font-bold text-slate-800 font-mono">{sale.invoice_no}</span></div>
+            <div className="flex justify-between text-sm"><span className="text-slate-500 font-semibold">{t('th.date')}</span><span className="font-bold text-slate-800">{fmtDate(sale.created_at || Date.now())} {fmtTime(sale.created_at || Date.now())}</span></div>
+            <div className="flex justify-between text-sm"><span className="text-slate-500 font-semibold">{t('lbl.cashier')}</span><span className="font-bold text-slate-800">{user?.name || '—'}</span></div>
+            {sale.customer_name && <div className="flex justify-between text-sm"><span className="text-slate-500 font-semibold">{t('lbl.customer')}</span><span className="font-bold text-slate-800">{sale.customer_name}</span></div>}
+          </div>
+
+          <hr className="border-slate-200 my-4" />
+
+          <div className="mb-3">
+            <div className="flex justify-between text-sm font-black text-slate-700 border-b-2 border-slate-200 pb-2 mb-3">
+              <span># {t('th.product')}</span><span>{t('th.total')}</span>
+            </div>
+            {(sale.items || []).map((item, idx) => (
+              <div key={idx} className="mb-3">
+                <div className="flex justify-between text-sm font-bold text-slate-900">
+                  <span>{idx + 1} {item.name}</span><span>{f(item.total)}</span>
+                </div>
+                <div className="flex justify-between text-sm text-slate-400 font-medium pl-4 mt-0.5">
+                  <span>{Number(item.qty)} × {f(item.unit_price)}</span>
+                  {parseFloat(item.discount) > 0 && <span className="text-red-400">- {f(item.discount)}</span>}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <hr className="border-slate-200 mb-4" />
+
+          <div className="space-y-2">
+            <div className="flex justify-between text-sm">
+              <span className="text-slate-500 font-semibold">{t('lbl.subtotal')}</span>
+              <span className="font-bold text-slate-700">{f(sale.subtotal)}</span>
+            </div>
+            {parseFloat(sale.discount) > 0 && (
+              <div className="flex justify-between items-center border-2 border-blue-300 rounded-lg px-3 py-1.5 bg-blue-50">
+                <span className="text-blue-700 font-bold text-sm">{t('lbl.discount')}</span>
+                <span className="text-red-500 font-extrabold text-sm">- {f(sale.discount)}</span>
+              </div>
+            )}
+            <div className="flex justify-between items-baseline pt-1 border-t border-slate-100">
+              <span className="text-base font-black text-slate-900">{t('lbl.grand_total')}</span>
+              <span className="text-xl font-black text-blue-600">{currency} {f(sale.total)}</span>
+            </div>
+            {paidCash > 0 && (
+              <div className="flex justify-between text-sm"><span className="text-slate-500 font-semibold">{t('lbl.cash_paid')} ({t('lbl.cash')})</span><span className="font-bold text-slate-700">{f(paidCash)}</span></div>
+            )}
+            {paidCard > 0 && (
+              <div className="flex justify-between text-sm"><span className="text-slate-500 font-semibold">{t('lbl.cash_paid')} ({t('lbl.card')})</span><span className="font-bold text-slate-700">{f(paidCard)}</span></div>
+            )}
+            {paidCredit > 0 && (
+              <div className="flex justify-between text-sm"><span className="text-slate-500 font-semibold">{t('lbl.credit')}</span><span className="font-bold text-red-500">{f(paidCredit)}</span></div>
+            )}
+            {change > 0 && (
+              <div className="flex justify-between text-sm font-bold text-green-600"><span>{t('lbl.change')}</span><span>{f(change)}</span></div>
+            )}
+          </div>
+
+          <hr className="border-slate-200 my-5" />
+
+          <div className="text-center leading-relaxed">
+            <p className="text-sm font-semibold text-slate-500">{settings?.receipt_footer || 'Thank you for shopping with us!'}</p>
+            {settings?.shop_name && <p className="text-blue-500 font-bold text-sm mt-1">{settings.shop_name.toLowerCase().replace(/\s+/g, '') + '.lk'}</p>}
+          </div>
+        </div>
+
+        <div className="flex gap-2 p-4 pt-0">
+          <button onClick={handlePrint} disabled={printing}
+            className="flex-1 flex items-center justify-center gap-2 py-3 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 disabled:opacity-60 transition-colors">
+            {Icon.print} {printing ? t('lbl.loading') : t('btn.print')}
+          </button>
+          <button onClick={onClose}
+            className="flex-1 py-3 bg-slate-800 text-white rounded-xl text-sm font-semibold hover:bg-slate-700 transition-colors">
+            {t('btn.close')} &amp; {t('btn.new_sale')}
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -290,9 +480,14 @@ export default function SalesCreate() {
   const { products, ready, deductStock, invalidate } = useProductCache();
   const [createSale, { isLoading: submitting }] = useCreateSaleMutation();
   const [quickAdd] = posApi.useQuickAddCustomerMutation();
-  const { data: custData } = posApi.useGetPOSCustomersQuery();
-  const { data: settings } = posApi.useGetPOSSettingsQuery();
   const { isOnline } = useConnectivity();
+  const { data: custData } = posApi.useGetPOSCustomersQuery(undefined, { skip: !isOnline });
+  const [localCustomers, setLocalCustomers] = useState([]);
+  useEffect(() => {
+    if (!isOnline) getLocalCustomers().then(setLocalCustomers);
+    else setLocalCustomers([]);
+  }, [isOnline]);
+  const { data: settings } = posApi.useGetPOSSettingsQuery();
 
   // Search
   const searchRef   = useRef(null);
@@ -300,10 +495,19 @@ export default function SalesCreate() {
   const [showDrop, setShowDrop] = useState(false);
   const [activeIdx, setActive]  = useState(-1);
 
-  // Barcode scan detection
+  // Barcode scan detection (search input)
   const keyIntervals = useRef([]);
   const lastKeyTime  = useRef(0);
   const isScan       = useRef(false);
+
+  // Cart input barcode interception
+  const csBuffer    = useRef('');
+  const csTimes     = useRef([]);
+  const csLast      = useRef(0);
+  const csActive    = useRef(false);
+  const csPreBuf    = useRef([]);
+  const csOrigVal   = useRef(null);
+  const addToCartRef = useRef(null);
 
   // Cart
   const [cart, setCart]         = useState([]);
@@ -374,9 +578,9 @@ export default function SalesCreate() {
   const change    = cashNum - total;
 
   const customers = useMemo(() => {
-    const base = custData?.data || [];
+    const base = isOnline ? (custData?.data || []) : localCustomers;
     return [...base, ...extraCustomers.filter(e => !base.find(b => b.id === e.id))];
-  }, [custData, extraCustomers]);
+  }, [custData, localCustomers, extraCustomers, isOnline]);
 
   const filteredCusts = useMemo(() => {
     const q = custQuery.trim().toLowerCase();
@@ -386,6 +590,7 @@ export default function SalesCreate() {
 
   // ─── Focus helper ──────────────────────────────────────────────────────────
   const refocus = useCallback(() => setTimeout(() => searchRef.current?.focus(), 50), []);
+  useEffect(() => { searchRef.current?.focus(); }, []);
 
   // ─── Keyboard shortcuts ───────────────────────────────────────────────────
   useEffect(() => {
@@ -403,6 +608,103 @@ export default function SalesCreate() {
     return () => window.removeEventListener('keydown', onKey);
   }, [cart, total, payMethod, cashPaid, cardRef, splitCash, splitCardRef, customer]);
 
+  // ─── Global barcode capture — redirect keystrokes to search when unfocused ─
+  useEffect(() => {
+    const onGlobalKey = e => {
+      const tag = document.activeElement?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || tag === 'BUTTON') return;
+      if (e.key.length !== 1 || e.ctrlKey || e.altKey || e.metaKey) return;
+      e.preventDefault();
+      searchRef.current?.focus();
+      setQuery(prev => prev + e.key);
+      // Don't open dropdown — let onSearchKeyDown decide after scan detection
+    };
+    window.addEventListener('keydown', onGlobalKey);
+    return () => window.removeEventListener('keydown', onGlobalKey);
+  }, []);
+
+  // ─── Capture original value + reset raw buffer when a cart input gains focus ─
+  useEffect(() => {
+    const onFocusIn = e => {
+      const el = e.target;
+      const isCart = el.classList.contains('cart-qty-input') || el.classList.contains('cart-cell-input');
+      csOrigVal.current  = isCart ? el.value : null;
+      csBuffer.current   = '';
+      csTimes.current    = [];
+      csLast.current     = 0;
+    };
+    document.addEventListener('focusin', onFocusIn, true);
+    return () => document.removeEventListener('focusin', onFocusIn, true);
+  }, []);
+
+  // ─── Barcode scan interception for cart inputs (qty / price / discount) ───
+  // Key insight: number inputs strip leading zeros and letters, so we CANNOT use
+  // el.value as the barcode. Instead we buffer raw keystrokes separately.
+  // On Enter: if raw buffer ≥6 chars AND last 4 inter-key gaps were all fast
+  // (the cold-start gap is at position -5 or earlier, so slice(-4) skips it), add to cart.
+  useEffect(() => {
+    const T = 60, MIN = 4;
+
+    const handler = e => {
+      const el = document.activeElement;
+      if (!el || el === searchRef.current) return;
+      const isCart = el.classList.contains('cart-qty-input') || el.classList.contains('cart-cell-input');
+      if (!isCart) {
+        csBuffer.current = '';
+        csTimes.current  = [];
+        csLast.current   = 0;
+        return;
+      }
+
+      const now = Date.now();
+
+      if (e.key.length === 1 && !e.ctrlKey && !e.altKey && !e.metaKey) {
+        const gap = csLast.current > 0 ? now - csLast.current : 9999;
+        csLast.current = now;
+        csTimes.current.push(gap);
+        if (csTimes.current.length > 20) csTimes.current.shift();
+        csBuffer.current += e.key; // raw char — preserves letters & leading zeros
+        return; // let the char reach the input normally
+      }
+
+      if (e.key === 'Backspace') {
+        csBuffer.current = csBuffer.current.slice(0, -1);
+        csLast.current   = 0; // break any scan sequence
+        return;
+      }
+
+      if (e.key === 'Enter') {
+        const buf       = csBuffer.current;
+        const recentFast = csTimes.current.length >= MIN &&
+          csTimes.current.slice(-MIN).every(g => g < T);
+
+        // Reset state regardless of outcome
+        csBuffer.current = '';
+        csTimes.current  = [];
+        csLast.current   = 0;
+
+        if (buf.length >= 6 && recentFast) {
+          e.preventDefault();
+          e.stopPropagation();
+
+          // Restore the input to the value it had when focused
+          const orig   = csOrigVal.current ?? '';
+          const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
+          setter.call(el, orig);
+          el.dispatchEvent(new Event('input', { bubbles: true }));
+
+          const hit = products.find(p => p.barcode === buf);
+          if (hit) addToCartRef.current?.(hit, null, false);
+          else setErr(`Barcode "${buf}" not found`);
+          searchRef.current?.focus();
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handler, true);
+    return () => window.removeEventListener('keydown', handler, true);
+  }, [products]);
+
   // ─── Auto-add product when navigated here with a scanned barcode ─────────
   const autoBarcodeDone = useRef(false);
   useEffect(() => {
@@ -418,7 +720,7 @@ export default function SalesCreate() {
   // ─── Cart helpers ─────────────────────────────────────────────────────────
   function flash(key) {
     setHl(h => ({ ...h, [key]: true }));
-    setTimeout(() => setHl(h => { const n = { ...h }; delete n[key]; return n; }), 1500);
+    setTimeout(() => setHl(h => { const n = { ...h }; delete n[key]; return n; }), 2000);
   }
 
   function addToCart(product, qty = null, focusQty = true) {
@@ -447,6 +749,7 @@ export default function SalesCreate() {
         selling_price: parseFloat(product.selling_price) || 0, promo_price: promo,
         wholesale_price: ws, discount: 0, total: 0,
         unit: product.unit || 'pcs', stock_qty: product.stock_qty || 0,
+        image: product.image || null,
       })];
     });
     setQuery(''); setShowDrop(false); setActive(-1);
@@ -456,6 +759,7 @@ export default function SalesCreate() {
       if (last) { last.focus(); last.select(); }
     }, 20);
   }
+  addToCartRef.current = addToCart;
 
   function onSizeSelect(size, qty) {
     const p = sizePicker.product;
@@ -498,6 +802,16 @@ export default function SalesCreate() {
   // ─── Complete sale ────────────────────────────────────────────────────────
   async function handleCompleteSale(saveOnly = false, redirectAndPrint = false) {
     setErr('');
+
+    // Block if too many unsynced offline invoices
+    if (!isOnline) {
+      const pending = await getPendingCount();
+      if (pending >= OFFLINE_LIMIT) {
+        setErr(`Sync required: ${pending} unsynced invoices. Please connect to internet to sync first.`);
+        return;
+      }
+    }
+
     if (payMethod === 'credit' && !customer) { setErr(t('lbl.credit_warn')); return; }
     if (payMethod === 'cash' && !saveOnly && cashNum < total) {
       setErr('Cash paid is less than total');
@@ -534,19 +848,17 @@ export default function SalesCreate() {
     // ── Offline path ──────────────────────────────────────────────────────────
     if (!isOnline) {
       try {
+        const cartSnapshot = cart.map(i => ({ name: i.name, qty: i.qty, unit_price: i.unit_price, discount: i.discount || 0, total: i.total }));
         const offlineResult = await enqueueOfflineSale(salePayload);
         cart.forEach(item => { if (item.product_id) deductStock(item.product_id, item.qty); });
         setCart([]); setCustomer(null); setCustQuery(''); setBillDisc(''); setCashPaid('');
         if (!saveOnly) {
-          if (redirectAndPrint && offlineResult?.id) {
-            navigate('/sales/' + offlineResult.id, { state: { autoPrint: true } });
-          } else {
-            setReceipt({
-              ...offlineResult,
-              items: cart.map(i => ({ name: i.name, qty: i.qty, unit_price: i.unit_price, total: i.total })),
-              subtotal, discount: totalDisc, total, paid, customer_name: customer?.name,
-            });
-          }
+          setReceipt({
+            ...offlineResult,
+            items: cartSnapshot,
+            payments,
+            subtotal, discount: totalDisc, total, paid, customer_name: customer?.name,
+          });
         }
       } catch (e) {
         setErr('Failed to save offline: ' + (e.message || 'unknown error'));
@@ -568,7 +880,8 @@ export default function SalesCreate() {
         } else {
           setReceipt({
             ...result,
-            items: cart.map(i => ({ name: i.name, qty: i.qty, unit_price: i.unit_price, total: i.total })),
+            items: cart.map(i => ({ name: i.name, qty: i.qty, unit_price: i.unit_price, discount: i.discount || 0, total: i.total })),
+            payments,
             subtotal, discount: totalDisc, total, paid, customer_name: customer?.name,
           });
         }
@@ -626,6 +939,7 @@ export default function SalesCreate() {
       <div className="bg-white border-b border-slate-200 px-3 h-12 flex items-center justify-between shrink-0 gap-2">
         <div className="flex items-center gap-2 shrink-0">
           <button onClick={() => navigate('/sales')} className="text-slate-500 hover:text-slate-700 transition-colors">{Icon.back}</button>
+          <button onClick={() => navigate('/dashboard')} title="Home" className="text-slate-500 hover:text-slate-700 transition-colors">{Icon.home}</button>
           <h1 className="font-bold text-slate-800 text-sm hidden sm:block">{t('page.new_sale')}</h1>
         </div>
 
@@ -694,8 +1008,8 @@ export default function SalesCreate() {
                 <input
                   ref={searchRef}
                   value={query}
-                  onChange={e => { setQuery(e.target.value); setShowDrop(true); setActive(-1); }}
-                  onFocus={() => setShowDrop(ready && dropdownItems.length > 0)}
+                  onChange={e => { setQuery(e.target.value); if (!isScan.current) { setShowDrop(true); setActive(-1); } }}
+                  onFocus={() => { if (!isScan.current) setShowDrop(ready && dropdownItems.length > 0); }}
                   onBlur={() => setTimeout(() => setShowDrop(false), 150)}
                   onKeyDown={onSearchKeyDown}
                   placeholder={ready ? t('pos.search_product') : t('lbl.loading')}
@@ -750,8 +1064,9 @@ export default function SalesCreate() {
             {cart.length > 0 ? (
               <>
                 {/* Cart header */}
-                <div className="grid gap-1.5 px-3 py-2 text-xs font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 sticky top-0 bg-white"
-                  style={{ gridTemplateColumns: '1fr 60px 72px 60px 72px 24px' }}>
+                <div className="grid gap-2 px-4 py-2 text-xs font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 sticky top-0 bg-white"
+                  style={{ gridTemplateColumns: '40px 1fr 64px 76px 64px 84px 24px' }}>
+                  <span></span>
                   <span>{t('th.product')}</span>
                   <span className="text-right">{t('th.qty')}</span>
                   <span className="text-right">{t('th.price')}</span>
@@ -795,9 +1110,9 @@ export default function SalesCreate() {
                       {p.image ? (
                         <img src={p.image} alt={p.name} className="w-full h-full object-cover" />
                       ) : (
-                        <svg className="w-8 h-8 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 0 1 2.828 0L16 16m-2-2l1.586-1.586a2 2 0 0 1 2.828 0L20 14M14 8h.01"/>
-                        </svg>
+                        <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-blue-100 to-indigo-200 text-blue-700 text-2xl font-black">
+                          {p.name?.[0]?.toUpperCase()}
+                        </div>
                       )}
                     </div>
                     <p className="text-xs font-semibold text-slate-700 truncate leading-tight">{p.name}</p>
@@ -824,10 +1139,10 @@ export default function SalesCreate() {
                 className="w-20 rounded-lg border border-slate-200 px-2 py-1.5 text-sm outline-none focus:ring-1 focus:ring-orange-400 text-right" />
               <button onClick={() => setDiscType('amount')}
                 className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-colors ${discType === 'amount' ? 'bg-slate-700 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>Rs</button>
-              {[5, 10, 15, 20].map(pct => (
-                <button key={pct} onClick={() => { setDiscType('percent'); setBillDisc(String(pct)); }}
+              {[0, 5, 10, 15, 20].map(pct => (
+                <button key={pct} onClick={() => { if (pct === 0) { setBillDisc('0'); setDiscType('percent'); } else { setDiscType('percent'); setBillDisc(String(pct)); } }}
                   className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-colors ${discType === 'percent' && billDiscount === String(pct) ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}>
-                  {pct}%
+                  {pct === 0 ? '0' : `${pct}%`}
                 </button>
               ))}
             </div>
@@ -874,66 +1189,108 @@ export default function SalesCreate() {
           <div className="px-4 py-3 border-b border-slate-100">
             <Step n="3" label={payMethod === 'cash' ? t('pos.cash_paid_label').toUpperCase() : payMethod === 'card' ? 'CARD DETAILS' : payMethod === 'credit' ? t('lbl.credit').toUpperCase() : 'SPLIT PAYMENT'} />
 
-            {/* Customer row */}
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">{t('lbl.customer')}</span>
-              <button onClick={() => setQcForm({ name: '', phone: '' })}
-                className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 font-semibold transition-colors">
-                {Icon.user} {t('cust.quick_add')}
-              </button>
-            </div>
-            <div className="relative mb-3">
-              <input value={custQuery}
-                onChange={e => { setCustQuery(e.target.value); setShowCust(true); }}
-                onFocus={() => setShowCust(true)}
-                onBlur={() => setTimeout(() => setShowCust(false), 150)}
-                placeholder={t('lbl.select_customer')}
-                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-blue-500" />
-              {customer && (
-                <button onClick={() => { setCustomer(null); setCustQuery(''); }}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-lg">&times;</button>
-              )}
-              {showCustDrop && filteredCusts.length > 0 && (
-                <div className="absolute bottom-full left-0 right-0 z-40 bg-white rounded-xl shadow-xl border border-slate-200 max-h-40 overflow-y-auto mb-1">
-                  {filteredCusts.map(c => (
-                    <button key={c.id} onMouseDown={() => { setCustomer(c); setCustQuery(c.name); setShowCust(false); }}
-                      className="w-full text-left px-3 py-2 text-sm hover:bg-blue-50 border-b border-slate-50 last:border-0">
-                      <p className="font-semibold">{c.name}</p>
-                      {c.phone && <p className="text-xs text-slate-400">{c.phone}</p>}
+            {/* Customer + Cash paid inline */}
+            {payMethod === 'cash' ? (
+              <div className="flex gap-3 mb-2">
+                {/* Customer */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">{t('lbl.customer')}</span>
+                    <button onClick={() => setQcForm({ name: '', phone: '' })}
+                      className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 font-semibold transition-colors">
+                      {Icon.user} {t('cust.quick_add')}
                     </button>
-                  ))}
+                  </div>
+                  <div className="relative">
+                    <input value={custQuery}
+                      onChange={e => { setCustQuery(e.target.value); setShowCust(true); }}
+                      onFocus={() => setShowCust(true)}
+                      onBlur={() => setTimeout(() => setShowCust(false), 150)}
+                      placeholder={t('lbl.select_customer')}
+                      className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-blue-500" />
+                    {customer && (
+                      <button onClick={() => { setCustomer(null); setCustQuery(''); }}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-lg">&times;</button>
+                    )}
+                    {showCustDrop && filteredCusts.length > 0 && (
+                      <div className="absolute bottom-full left-0 right-0 z-40 bg-white rounded-xl shadow-xl border border-slate-200 max-h-40 overflow-y-auto mb-1">
+                        {filteredCusts.map(c => (
+                          <button key={c.id} onMouseDown={() => { setCustomer(c); setCustQuery(c.name); setShowCust(false); }}
+                            className="w-full text-left px-3 py-2 text-sm hover:bg-blue-50 border-b border-slate-50 last:border-0">
+                            <p className="font-semibold">{c.name}</p>
+                            {c.phone && <p className="text-xs text-slate-400">{c.phone}</p>}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
-              )}
-            </div>
 
-            {/* Cash input */}
+                {/* Cash paid */}
+                <div className="w-36 shrink-0">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">{t('pos.cash_paid_label')}</span>
+                  </div>
+                  <input ref={cashInputRef} type="number" min="0" step="0.01" value={cashPaid}
+                    onChange={e => { setCashPaid(e.target.value); setShakeInput(false); }}
+                    onFocus={e => e.target.select()}
+                    onKeyDown={e => { if (e.key === 'Enter') handleCompleteSale(false, true); }}
+                    placeholder="0.00"
+                    className={`w-full rounded-lg border-2 px-3 py-2 text-base font-bold text-right outline-none transition-colors ${shakeInput ? 'shake border-red-500' : 'border-green-300 focus:border-green-500'}`} />
+                  {change > 0 && <p className="text-xs font-bold text-green-600 text-right mt-1">{t('lbl.change')}: Rs.{fmt(change)}</p>}
+                  {change < 0 && cashNum > 0 && <p className="text-xs font-bold text-red-500 text-right mt-1">අඩු: Rs.{fmt(Math.abs(change))}</p>}
+                </div>
+              </div>
+            ) : (
+              <>
+                {/* Customer (non-cash modes) */}
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">{t('lbl.customer')}</span>
+                  <button onClick={() => setQcForm({ name: '', phone: '' })}
+                    className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 font-semibold transition-colors">
+                    {Icon.user} {t('cust.quick_add')}
+                  </button>
+                </div>
+                <div className="relative mb-3">
+                  <input value={custQuery}
+                    onChange={e => { setCustQuery(e.target.value); setShowCust(true); }}
+                    onFocus={() => setShowCust(true)}
+                    onBlur={() => setTimeout(() => setShowCust(false), 150)}
+                    placeholder={t('lbl.select_customer')}
+                    className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-blue-500" />
+                  {customer && (
+                    <button onClick={() => { setCustomer(null); setCustQuery(''); }}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-lg">&times;</button>
+                  )}
+                  {showCustDrop && filteredCusts.length > 0 && (
+                    <div className="absolute bottom-full left-0 right-0 z-40 bg-white rounded-xl shadow-xl border border-slate-200 max-h-40 overflow-y-auto mb-1">
+                      {filteredCusts.map(c => (
+                        <button key={c.id} onMouseDown={() => { setCustomer(c); setCustQuery(c.name); setShowCust(false); }}
+                          className="w-full text-left px-3 py-2 text-sm hover:bg-blue-50 border-b border-slate-50 last:border-0">
+                          <p className="font-semibold">{c.name}</p>
+                          {c.phone && <p className="text-xs text-slate-400">{c.phone}</p>}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
+
+            {/* Quick-amount buttons for cash */}
             {payMethod === 'cash' && (
               <>
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">{t('pos.cash_paid_label')}</span>
-                  {change > 0 && (
-                    <span className="text-xs font-bold text-green-600">{t('lbl.change')}: Rs.{fmt(change)}</span>
-                  )}
-                  {change < 0 && cashNum > 0 && (
-                    <span className="text-xs font-bold text-red-500">= අඩුපාඩු Rs.{fmt(Math.abs(change))}</span>
-                  )}
-                </div>
-                <input ref={cashInputRef} type="number" min="0" step="0.01" value={cashPaid}
-                  onChange={e => { setCashPaid(e.target.value); setShakeInput(false); }}
-                  onKeyDown={e => { if (e.key === 'Enter') handleCompleteSale(false, true); }}
-                  placeholder="0.00"
-                  className={`w-full rounded-lg border-2 px-3 py-2.5 text-xl font-bold text-right outline-none transition-colors mb-2 ${shakeInput ? 'shake border-red-500' : 'border-green-300 focus:border-green-500'}`} />
-                <div className="flex gap-1.5 flex-wrap">
+                <div className="flex gap-1.5 flex-wrap mb-1">
                   {[100, 500, 1000, 2000, 5000].map(v => (
                     <button key={v} onClick={() => setCashPaid(String(v))}
-                      className="flex-1 py-1.5 bg-slate-100 hover:bg-slate-200 rounded-lg text-xs font-semibold text-slate-700 transition-colors min-w-0">
+                      className="flex-1 py-1.5 border-2 border-slate-200 hover:border-blue-400 hover:bg-blue-50 hover:text-blue-700 rounded-lg text-xs font-bold text-slate-600 transition-colors min-w-0">
                       {v}
                     </button>
                   ))}
                 </div>
                 {total > 0 && (
                   <button onClick={() => setCashPaid(fmt(total))}
-                    className="w-full mt-1.5 py-1.5 bg-blue-50 hover:bg-blue-100 rounded-lg text-xs font-semibold text-blue-700 transition-colors">
+                    className="w-full py-1.5 bg-blue-50 hover:bg-blue-100 rounded-lg text-xs font-semibold text-blue-700 transition-colors">
                     Exact: {fmtAmt(total)}
                   </button>
                 )}
@@ -1012,7 +1369,7 @@ export default function SalesCreate() {
             <button
               disabled={cart.length === 0}
               onClick={() => setHoldModal(true)}
-              className="w-full flex items-center justify-center gap-2 py-3 bg-amber-400 hover:bg-amber-500 disabled:bg-slate-200 disabled:text-slate-400 text-amber-900 rounded-xl font-bold text-sm transition-colors"
+              className="w-full flex items-center justify-center gap-2 py-3 bg-amber-400 hover:bg-amber-500 disabled:bg-amber-100 disabled:text-amber-400 disabled:cursor-not-allowed text-amber-900 rounded-xl font-bold text-sm transition-colors"
             >
               {Icon.pause} {t('pos.hold_btn')}
             </button>
@@ -1027,7 +1384,14 @@ export default function SalesCreate() {
           onClose={() => { setSizePicker(null); refocus(); }} />
       )}
 
-      {receipt && <Receipt sale={receipt} settings={settings} onClose={newSale} />}
+      {receipt && (
+        <Receipt
+          sale={receipt}
+          settings={settings}
+          user={user}
+          onClose={newSale}
+        />
+      )}
 
       {/* Hold modal */}
       {showHoldModal && (

@@ -1,0 +1,16 @@
+directories:
+  output: release
+  buildResources: build
+appId: cc.lumac.pos
+productName: Lumac POS
+files:
+  - filter:
+      - dist/**/*
+      - dist-electron/**/*
+win:
+  target: nsis
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: false
+  shortcutName: Lumac POS
+electronVersion: 43.2.0

@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import { translations } from '../i18n/translations';
+import { getApiUrl } from '../config/runtimeConfig';
 
 const LOCALES = ['si', 'en', 'ta'];
 
@@ -15,7 +16,7 @@ export function LocaleProvider({ children }) {
 
   // Sync from DB on mount — sets the locale to whatever is saved in settings
   useEffect(() => {
-    const apiUrl = import.meta.env.VITE_API_URL;
+    const apiUrl = getApiUrl();
     fetch(`${apiUrl}/api/settings/public`)
       .then(r => r.json())
       .then(data => {

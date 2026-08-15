@@ -2,8 +2,9 @@ import { useEffect, useState, useCallback } from 'react';
 import { useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { selectToken } from '../features/auth/authSlice';
+import { getApiUrl } from '../config/runtimeConfig';
 
-const API = import.meta.env.VITE_API_URL;
+const API = getApiUrl();
 
 function timeAgo(dateStr) {
   const diff = (Date.now() - new Date(dateStr)) / 1000;

@@ -4,6 +4,7 @@ export const usersApi = api.injectEndpoints({
   endpoints: build => ({
     getUsers: build.query({
       query: () => '/users',
+      keepUnusedDataFor: 7200,
       providesTags: (r) =>
         r ? [...r.map(u => ({ type: 'Users', id: u.id })), { type: 'Users', id: 'LIST' }]
           : [{ type: 'Users', id: 'LIST' }],

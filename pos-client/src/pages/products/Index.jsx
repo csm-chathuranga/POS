@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import {
   useGetProductsQuery,
@@ -7,6 +7,9 @@ import {
   useGetCategoriesQuery,
 } from '../../features/products/productsApi';
 import { useLocale } from '../../contexts/LocaleContext';
+import { useConnectivity } from '../../contexts/ConnectivityContext';
+import { getLocalProducts, getLocalCategories } from '../../services/cacheSync';
+import { getPendingQueueByTypes } from '../../services/offlineQueue';
 
 const SAMPLE_CSV_HEADERS = 'name,barcode,selling_price,cost_price,wholesale_price,stock_qty,alert_qty,unit';
 const SAMPLE_CSV_ROW     = 'Sample Product,123456,100.00,70.00,80.00,50,5,pcs';
@@ -86,13 +89,26 @@ const fmtStock = (qty, unit) => {
 
 export default function ProductsIndex() {
   const { t } = useLocale();
+  const { isOnline } = useConnectivity();
   const searchRef = useRef(null);
 
   const [search, setSearch]     = useState('');
   const [catId,  setCatId]      = useState('');
-  const [filter, setFilter]     = useState('all');   // 'all' | 'low_stock' | 'promo'
+  const [filter, setFilter]     = useState('all');
   const [page,   setPage]       = useState(1);
   const [applied, setApplied]   = useState({ search: '', category_id: '', low_stock: false, promo: false });
+
+  const [offlineProducts,   setOfflineProducts]   = useState([]);
+  const [offlineCategories, setOfflineCategories] = useState([]);
+  const [pendingProducts,   setPendingProducts]   = useState([]);
+
+  useEffect(() => {
+    if (!isOnline) {
+      getLocalProducts().then(setOfflineProducts);
+      getLocalCategories().then(setOfflineCategories);
+    }
+    getPendingQueueByTypes(['product_create', 'product_edit']).then(setPendingProducts);
+  }, [isOnline]);
 
   const { data, isLoading } = useGetProductsQuery({
     ...(applied.search      ? { search:      applied.search }      : {}),
@@ -100,10 +116,28 @@ export default function ProductsIndex() {
     ...(applied.low_stock   ? { low_stock:   'true' }              : {}),
     ...(applied.promo       ? { promo:       'true' }              : {}),
     page,
-  });
-  const { data: categories = [] } = useGetCategoriesQuery();
+  }, { skip: !isOnline });
+  const { data: categories = [] } = useGetCategoriesQuery(undefined, { skip: !isOnline });
   const [deleteProduct]  = useDeleteProductMutation();
   const [updateProduct]  = useUpdateProductMutation();
+
+  const displayCategories = isOnline ? categories : offlineCategories;
+
+  const offlineFiltered = useMemo(() => {
+    if (isOnline) return [];
+    let result = offlineProducts;
+    if (applied.search) {
+      const q = applied.search.toLowerCase();
+      result = result.filter(p => p.name?.toLowerCase().includes(q) || p.barcode?.includes(applied.search));
+    }
+    if (applied.category_id) result = result.filter(p => String(p.category_id) === String(applied.category_id));
+    if (applied.low_stock)   result = result.filter(p => parseFloat(p.stock_qty) <= parseFloat(p.alert_qty || 0));
+    if (applied.promo)       result = result.filter(p => p.promo_price);
+    return result;
+  }, [isOnline, offlineProducts, applied]);
+
+  const baseRows = isOnline ? (data?.data || []) : offlineFiltered;
+  const rows = [...pendingProducts, ...baseRows.filter(r => !pendingProducts.some(p => p.id === r.id))];
 
   const [printModal,   setPrintModal]   = useState(null);  // { product }
   const [printQty,     setPrintQty]     = useState(1);
@@ -144,8 +178,23 @@ export default function ProductsIndex() {
     return () => window.removeEventListener('keydown', onKey);
   }, []);
 
+  useEffect(() => {
+    if (search.length === 0) {
+      setApplied(a => ({ ...a, search: '' }));
+      setPage(1);
+      return;
+    }
+    if (search.length < 3) return;
+    const timer = setTimeout(() => {
+      setApplied(a => ({ ...a, search }));
+      setPage(1);
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [search]);
+
   function applySearch(e) {
     if (e) e.preventDefault();
+    if (search.length > 0 && search.length < 3) return;
     setApplied({ search, category_id: catId, low_stock: filter === 'low_stock', promo: filter === 'promo' });
     setPage(1);
   }
@@ -161,7 +210,6 @@ export default function ProductsIndex() {
     await deleteProduct(id);
   }
 
-  const rows = data?.data || [];
 
   return (
     <>
@@ -170,7 +218,7 @@ export default function ProductsIndex() {
       {/* Top toolbar */}
       <div className="flex flex-wrap items-center gap-2">
         {/* Search */}
-        <div className="relative flex-1 min-w-0 w-full sm:min-w-60">
+        <div className="relative flex-1 min-w-0 w-full sm:min-w-60 pb-4">
           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
@@ -181,10 +229,12 @@ export default function ProductsIndex() {
             ref={searchRef}
             value={search}
             onChange={e => setSearch(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && applySearch()}
-            placeholder={`${t('pos.search_product')} (F1)`}
+            placeholder={t('pos.search_product')}
             className="w-full pl-9 pr-4 py-2 rounded-lg border border-slate-200 text-sm outline-none focus:ring-2 focus:ring-blue-500 bg-white"
           />
+          {search.length > 0 && search.length < 3 && (
+            <p className="absolute left-0 top-full mt-1 text-[11px] text-slate-400 pl-1">Type {3 - search.length} more character{3 - search.length > 1 ? 's' : ''}…</p>
+          )}
         </div>
 
         {/* Category */}
@@ -194,7 +244,7 @@ export default function ProductsIndex() {
           className="rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500 bg-white"
         >
           <option value="">{t('lbl.all')} {t('prod.category')}</option>
-          {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+          {displayCategories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
         </select>
 
         {/* All / Low Stock / Promo toggle */}
@@ -234,13 +284,17 @@ export default function ProductsIndex() {
         </div>
 
         <div className="flex items-center gap-2 ml-auto">
-          {/* New Product */}
+          {!isOnline && (
+            <span className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 border border-amber-200 rounded-lg text-amber-700 text-xs font-medium">
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" /> Offline – changes sync when online
+            </span>
+          )}
           <Link
             to="/products/create"
             className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition-colors shadow-sm"
           >
-            <span className="text-lg leading-none">+</span> {t('btn.new_product')}
-          </Link>
+              <span className="text-lg leading-none">+</span> {t('btn.new_product')}
+            </Link>
         </div>
       </div>
 
@@ -256,7 +310,7 @@ export default function ProductsIndex() {
           </div>
         )}
         {!isLoading && rows.length === 0 && (
-          <div className="p-8 text-center text-slate-400 text-sm bg-white rounded-xl border border-slate-100">{t('prod.no_products')}</div>
+          <div className="p-8 text-center text-slate-400 text-sm bg-white rounded-xl border border-slate-100">{isOnline ? t('prod.no_products') : 'No cached products'}</div>
         )}
         {rows.map(p => {
           const isLow = parseFloat(p.stock_qty) <= parseFloat(p.alert_qty);
@@ -280,6 +334,7 @@ export default function ProductsIndex() {
                     <div className="min-w-0">
                       <p className="font-semibold text-slate-800 truncate">{p.name}</p>
                       {p.name_si && <p className="text-xs text-slate-400 truncate">{p.name_si}</p>}
+                      {p._pending && <span className="inline-block text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 mt-0.5">{p._queueType === 'product_edit' ? 'Edit Pending' : 'Pending Sync'}</span>}
                     </div>
                     <span className={`shrink-0 text-xs px-2 py-0.5 rounded-full font-semibold ${p.active ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500'}`}>
                       {p.active ? t('lbl.active') : t('lbl.inactive')}
@@ -319,10 +374,12 @@ export default function ProductsIndex() {
                   className="flex-1 py-1.5 text-xs font-semibold text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors text-center">
                   {t('btn.edit')}
                 </Link>
-                <button onClick={() => handleDelete(p.id, p.name)}
-                  className="flex-1 py-1.5 text-xs font-semibold text-red-500 bg-red-50 hover:bg-red-100 rounded-lg transition-colors">
-                  {t('btn.delete')}
-                </button>
+                {isOnline && (
+                  <button onClick={() => handleDelete(p.id, p.name)}
+                    className="flex-1 py-1.5 text-xs font-semibold text-red-500 bg-red-50 hover:bg-red-100 rounded-lg transition-colors">
+                    {t('btn.delete')}
+                  </button>
+                )}
               </div>
             </div>
           );
@@ -340,7 +397,7 @@ export default function ProductsIndex() {
       </div>
 
       {/* Desktop table */}
-      <div className="hidden md:block bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
+      <div className="hidden md:block bg-white rounded-b-xl shadow-sm border border-slate-100 overflow-hidden">
         {isLoading ? (
           <div className="flex flex-col items-center justify-center py-20 gap-3">
             <svg className="w-8 h-8 animate-spin text-blue-500" fill="none" viewBox="0 0 24 24">
@@ -352,23 +409,23 @@ export default function ProductsIndex() {
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="bg-slate-50 border-b border-slate-100">
+              <thead className="bg-slate-200 border-b border-slate-300">
                 <tr>
                   <th className="px-4 py-3 w-10"></th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">{t('th.product')}</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">{t('prod.barcode')}</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">{t('prod.category')}</th>
-                  <th className="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">{t('prod.sell_price')}</th>
-                  <th className="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">{t('prod.stock')}</th>
-                  <th className="px-4 py-3 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider">{t('th.status')}</th>
-                  <th className="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">{t('th.actions')}</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">{t('th.product')}</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">{t('prod.barcode')}</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">{t('prod.category')}</th>
+                  <th className="px-4 py-3 text-right text-xs font-semibold text-slate-600 uppercase tracking-wider">{t('prod.sell_price')}</th>
+                  <th className="px-4 py-3 text-right text-xs font-semibold text-slate-600 uppercase tracking-wider">{t('prod.stock')}</th>
+                  <th className="px-4 py-3 text-center text-xs font-semibold text-slate-600 uppercase tracking-wider">{t('th.status')}</th>
+                  <th className="px-4 py-3 text-right text-xs font-semibold text-slate-600 uppercase tracking-wider">{t('th.actions')}</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-50">
+              <tbody>
                 {rows.map(p => {
                   const isLow = parseFloat(p.stock_qty) <= parseFloat(p.alert_qty);
                   return (
-                    <tr key={p.id} className="hover:bg-slate-50 transition-colors">
+                    <tr key={p.id} className="odd:bg-white even:bg-slate-50 hover:bg-blue-50 border-b border-slate-100 transition-colors">
                       <td className="px-4 py-3">
                         {p.image ? (
                           <img src={p.image} alt={p.name} className="w-9 h-9 rounded-lg object-cover border border-slate-100" />
@@ -385,6 +442,7 @@ export default function ProductsIndex() {
                       <td className="px-4 py-3">
                         <p className="font-semibold text-slate-800">{p.name}</p>
                         {p.name_si && <p className="text-xs text-slate-400">{p.name_si}</p>}
+                        {p._pending && <span className="inline-block text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 mt-0.5">{p._queueType === 'product_edit' ? 'Edit Pending' : 'Pending Sync'}</span>}
                       </td>
                       <td className="px-4 py-3 font-mono text-xs text-slate-500">{p.barcode || '—'}</td>
                       <td className="px-4 py-3 text-slate-500 text-xs">{p.category?.name || '—'}</td>
@@ -409,16 +467,25 @@ export default function ProductsIndex() {
                         </span>
                       </td>
                       <td className="px-4 py-3 text-right">
-                        <div className="flex items-center justify-end gap-3">
-                          <button onClick={() => openPrintModal(p)} disabled={printingIds.has(p.id)} title="Print barcode"
-                            className="text-slate-400 hover:text-slate-700 transition-colors disabled:opacity-40">
+                        <div className="flex items-center justify-end gap-1.5">
+                          <button onClick={() => openPrintModal(p)} disabled={printingIds.has(p.id)}
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-slate-200 bg-white text-xs font-medium text-slate-600 hover:bg-slate-50 transition-colors disabled:opacity-40">
                             {printingIds.has(p.id)
-                              ? <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/></svg>
-                              : <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 14h12v8H6v-8z"/></svg>
+                              ? <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/></svg>
+                              : <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 14h12v8H6v-8z"/></svg>
                             }
+                            {t('btn.print')}
                           </button>
-                          <Link to={`/products/${p.id}/edit`} className="text-blue-600 hover:text-blue-800 font-medium">{t('btn.edit')}</Link>
-                          <button onClick={() => handleDelete(p.id, p.name)} className="text-red-500 hover:text-red-700 font-medium">{t('btn.delete')}</button>
+                          <Link to={`/products/${p.id}/edit`}
+                            className="inline-flex items-center px-2.5 py-1 rounded-md border border-blue-200 bg-blue-50 text-xs font-medium text-blue-600 hover:bg-blue-100 transition-colors">
+                            {t('btn.edit')}
+                          </Link>
+                          {isOnline && (
+                            <button onClick={() => handleDelete(p.id, p.name)}
+                              className="inline-flex items-center px-2.5 py-1 rounded-md border border-red-200 bg-red-50 text-xs font-medium text-red-500 hover:bg-red-100 transition-colors">
+                              {t('btn.delete')}
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>

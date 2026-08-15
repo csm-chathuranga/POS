@@ -4,11 +4,18 @@ import { useGetSalesQuery, useDeleteSaleMutation } from '../../features/sales/sa
 import { useSelector } from 'react-redux';
 import { selectRole } from '../../features/auth/authSlice';
 import { useLocale } from '../../contexts/LocaleContext';
+import { useConnectivity } from '../../contexts/ConnectivityContext';
+import { getLocalSales } from '../../services/cacheSync';
 
 export default function SalesIndex() {
   const role = useSelector(selectRole);
   const canDelete = role === 'admin';
   const navigate = useNavigate();
+  const { isOnline } = useConnectivity();
+  const [offlineSales, setOfflineSales] = useState([]);
+  useEffect(() => {
+    if (!isOnline) getLocalSales().then(setOfflineSales);
+  }, [isOnline]);
 
   // Barcode scanner: fast keystrokes → navigate to POS with barcode pre-loaded
   const barcodeRef  = useRef('');
@@ -43,13 +50,25 @@ export default function SalesIndex() {
   const [page, setPage]     = useState(1);
   const [applied, setApplied] = useState({});
 
-  const { data, isLoading } = useGetSalesQuery({ ...applied, page });
+  const { data, isLoading } = useGetSalesQuery({ ...applied, page }, { skip: !isOnline });
   const [deleteSale] = useDeleteSaleMutation();
+
+  const rows = isOnline ? (data?.data || []) : offlineSales.filter(s => {
+    if (applied.search && !s.invoice_no?.toLowerCase().includes(applied.search.toLowerCase())) return false;
+    if (applied.date && !s.created_at?.startsWith(applied.date)) return false;
+    return true;
+  });
+
+  useEffect(() => {
+    if (search.length === 0) { setApplied(a => ({ ...a, search: '' })); setPage(1); return; }
+    if (search.length < 3) return;
+    const timer = setTimeout(() => { setApplied(a => ({ ...a, search })); setPage(1); }, 400);
+    return () => clearTimeout(timer);
+  }, [search]);
 
   function handleSearch(e) {
     e.preventDefault();
-    setApplied({ search, date });
-    setPage(1);
+    if (search.length === 0 || search.length >= 3) { setApplied({ search, date }); setPage(1); }
   }
 
   async function handleDelete(id, inv) {
@@ -81,12 +100,22 @@ export default function SalesIndex() {
         </Link>
       </div>
 
+      {!isOnline && (
+        <div className="flex items-center gap-2 px-4 py-2 bg-amber-50 border border-amber-200 rounded-lg text-amber-700 text-sm font-medium">
+          <span className="w-2 h-2 rounded-full bg-amber-500 shrink-0" />
+          Offline — showing cached data (read only)
+        </div>
+      )}
+
       {/* Filters */}
       <form onSubmit={handleSearch} className="bg-white rounded-xl p-4 shadow-sm border border-slate-100 flex flex-wrap gap-3 items-end">
         <div className="flex-1 min-w-40">
           <label className="block text-xs font-semibold text-slate-600 mb-1">{t('th.invoice')}</label>
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="INV-0001"
             className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500" />
+          {search.length > 0 && search.length < 3 && (
+            <p className="text-[11px] text-slate-400 mt-1">Type {3 - search.length} more character{3 - search.length > 1 ? 's' : ''}…</p>
+          )}
         </div>
         <div>
           <label className="block text-xs font-semibold text-slate-600 mb-1">{t('th.date')}</label>
@@ -107,10 +136,10 @@ export default function SalesIndex() {
       {/* Mobile cards */}
       <div className="md:hidden space-y-2">
         {isLoading && <div className="p-8 text-center text-slate-400 text-sm bg-white rounded-xl border border-slate-100">{t('lbl.loading')}</div>}
-        {!isLoading && !(data?.data?.length) && (
+        {!isLoading && !rows.length && (
           <div className="p-8 text-center text-slate-400 text-sm bg-white rounded-xl border border-slate-100">{t('lbl.no_results')}</div>
         )}
-        {(data?.data || []).map(s => (
+        {rows.map(s => (
           <Link key={s.id} to={`/sales/${s.id}`}
             className="block bg-white rounded-xl border border-slate-100 shadow-sm p-4 hover:border-blue-200 hover:shadow-md transition-all active:scale-[0.99]">
             {/* Top row: invoice + status */}
@@ -156,10 +185,10 @@ export default function SalesIndex() {
       </div>
 
       {/* Desktop table */}
-      <div className="hidden md:block bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
+      <div className="hidden md:block bg-white rounded-b-xl shadow-sm border border-slate-100 overflow-hidden">
         {isLoading ? <div className="p-8 text-center text-slate-400 text-sm">{t('lbl.loading')}</div> : (
           <div className="overflow-x-auto"><table className="w-full text-sm">
-            <thead className="bg-slate-50 text-xs text-slate-500 uppercase tracking-wider">
+            <thead className="bg-slate-200 border-b border-slate-300 text-xs text-slate-600 uppercase tracking-wider">
               <tr>
                 <th className="px-4 py-3 text-left font-semibold">{t('th.invoice')}</th>
                 <th className="px-4 py-3 text-left font-semibold">{t('lbl.date_time')}</th>
@@ -171,9 +200,9 @@ export default function SalesIndex() {
                 <th className="px-4 py-3 text-right font-semibold">{t('th.actions')}</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-50">
-              {(data?.data || []).map(s => (
-                <tr key={s.id} className="hover:bg-slate-50">
+            <tbody>
+              {rows.map(s => (
+                <tr key={s.id} className="odd:bg-white even:bg-slate-50 hover:bg-blue-50 border-b border-slate-100 transition-colors">
                   <td className="px-4 py-3 font-mono text-blue-600 font-semibold">{s.invoice_no}</td>
                   <td className="px-4 py-3 text-slate-500">
                     <p>{fmtDate(s.created_at)}</p>
@@ -184,15 +213,17 @@ export default function SalesIndex() {
                   <td className="px-4 py-3 text-right font-semibold text-slate-800">{fmt(s.total)}</td>
                   <td className="px-4 py-3 text-center text-slate-500">{payMethod(s.payments)}</td>
                   <td className="px-4 py-3 text-center">{statusBadge(s.status)}</td>
-                  <td className="px-4 py-3 text-right whitespace-nowrap space-x-3">
-                    <Link to={`/sales/${s.id}`} className="text-blue-600 hover:text-blue-800 font-medium">{t('btn.view')}</Link>
-                    {canDelete && (
-                      <button onClick={() => handleDelete(s.id, s.invoice_no)} className="text-red-500 hover:text-red-700 font-medium">{t('btn.delete')}</button>
-                    )}
+                  <td className="px-4 py-3 text-right">
+                    <div className="flex items-center justify-end gap-1.5">
+                      <Link to={`/sales/${s.id}`} className="inline-flex items-center px-2.5 py-1 rounded-md border border-blue-200 bg-blue-50 text-xs font-medium text-blue-600 hover:bg-blue-100 transition-colors">{t('btn.view')}</Link>
+                      {canDelete && isOnline && (
+                        <button onClick={() => handleDelete(s.id, s.invoice_no)} className="inline-flex items-center px-2.5 py-1 rounded-md border border-red-200 bg-red-50 text-xs font-medium text-red-500 hover:bg-red-100 transition-colors">{t('btn.delete')}</button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}
-              {!(data?.data?.length) && (
+              {!rows.length && (
                 <tr><td colSpan={8} className="px-4 py-8 text-center text-slate-400">{t('lbl.no_results')}</td></tr>
               )}
             </tbody>

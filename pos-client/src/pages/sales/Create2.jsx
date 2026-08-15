@@ -36,6 +36,7 @@ const Icon = {
   split:   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4M4 17h12m0 0l-4-4m4 4l-4 4"/></svg>,
   check:   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7"/></svg>,
   back:    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7"/></svg>,
+  home:    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7m-9-9v9m0 0h9M5 10v9a1 1 0 0 0 1 1h3m5-10v9a1 1 0 0 0-1 1h-3m0-4h4"/></svg>,
   plus:    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v14M5 12h14"/></svg>,
   logout:  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3V7a3 3 0 0 1 3-3h4a3 3 0 0 1 3 3v1"/></svg>,
   refresh: <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 0 0 4.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 0 1-15.357-2m15.357 2H15"/></svg>,
@@ -104,10 +105,10 @@ function Receipt({ sale, settings, onClose }) {
 // ─── Size Picker Modal ────────────────────────────────────────────────────────
 function SizePickerModal({ product, onSelect, onClose }) {
   const { t } = useLocale();
-  const [qty, setQty]     = useState('');
+  const [qty, setQty]     = useState(1);
   const [active, setActive] = useState(0);
   const qtyRef = useRef(null);
-  useEffect(() => { qtyRef.current?.focus(); }, []);
+  useEffect(() => { qtyRef.current?.focus(); qtyRef.current?.select(); }, []);
   function handleKey(e) {
     if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')   { e.preventDefault(); setActive(a => Math.max(0, a - 1)); }
     if (e.key === 'ArrowRight' || e.key === 'ArrowDown')  { e.preventDefault(); setActive(a => Math.min(product.sizes.length - 1, a + 1)); }
@@ -126,15 +127,15 @@ function SizePickerModal({ product, onSelect, onClose }) {
             </button>
           ))}
         </div>
-        <div className="flex gap-3 items-end">
-          <div className="flex-1">
-            <label className="text-xs font-semibold text-slate-500 mb-1 block">{t('th.qty')}</label>
-            <input ref={qtyRef} type="number" min="0.001" step="0.001" value={qty} onChange={e => setQty(e.target.value)} placeholder="1"
-              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-orange-400" />
-          </div>
+        <div className="mb-3">
+          <label className="text-xs font-semibold text-slate-500 mb-1 block">{t('th.qty')}</label>
+          <input ref={qtyRef} type="number" min="0.001" step="0.001" value={qty} onChange={e => setQty(e.target.value)}
+            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-orange-400" />
+        </div>
+        <div className="flex gap-2">
           <button onClick={() => onSelect(product.sizes[active], parseFloat(qty) || 1)}
-            className="px-5 py-2 bg-orange-500 text-white rounded-lg text-sm font-semibold hover:bg-orange-600">{t('btn.add')}</button>
-          <button onClick={onClose} className="px-4 py-2 border border-slate-200 rounded-lg text-sm text-slate-600 hover:bg-slate-50">{t('btn.cancel')}</button>
+            className="flex-1 py-2.5 bg-orange-500 text-white rounded-lg text-sm font-semibold hover:bg-orange-600">{t('btn.add')}</button>
+          <button onClick={onClose} className="px-5 py-2.5 border border-slate-200 rounded-lg text-sm text-slate-600 hover:bg-slate-50">{t('btn.cancel')}</button>
         </div>
       </div>
     </div>
@@ -161,6 +162,7 @@ export default function SalesCreate2() {
   const [activeCat, setActiveCat] = useState(null);
   const [search, setSearch] = useState('');
   const searchRef = useRef(null);
+  useEffect(() => { searchRef.current?.focus(); }, []);
 
   // Cart
   const [cart, setCart]           = useState([]);
@@ -489,6 +491,9 @@ export default function SalesCreate2() {
           <button onClick={() => navigate('/sales')} className="text-slate-500 hover:text-slate-700 transition-colors">
             {Icon.back}
           </button>
+          <button onClick={() => navigate('/dashboard')} title="Home" className="text-slate-500 hover:text-slate-700 transition-colors">
+            {Icon.home}
+          </button>
           <h1 className="font-bold text-slate-800 text-sm hidden sm:block">{t('page.new_sale')}</h1>
           {!ready && <span className="text-xs text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">{t('lbl.loading')}</span>}
         </div>
@@ -713,8 +718,8 @@ export default function SalesCreate2() {
                     </span>
                     {/* Remove */}
                     <button onClick={() => removeFromCart(i)}
-                      className="text-slate-300 hover:text-red-500 text-xl leading-none opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-                      &times;
+                      className="text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all shrink-0">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                     </button>
                   </div>
                 ))}

@@ -20,6 +20,7 @@ export const translations = {
     'nav.devices':        'උපකරණ',
     'nav.management':     'කළමනාකරණය',
     'nav.new_sale':       'නව විකුණුම',
+    'nav.offline_locked': 'අන්තර්ජාලය නොමැති විට ලබා ගත නොහැක',
 
     'auth.title':         'පිවිසෙන්න',
     'auth.email':         'විද්‍යුත් තැපෑල',
@@ -401,6 +402,7 @@ export const translations = {
     'nav.devices':        'Devices',
     'nav.management':     'Management',
     'nav.new_sale':       'New Sale',
+    'nav.offline_locked': 'Unavailable while offline',
 
     'auth.title':         'Sign In',
     'auth.email':         'Email',
@@ -782,6 +784,7 @@ export const translations = {
     'nav.devices':        'சாதனங்கள்',
     'nav.management':     'நிர்வாகம்',
     'nav.new_sale':       'புதிய விற்பனை',
+    'nav.offline_locked': 'ஆஃப்லைனில் கிடைக்காது',
 
     'auth.title':         'உள்நுழைக',
     'auth.email':         'மின்னஞ்சல்',

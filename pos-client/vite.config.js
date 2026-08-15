@@ -2,7 +2,6 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 import electron from 'vite-plugin-electron/simple'
-
 const isElectron = process.env.BUILD_TARGET === 'electron'
 
 export default defineConfig({
@@ -41,7 +40,30 @@ export default defineConfig({
 
     // Electron build: bundle main + preload alongside the React app
     isElectron && electron({
-      main:    { entry: 'electron/main.js' },
+      main: {
+        entry: 'electron/main.js',
+        // Strip ELECTRON_RUN_AS_NODE from the spawn env — Vite sets it so Node
+        // can resolve electron imports during the build, but it makes Electron
+        // start as plain Node (disabling module patching and process.type).
+        onstart({ startup }) {
+          const { ELECTRON_RUN_AS_NODE, ...cleanEnv } = process.env
+          startup(['.', '--no-sandbox'], { env: cleanEnv })
+        },
+        vite: {
+          build: {
+            lib: { formats: ['cjs'] },
+            rolldownOptions: {
+              external: [
+                'electron',
+                'path', 'fs', 'os', 'url', 'module', 'stream',
+                'child_process', 'crypto', 'events', 'http', 'https',
+                'net', 'util', 'zlib',
+              ],
+              output: { entryFileNames: '[name].cjs' },
+            },
+          },
+        },
+      },
       preload: { input: 'electron/preload.js' },
     }),
 

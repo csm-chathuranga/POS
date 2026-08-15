@@ -15,7 +15,7 @@ router.get('/', auth, async (req, res) => {
   res.json(Object.fromEntries(settings.map(s => [s.key, s.value])));
 });
 
-router.post('/', auth, role('admin'), async (req, res) => {
+router.post('/', auth, role('admin', 'manager'), async (req, res) => {
   const { Setting } = req.models;
   for (const [key, value] of Object.entries(req.body)) {
     await Setting.upsert({ key, value: value ?? '' });

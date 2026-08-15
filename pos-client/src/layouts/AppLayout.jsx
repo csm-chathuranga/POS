@@ -6,10 +6,15 @@ import { useLocale } from '../contexts/LocaleContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { useConnectivity } from '../contexts/ConnectivityContext';
 import { syncAll, syncOfflineQueue } from '../services/cacheSync';
-import { getPendingCount } from '../services/offlineQueue';
+import { refreshProductCache } from '../hooks/useProductCache';
+import { getPendingCount, OFFLINE_LIMIT } from '../services/offlineQueue';
 import { electronAPI } from '../services/electronBridge';
 import NotificationDrawer, { useNotifBadge } from '../components/NotificationDrawer';
+import OfflineInvoicesDrawer from '../components/OfflineInvoicesDrawer';
+import SyncBlocker from '../components/SyncBlocker';
+import DailyConnectionGate from '../components/DailyConnectionGate';
 import { api } from '../app/baseApi';
+import { getApiUrl } from '../config/runtimeConfig';
 
 const settingsApi = api.injectEndpoints({
   endpoints: b => ({
@@ -18,7 +23,7 @@ const settingsApi = api.injectEndpoints({
   overrideExisting: false,
 });
 
-const API = import.meta.env.VITE_API_URL;
+const API = getApiUrl();
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
 const Icons = {
@@ -28,7 +33,8 @@ const Icons = {
   products:  <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>,
   purchases: <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 1 1 0-4h14a2 2 0 1 1 0 4M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8m-9 4h4"/></svg>,
   customers: <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4" strokeWidth={2}/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>,
-  suppliers: <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v5m-4 0h4"/></svg>,
+  suppliers:  <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v5m-4 0h4"/></svg>,
+  categories: <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 0 1 0 2.828l-5 5a2 2 0 0 1-2.828 0l-7-7A2 2 0 0 1 3 10V5a2 2 0 0 1 2-2z"/></svg>,
   users:     <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 1 1 0 5.292M15 21H3v-1a6 6 0 0 1 12 0v1zm0 0h6v-1a6 6 0 0 0-9-5.197"/></svg>,
   settings:  <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 0 0 2.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 0 0 1.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 0 0-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 0 0-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 0 0-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 0 0-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 0 0 1.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><circle cx="12" cy="12" r="3" strokeWidth={2}/></svg>,
   reports:   <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2zm0 0V9a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v10m-6 0a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2m0 0V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v14a2 2 0 0 0-2 2h-2a2 2 0 0 1-2-2z"/></svg>,
@@ -48,6 +54,7 @@ const PAGE_TITLE_KEYS = {
   '/purchases/create': 'page.new_purchase',
   '/customers':        'page.customers',
   '/suppliers':        'page.suppliers',
+  '/categories':       'page.categories',
   '/users':            'page.users',
   '/settings':         'page.settings',
   '/reports':          'page.reports',
@@ -68,12 +75,14 @@ export default function AppLayout() {
   const { isOnline, wasOffline } = useConnectivity();
   const { theme, setTheme } = useTheme();
   const navigation = useNavigation();
-  const [syncing, setSyncing]   = useState(false);
-  const syncedOnceRef           = useRef(false);
+  const [syncing, setSyncing]       = useState(false);
+  const [pendingCount, setPending]  = useState(0);
+  const syncedOnceRef               = useRef(false);
 
   const { data: layoutSettings } = settingsApi.useGetLayoutSettingsQuery(undefined, { skip: !token });
 
   const [notifOpen, setNotifOpen] = useState(false);
+  const [offlineDrawerOpen, setOfflineDrawerOpen] = useState(false);
   const notifCount = useNotifBadge(token);
 
   const [collapsed, setCollapsed] = useState(
@@ -109,6 +118,31 @@ export default function AppLayout() {
     document.title = page ? `${page} — ${shop}` : shop;
   }, [location.pathname, shopInfo.shop_name, t]);
 
+  // Poll pending count every 3 s so SyncBlocker stays accurate
+  useEffect(() => {
+    const refresh = async () => {
+      const count = await getPendingCount();
+      setPending(count);
+      electronAPI.reportSyncStatus({ pending: count });
+    };
+    refresh();
+    const id = setInterval(refresh, 3000);
+    return () => clearInterval(id);
+  }, []);
+
+  async function runSync() {
+    if (!isOnline) return;
+    setSyncing(true);
+    await syncOfflineQueue();
+    await syncAll();
+    setSyncing(false);
+    dispatch(api.util.invalidateTags(['Categories', 'Customers', 'Suppliers', 'Products', 'Sales']));
+    refreshProductCache();
+    const count = await getPendingCount();
+    setPending(count);
+    electronAPI.reportSyncStatus({ pending: count });
+  }
+
   // Sync local cache on first load; drain offline queue when connectivity restores
   useEffect(() => {
     if (!isOnline || !token) return;
@@ -121,8 +155,11 @@ export default function AppLayout() {
       : syncOfflineQueue().then(() => syncAll());
     work.finally(async () => {
       setSyncing(false);
-      const pending = await getPendingCount();
-      electronAPI.reportSyncStatus({ pending });
+      dispatch(api.util.invalidateTags(['Categories', 'Customers', 'Suppliers', 'Products', 'Sales']));
+      refreshProductCache();
+      const count = await getPendingCount();
+      setPending(count);
+      electronAPI.reportSyncStatus({ pending: count });
     });
   }, [isOnline, wasOffline, token]);
 
@@ -159,20 +196,24 @@ export default function AppLayout() {
   )?.[1];
   const pageTitle = pageTitleKey ? t(pageTitleKey) : 'LMUC POS';
 
+  // `offlineOk: false` marks pages that need a live server connection and
+  // have no offline fallback — they get greyed out / non-clickable while
+  // offline instead of navigating to a broken/empty page.
   const mainNav = [
-    { to: '/dashboard',    label: t('nav.dashboard'), icon: Icons.dashboard },
-    { to: '/sales/create', label: t('nav.new_sale'),  icon: Icons.pos,      highlight: true },
-    { to: '/sales',        label: t('nav.sales'),      icon: Icons.sales },
-    { to: '/products',     label: t('nav.products'),   icon: Icons.products },
-    { to: '/purchases',    label: t('nav.purchases'),  icon: Icons.purchases },
-    { to: '/customers',    label: t('nav.customers'),  icon: Icons.customers },
-    { to: '/suppliers',    label: t('nav.suppliers'),  icon: Icons.suppliers },
+    { to: '/dashboard',    label: t('nav.dashboard'), icon: Icons.dashboard, offlineOk: true },
+    { to: '/sales/create', label: t('nav.new_sale'),  icon: Icons.pos,      highlight: true, offlineOk: true },
+    { to: '/sales',        label: t('nav.sales'),      icon: Icons.sales,      offlineOk: true },
+    { to: '/products',     label: t('nav.products'),   icon: Icons.products,   offlineOk: true },
+    { to: '/purchases',    label: t('nav.purchases'),  icon: Icons.purchases,  offlineOk: true },
+    { to: '/customers',    label: t('nav.customers'),  icon: Icons.customers,  offlineOk: true },
+    { to: '/suppliers',    label: t('nav.suppliers'),  icon: Icons.suppliers,  offlineOk: true },
+    { to: '/categories',   label: t('nav.categories'), icon: Icons.categories, offlineOk: true },
   ];
 
   const mgmtNav = [
-    { to: '/reports',  label: t('nav.reports'),    icon: Icons.reports },
-    { to: '/users',    label: t('nav.users'),     icon: Icons.users },
-    { to: '/settings', label: t('nav.settings'),  icon: Icons.settings },
+    { to: '/reports',  label: t('nav.reports'),    icon: Icons.reports,  offlineOk: false },
+    { to: '/users',    label: t('nav.users'),     icon: Icons.users,    offlineOk: false },
+    { to: '/settings', label: t('nav.settings'),  icon: Icons.settings, offlineOk: false },
   ];
 
   function toggleCollapse() {
@@ -198,6 +239,13 @@ export default function AppLayout() {
     return `${base} text-slate-400 hover:text-white hover:bg-slate-700/60`;
   }
 
+  // Same layout as navCls but greyed-out + non-interactive, for nav items
+  // that require a live server connection while the app is offline.
+  function navClsLocked() {
+    return `flex items-center py-2.5 rounded-xl text-sm font-medium whitespace-nowrap overflow-hidden cursor-not-allowed opacity-40 text-slate-500
+      ${displayCollapsed ? 'justify-center px-0 w-10 mx-auto' : 'gap-3 px-3'}`;
+  }
+
   const zoomStyle = zoomScale !== 1 ? {
     zoom: zoomScale,
     width:  `${100 / zoomScale}vw`,
@@ -205,6 +253,7 @@ export default function AppLayout() {
   } : {};
 
   return (
+    <DailyConnectionGate>
     <div style={zoomStyle} className="flex h-screen bg-slate-100 overflow-hidden">
 
       {/* ── Mobile overlay backdrop ─────────────────────────────────────── */}
@@ -243,20 +292,34 @@ export default function AppLayout() {
 
         {/* Nav */}
         <nav className={`flex-1 overflow-y-auto py-3 space-y-0.5 ${displayCollapsed ? 'px-1' : 'px-2'}`}>
-          {mainNav.map(({ to, label, icon, highlight }) => (
-            <NavLink key={to} to={to}
-              end={to === '/sales' || to === '/dashboard'}
-              title={displayCollapsed ? label : undefined}
-              onClick={() => setMobileOpen(false)}
-              className={({ isActive }) => navCls(isActive)}
-            >
-              {icon}
-              {!displayCollapsed && <span className="flex-1 truncate">{label}</span>}
-              {!displayCollapsed && highlight && (
-                <span className="text-[10px] font-bold bg-white/20 px-1.5 py-0.5 rounded-md">POS</span>
-              )}
-            </NavLink>
-          ))}
+          {mainNav.map(({ to, label, icon, highlight, offlineOk }) => {
+            const locked = !isOnline && !offlineOk;
+            if (locked) {
+              return (
+                <div key={to}
+                  title={locked ? t('nav.offline_locked') : (displayCollapsed ? label : undefined)}
+                  className={navClsLocked()}
+                >
+                  {icon}
+                  {!displayCollapsed && <span className="flex-1 truncate">{label}</span>}
+                </div>
+              );
+            }
+            return (
+              <NavLink key={to} to={to}
+                end={to === '/sales' || to === '/dashboard'}
+                title={displayCollapsed ? label : undefined}
+                onClick={() => setMobileOpen(false)}
+                className={({ isActive }) => navCls(isActive)}
+              >
+                {icon}
+                {!displayCollapsed && <span className="flex-1 truncate">{label}</span>}
+                {!displayCollapsed && highlight && (
+                  <span className="text-[10px] font-bold bg-white/20 px-1.5 py-0.5 rounded-md">POS</span>
+                )}
+              </NavLink>
+            );
+          })}
 
           {isManager && (
             <>
@@ -266,16 +329,30 @@ export default function AppLayout() {
                   : <p className="text-xs font-semibold text-slate-500 uppercase tracking-widest">{t('nav.management')}</p>
                 }
               </div>
-              {mgmtNav.map(({ to, label, icon }) => (
-                <NavLink key={to} to={to}
-                  title={displayCollapsed ? label : undefined}
-                  onClick={() => setMobileOpen(false)}
-                  className={({ isActive }) => navCls(isActive)}
-                >
-                  {icon}
-                  {!displayCollapsed && <span className="flex-1 truncate">{label}</span>}
-                </NavLink>
-              ))}
+              {mgmtNav.map(({ to, label, icon, offlineOk }) => {
+                const locked = !isOnline && !offlineOk;
+                if (locked) {
+                  return (
+                    <div key={to}
+                      title={locked ? t('nav.offline_locked') : (displayCollapsed ? label : undefined)}
+                      className={navClsLocked()}
+                    >
+                      {icon}
+                      {!displayCollapsed && <span className="flex-1 truncate">{label}</span>}
+                    </div>
+                  );
+                }
+                return (
+                  <NavLink key={to} to={to}
+                    title={displayCollapsed ? label : undefined}
+                    onClick={() => setMobileOpen(false)}
+                    className={({ isActive }) => navCls(isActive)}
+                  >
+                    {icon}
+                    {!displayCollapsed && <span className="flex-1 truncate">{label}</span>}
+                  </NavLink>
+                );
+              })}
             </>
           )}
         </nav>
@@ -332,9 +409,39 @@ export default function AppLayout() {
                   <span className="text-xs font-semibold text-blue-600 hidden sm:inline">Syncing…</span>
                 </div>
               )}
+              {pendingCount > 0 && !syncing && (
+                <button
+                  onClick={() => setOfflineDrawerOpen(true)}
+                  className={`flex items-center gap-1.5 px-2 py-1 rounded-full border text-xs font-semibold transition-colors
+                    ${pendingCount >= OFFLINE_LIMIT
+                      ? 'bg-red-100 border-red-300 text-red-700 hover:bg-red-200'
+                      : pendingCount >= OFFLINE_LIMIT - 1
+                        ? 'bg-amber-100 border-amber-300 text-amber-700 hover:bg-amber-200'
+                        : 'bg-slate-100 border-slate-200 text-slate-600 hover:bg-slate-200'}`}
+                  title="View offline invoices"
+                >
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 0 0 4.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 0 1-15.357-2m15.357 2H15"/>
+                  </svg>
+                  <span className="hidden sm:inline">{pendingCount} pending</span>
+                  <span className="sm:hidden">{pendingCount}</span>
+                </button>
+              )}
             </div>
 
             <div className="flex items-center gap-1.5 md:gap-3">
+              {/* Manual sync button */}
+              {isOnline && (
+                <button
+                  onClick={runSync}
+                  disabled={syncing}
+                  title="Sync all data"
+                  className="p-2 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition-colors disabled:opacity-40">
+                  <svg className={`w-5 h-5 ${syncing ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 0 0 4.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 0 1-15.357-2m15.357 2H15"/>
+                  </svg>
+                </button>
+              )}
               {/* Theme toggle */}
               <button
                 onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
@@ -349,6 +456,17 @@ export default function AppLayout() {
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
                   </svg>
+                )}
+              </button>
+              <button onClick={() => setOfflineDrawerOpen(true)} title="Offline invoices"
+                className="relative p-2 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition-colors">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2m-6 9l2 2 4-4"/>
+                </svg>
+                {pendingCount > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-amber-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center leading-none">
+                    {pendingCount > 9 ? '9+' : pendingCount}
+                  </span>
                 )}
               </button>
               <button onClick={() => setNotifOpen(o => !o)}
@@ -408,6 +526,18 @@ export default function AppLayout() {
       </div>
 
       <NotificationDrawer open={notifOpen} onClose={() => setNotifOpen(false)} />
+
+      <OfflineInvoicesDrawer
+        open={offlineDrawerOpen}
+        onClose={() => setOfflineDrawerOpen(false)}
+        onSync={runSync}
+        syncing={syncing}
+        settings={layoutSettings}
+        user={user}
+      />
+
+      <SyncBlocker pendingCount={pendingCount} onSync={runSync} syncing={syncing} />
     </div>
+    </DailyConnectionGate>
   );
 }

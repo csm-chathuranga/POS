@@ -32,7 +32,7 @@ export default function PurchaseShow() {
   const balance  = parseFloat(purchase.total || 0) - parseFloat(purchase.paid || 0);
 
   return (
-    <div className="p-3 sm:p-6 max-w-4xl mx-auto space-y-5">
+    <div className="p-3 sm:p-6 space-y-5">
 
       {/* Header */}
       <div className="flex items-center gap-3">
@@ -85,7 +85,7 @@ export default function PurchaseShow() {
                 <td className="px-5 py-3 text-slate-400">{i + 1}</td>
                 <td className="px-5 py-3 font-medium text-slate-800">{item.product_name}</td>
                 <td className="px-5 py-3 text-right text-slate-600">{fmtNum(item.qty)}</td>
-                <td className="px-5 py-3 text-right text-slate-600">{fmt(item.unit_cost)}</td>
+                <td className="px-5 py-3 text-right text-slate-600">{fmt(item.cost_price)}</td>
                 <td className="px-5 py-3 text-right font-semibold text-slate-800">{fmt(item.total)}</td>
               </tr>
             ))}

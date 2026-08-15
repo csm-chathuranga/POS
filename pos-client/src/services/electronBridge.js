@@ -10,4 +10,10 @@ export const electronAPI = {
   triggerSync:      ()  => window.electronAPI?.triggerSync(),
   reportSyncStatus: (s) => window.electronAPI?.reportSyncStatus(s),
   onSyncRun:        (cb) => window.electronAPI?.onSyncRun(cb) ?? (() => {}),
+
+  // Backend URL + printer settings
+  getConfig:     ()       => window.electronAPI?.getConfig(),
+  saveConfig:    (config) => window.electronAPI?.saveConfig(config),
+  listPrinters:  ()       => window.electronAPI?.listPrinters(),
+  openSettings:  ()       => window.electronAPI?.openSettings(),
 }

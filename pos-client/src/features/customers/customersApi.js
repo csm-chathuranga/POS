@@ -4,6 +4,7 @@ export const customersApi = api.injectEndpoints({
   endpoints: build => ({
     getCustomers: build.query({
       query: params => ({ url: '/customers', params }),
+      keepUnusedDataFor: 600,
       providesTags: (r) =>
         r ? [...r.data.map(c => ({ type: 'Customers', id: c.id })), { type: 'Customers', id: 'LIST' }]
           : [{ type: 'Customers', id: 'LIST' }],

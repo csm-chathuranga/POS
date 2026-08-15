@@ -82,3 +82,11 @@ export default function useProductCache() {
 
   return { products, ready, deductStock, invalidate };
 }
+
+/** Call after a sync to bust the version stamp and force an immediate refetch. */
+export function refreshProductCache() {
+  localStorage.removeItem(LS_VER);
+  store.dispatch(
+    allApi.endpoints.getProductVersion.initiate(undefined, { forceRefetch: true })
+  );
+}
