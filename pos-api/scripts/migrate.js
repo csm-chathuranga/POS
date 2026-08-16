@@ -8,7 +8,6 @@
  *   node scripts/migrate.js <host> --seed
  */
 require('dotenv').config();
-const readline  = require('readline');
 const bcrypt    = require('bcryptjs');
 const { Sequelize } = require('sequelize');
 const getModels = require('../src/models');
@@ -30,31 +29,6 @@ if (!tenant) {
   process.exit(1);
 }
 
-const rl  = readline.createInterface({ input: process.stdin, output: process.stdout });
-const ask = (q, hidden = false) => new Promise(resolve => {
-  if (hidden && process.stdin.isTTY) {
-    process.stdout.write(q);
-    process.stdin.setRawMode(true);
-    let buf = '';
-    process.stdin.resume();
-    process.stdin.setEncoding('utf8');
-    const onData = ch => {
-      if (ch === '\n' || ch === '\r') {
-        process.stdin.setRawMode(false);
-        process.stdin.pause();
-        process.stdin.removeListener('data', onData);
-        process.stdout.write('\n');
-        resolve(buf);
-      } else if (ch === '') { process.exit(); }
-        else if (ch === '') { if (buf.length) { buf = buf.slice(0, -1); process.stdout.write('\b \b'); } }
-        else { buf += ch; process.stdout.write('*'); }
-    };
-    process.stdin.on('data', onData);
-  } else {
-    rl.question(q, resolve);
-  }
-});
-
 const log  = m => console.log(`\x1b[32m✔\x1b[0m  ${m}`);
 const warn = m => console.log(`\x1b[33m⚠\x1b[0m  ${m}`);
 
@@ -72,16 +46,11 @@ const DEFAULT_SETTINGS = [
 async function main() {
   console.log(`\n\x1b[1m── ${seed ? 'Migrate + Seed' : 'Migrate'}: ${host} → ${tenant.database} ──\x1b[0m\n`);
 
-  let adminName, adminEmail, adminPass;
-  if (seed) {
-    adminName  = (await ask('Admin full name:   ')).trim();
-    adminEmail = (await ask('Admin email:       ')).trim();
-    adminPass  = (await ask('Admin password:    ', true)).trim();
-    if (!adminName || !adminEmail || !adminPass) {
-      console.error('\x1b[31m✖\x1b[0m  All fields required.'); process.exit(1);
-    }
-  }
-  rl.close();
+  const DEFAULT_USERS = [
+    { name: 'Admin',   email: 'admin@lumac.lk',   password: '123', role: 'admin' },
+    { name: 'Manager', email: 'manager@lumac.lk', password: '123', role: 'manager' },
+    { name: 'Cashier', email: 'cashier@lumac.lk', password: '123', role: 'cashier' },
+  ];
 
   const seq = new Sequelize(tenant.database, tenant.username, tenant.password, {
     host:    tenant.host || process.env.DB_HOST || 'localhost',
@@ -119,10 +88,10 @@ async function main() {
 
     // ── Step 2: Roles ─────────────────────────────────────────────────────────
     console.log('\n\x1b[1mRoles\x1b[0m');
-    let adminRole;
+    const roleMap = {};
     for (const name of DEFAULT_ROLES) {
       const [row, created] = await Role.findOrCreate({ where: { name } });
-      if (name === 'admin') adminRole = row;
+      roleMap[name] = row;
       created ? log(`Created: ${name}`) : warn(`Exists:  ${name}`);
     }
 
@@ -133,16 +102,18 @@ async function main() {
       created ? log(`Created: ${key}`) : warn(`Exists:  ${key}`);
     }
 
-    // ── Step 4: Admin user ────────────────────────────────────────────────────
-    console.log('\n\x1b[1mAdmin user\x1b[0m');
-    const existing = await User.findOne({ where: { email: adminEmail } });
-    if (existing) {
-      warn(`User already exists: ${adminEmail} — skipped.`);
-    } else {
-      const hash = await bcrypt.hash(adminPass, 12);
-      const user = await User.create({ name: adminName, email: adminEmail, password: hash });
-      await user.addRole(adminRole);
-      log(`Created: ${adminEmail}`);
+    // ── Step 4: Default users ─────────────────────────────────────────────────
+    console.log('\n\x1b[1mUsers\x1b[0m');
+    for (const u of DEFAULT_USERS) {
+      const existing = await User.findOne({ where: { email: u.email } });
+      if (existing) {
+        warn(`Exists:  ${u.email}`);
+      } else {
+        const hash = await bcrypt.hash(u.password, 12);
+        const user = await User.create({ name: u.name, email: u.email, password: hash });
+        await user.addRole(roleMap[u.role]);
+        log(`Created: ${u.email} (${u.role})`);
+      }
     }
   }
 
