@@ -10,6 +10,11 @@ module.exports = {
     username: 'pos_user',
     password: 'Pos@2026Strong',
   },
+  'kahatagasdigiliya-pos.lumac.cc': {
+    database: 'kahatagasdigiliya_pos',
+    username: 'pos_user',
+    password: 'Pos@2026Strong',
+  },
   localhost: {
    database: 'ckd',
     username: 'root',
