@@ -302,7 +302,7 @@ function Receipt({ sale, settings, user, onClose }) {
     @media print {
       html, body { overflow: visible !important; height: auto !important; }
       @page { margin: 0; size: 80mm auto; }
-      body { padding: 3mm; width: 80mm !important; }
+      body { padding: 3mm 5mm 3mm 3mm; width: 80mm !important; }
     }
   </style>
 </head>
@@ -324,7 +324,7 @@ function Receipt({ sale, settings, user, onClose }) {
   <div class="row"><span>${rl('lbl.subtotal')}</span><span>${f(sale.subtotal)}</span></div>
   ${parseFloat(sale.discount) > 0 ? `<div class="disc-box"><span>${rl('lbl.discount')}</span><span>- ${f(sale.discount)}</span></div>` : ''}
   <div class="total-row"><span>${rl('lbl.grand_total')}</span><span>${currency} ${f(sale.total)}</span></div>
-  ${paidCash > 0  ? `<div class="paid-row"><span>${rl('lbl.cash_paid')} (${rl('lbl.cash')})</span><span>${f(paidCash)}</span></div>` : ''}
+  ${paidCash > 0  ? `<div class="paid-row"><span>${rl('lbl.cash_paid')} (${rl('lbl.cash')})</span><span>${f(paidCard === 0 && paidCredit === 0 ? parseFloat(sale.paid || 0) : paidCash)}</span></div>` : ''}
   ${paidCard > 0  ? `<div class="paid-row"><span>${rl('lbl.cash_paid')} (${rl('lbl.card')})</span><span>${f(paidCard)}</span></div>` : ''}
   ${paidCredit > 0 ? `<div class="paid-row"><span>${rl('lbl.credit')}</span><span>${f(paidCredit)}</span></div>` : ''}
   ${change > 0    ? `<div class="change-row"><span>${rl('lbl.change')}</span><span>${f(change)}</span></div>` : ''}
