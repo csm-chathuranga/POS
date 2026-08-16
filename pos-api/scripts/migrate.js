@@ -94,8 +94,29 @@ async function main() {
     log('Tables created / updated.');
   }
 
+  const DEFAULT_FEATURES = [
+    { key: 'dashboard',  label: 'Dashboard',   path: '/dashboard',    group: 'main', sort_order: 1 },
+    { key: 'new_sale',   label: 'New Sale',     path: '/sales/create', group: 'main', sort_order: 2 },
+    { key: 'sales',      label: 'Sales',        path: '/sales',        group: 'main', sort_order: 3 },
+    { key: 'invoices',   label: 'Invoices',     path: '/invoices',     group: 'main', sort_order: 4 },
+    { key: 'products',   label: 'Products',     path: '/products',     group: 'main', sort_order: 5 },
+    { key: 'purchases',  label: 'Purchases',    path: '/purchases',    group: 'main', sort_order: 6 },
+    { key: 'customers',  label: 'Customers',    path: '/customers',    group: 'main', sort_order: 7 },
+    { key: 'credit',     label: 'Credit Book',  path: '/credit',       group: 'main', sort_order: 8 },
+    { key: 'suppliers',  label: 'Suppliers',    path: '/suppliers',    group: 'main', sort_order: 9 },
+    { key: 'categories', label: 'Categories',   path: '/categories',   group: 'main', sort_order: 10 },
+    { key: 'reports',    label: 'Reports',      path: '/reports',      group: 'mgmt', sort_order: 11 },
+    { key: 'users',      label: 'Users',        path: '/users',        group: 'mgmt', sort_order: 12 },
+    { key: 'settings',   label: 'Settings',     path: '/settings',     group: 'mgmt', sort_order: 13 },
+  ];
+
+  const ROLE_DEFAULTS = {
+    manager: ['dashboard','new_sale','sales','products','purchases','customers','credit','suppliers','categories','reports'],
+    cashier:  ['dashboard','new_sale','sales','customers','credit'],
+  };
+
   if (seed) {
-    const { User, Role, Setting } = models;
+    const { User, Role, Setting, Feature } = models;
 
     // ── Step 2: Roles ─────────────────────────────────────────────────────────
     console.log('\n\x1b[1mRoles\x1b[0m');
@@ -113,7 +134,28 @@ async function main() {
       created ? log(`Created: ${key}`) : warn(`Exists:  ${key}`);
     }
 
-    // ── Step 4: Default users ─────────────────────────────────────────────────
+    // ── Step 4: Features ──────────────────────────────────────────────────────
+    console.log('\n\x1b[1mFeatures\x1b[0m');
+    const featMap = {};
+    for (const f of DEFAULT_FEATURES) {
+      const [row, created] = await Feature.findOrCreate({ where: { key: f.key }, defaults: f });
+      featMap[f.key] = row;
+      created ? log(`Created: ${f.key}`) : warn(`Exists:  ${f.key}`);
+    }
+    // Assign default features to manager and cashier (admin bypasses feature check)
+    for (const [roleName, keys] of Object.entries(ROLE_DEFAULTS)) {
+      const r = roleMap[roleName];
+      if (!r) continue;
+      const current = await r.getFeatures();
+      if (current.length === 0) {
+        await r.setFeatures(keys.map(k => featMap[k]).filter(Boolean));
+        log(`Assigned default features to: ${roleName}`);
+      } else {
+        warn(`Features already set for: ${roleName}`);
+      }
+    }
+
+    // ── Step 5: Default users ─────────────────────────────────────────────────
     console.log('\n\x1b[1mUsers\x1b[0m');
     for (const u of DEFAULT_USERS) {
       const existing = await User.findOne({ where: { email: u.email } });

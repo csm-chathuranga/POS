@@ -10,6 +10,7 @@ import {
   useGetReportCreditCustomersQuery,
   useGetReportStockSummaryQuery,
   useGetReportRevenueQuery,
+  useGetReportStockMovementsQuery,
 } from '../../features/reports/reportsApi';
 
 const fmt     = n => 'Rs. ' + Number(n || 0).toLocaleString('en-LK', { minimumFractionDigits: 2 });
@@ -573,6 +574,115 @@ function CreditCustomers() {
   );
 }
 
+// ─── Tab: Stock Movements ───────────────────────────────────────────────────────
+const TYPE_BADGE = {
+  in:         'bg-green-100 text-green-700',
+  out:        'bg-red-100 text-red-600',
+  adjustment: 'bg-yellow-100 text-yellow-700',
+  return:     'bg-blue-100 text-blue-700',
+};
+
+function StockMovements() {
+  const [from, setFrom]   = useState(monthStart());
+  const [to, setTo]       = useState(todayStr());
+  const [type, setType]   = useState('all');
+  const [search, setSearch] = useState('');
+  const [page, setPage]   = useState(1);
+
+  const { data, isLoading } = useGetReportStockMovementsQuery({ from, to, type, search, page });
+  const { data: rows = [], total = 0, last_page = 1 } = data || {};
+
+  const fmtQtySign = (row) => {
+    const q = parseFloat(row.qty);
+    return (row.type === 'out' ? '−' : '+') + fmtQty(Math.abs(q));
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* Filters */}
+      <div className="flex flex-wrap gap-2 items-center">
+        <DateRange from={from} to={to} onFrom={v => { setFrom(v); setPage(1); }} onTo={v => { setTo(v); setPage(1); }} />
+        <select value={type} onChange={e => { setType(e.target.value); setPage(1); }}
+          className="px-3 py-2 text-sm border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-500">
+          <option value="all">All types</option>
+          <option value="in">In</option>
+          <option value="out">Out</option>
+          <option value="adjustment">Adjustment</option>
+          <option value="return">Return</option>
+        </select>
+        <input value={search} onChange={e => { setSearch(e.target.value); setPage(1); }}
+          placeholder="Search product…"
+          className="px-3 py-2 text-sm border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 w-48" />
+      </div>
+
+      {/* Summary count */}
+      <p className="text-sm text-slate-500">{total} movement{total !== 1 ? 's' : ''}</p>
+
+      {isLoading ? <Spin /> : (
+        <TableWrap>
+          <table className="w-full text-sm">
+            <thead className="bg-slate-50 text-xs text-slate-500 uppercase tracking-wider">
+              <tr>
+                <Th>Date</Th>
+                <Th>Product</Th>
+                <Th>Type</Th>
+                <Th right>Qty</Th>
+                <Th right>Before</Th>
+                <Th right>After</Th>
+                <Th>Reference</Th>
+                <Th>Note</Th>
+                <Th>User</Th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-50">
+              {rows.map(r => (
+                <tr key={r.id} className="hover:bg-slate-50 transition-colors">
+                  <td className="px-4 py-2.5 text-xs text-slate-400 whitespace-nowrap">{fmtDate(r.created_at)}</td>
+                  <td className="px-4 py-2.5 font-medium text-slate-800">{r.product_name}</td>
+                  <td className="px-4 py-2.5">
+                    <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-semibold capitalize ${TYPE_BADGE[r.type] || 'bg-slate-100 text-slate-600'}`}>
+                      {r.type}
+                    </span>
+                  </td>
+                  <td className={`px-4 py-2.5 text-right font-bold ${r.type === 'out' ? 'text-red-500' : 'text-green-600'}`}>
+                    {fmtQtySign(r)} {r.unit}
+                  </td>
+                  <td className="px-4 py-2.5 text-right text-slate-500">{fmtQty(r.stock_before)}</td>
+                  <td className="px-4 py-2.5 text-right text-slate-700 font-semibold">{fmtQty(r.stock_after)}</td>
+                  <td className="px-4 py-2.5 text-xs font-mono text-slate-500">{r.reference || '—'}</td>
+                  <td className="px-4 py-2.5 text-xs text-slate-400">{r.note || '—'}</td>
+                  <td className="px-4 py-2.5 text-xs text-slate-500">{r.user_name}</td>
+                </tr>
+              ))}
+              {!rows.length && (
+                <tr><td colSpan={9} className="px-4 py-10 text-center text-slate-400">No movements found</td></tr>
+              )}
+            </tbody>
+          </table>
+          {last_page > 1 && (() => {
+            const pages = [];
+            const visible = new Set([1, last_page]);
+            for (let p = Math.max(1, page - 2); p <= Math.min(last_page, page + 2); p++) visible.add(p);
+            const sorted = [...visible].sort((a, b) => a - b);
+            sorted.forEach((p, i) => { if (i > 0 && p - sorted[i-1] > 1) pages.push('…'); pages.push(p); });
+            return (
+              <div className="flex items-center justify-end gap-1 px-4 py-3 border-t border-slate-100">
+                <button disabled={page <= 1} onClick={() => setPage(p => p-1)} className="px-3 py-1 rounded border border-slate-200 text-sm disabled:opacity-40 hover:bg-slate-50">‹</button>
+                {pages.map((p, i) => p === '…'
+                  ? <span key={`e${i}`} className="px-2 text-slate-400">…</span>
+                  : <button key={p} onClick={() => setPage(p)} className={`px-3 py-1 rounded border text-sm transition-colors ${p === page ? 'bg-blue-600 text-white border-blue-600' : 'border-slate-200 hover:bg-slate-50'}`}>{p}</button>
+                )}
+                <button disabled={page >= last_page} onClick={() => setPage(p => p+1)} className="px-3 py-1 rounded border border-slate-200 text-sm disabled:opacity-40 hover:bg-slate-50">›</button>
+              </div>
+            );
+          })()}
+        </TableWrap>
+      )}
+    </div>
+  );
+}
+
+// ─── Daily Sales Report ───────────────────────────────────────────────────────
 const TAB_ICONS = {
   today:    <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2z"/></svg>,
   dayend:   <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 1 1-18 0 9 9 0 0 1 18 0z"/></svg>,
@@ -583,6 +693,7 @@ const TAB_ICONS = {
   lowstock: <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>,
   stock:    <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>,
   credit:   <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 0 0 3-3V8a3 3 0 0 0-3-3H6a3 3 0 0 0-3 3v8a3 3 0 0 0 3 3z"/></svg>,
+  movements:<svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4M17 8v12m0 0l4-4m-4 4l-4-4"/></svg>,
 };
 
 // ─── Main Page ─────────────────────────────────────────────────────────────────
@@ -599,7 +710,8 @@ export default function Reports() {
     { id: 'top',      label: t('rep.top_products') },
     { id: 'lowstock', label: t('rep.low_stock') },
     { id: 'stock',    label: t('rep.stock_summary') },
-    { id: 'credit',   label: t('rep.credit') },
+    { id: 'credit',    label: t('rep.credit') },
+    { id: 'movements', label: 'Stock Movements' },
   ];
 
   return (
@@ -648,7 +760,8 @@ export default function Reports() {
         {tab === 'top'      && <TopProducts />}
         {tab === 'lowstock' && <LowStock />}
         {tab === 'stock'    && <StockSummary />}
-        {tab === 'credit'   && <CreditCustomers />}
+        {tab === 'credit'    && <CreditCustomers />}
+        {tab === 'movements' && <StockMovements />}
       </div>
     </div>
   );

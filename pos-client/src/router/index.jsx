@@ -13,7 +13,9 @@ import SalesIndex     from '../pages/sales/Index';
 import SalesCreate    from '../pages/sales/Create';
 import SalesCreate2   from '../pages/sales/Create2';
 import SalesShow      from '../pages/sales/Show';
-import CustomersIndex from '../pages/customers/Index';
+import CustomersIndex  from '../pages/customers/Index';
+import CustomerCredit  from '../pages/customers/Credit';
+import CreditIndex     from '../pages/credit/Index';
 import PurchasesIndex from '../pages/purchases/Index';
 import PurchasesCreate from '../pages/purchases/Create';
 import PurchasesShow   from '../pages/purchases/Show';
@@ -22,6 +24,10 @@ import UsersIndex     from '../pages/users/Index';
 import SuppliersIndex   from '../pages/suppliers/Index';
 import CategoriesIndex  from '../pages/categories/Index';
 import Settings         from '../pages/Settings';
+import RolesPage        from '../pages/settings/Roles';
+import InvoicesIndex    from '../pages/invoices/Index';
+import InvoiceCreate    from '../pages/invoices/Create';
+import InvoiceShow      from '../pages/invoices/Show';
 
 function ProtectedRoute() {
   const token = useSelector(selectToken);
@@ -72,6 +78,8 @@ export const router = createAppRouter([
         { path: 'products/create',      element: <ProductCreate /> },
         { path: 'products/:id/edit',    element: <ProductEdit /> },
         { path: 'customers',            element: <CustomersIndex /> },
+        { path: 'customers/:id/credit', element: <CustomerCredit /> },
+        { path: 'credit',               element: <CreditIndex /> },
         { path: 'purchases',            element: <PurchasesIndex /> },
         { path: 'purchases/create',     element: <PurchasesCreate /> },
         { path: 'purchases/:id',        element: <PurchasesShow /> },
@@ -83,6 +91,10 @@ export const router = createAppRouter([
             { path: 'reports',  element: <Reports /> },
             { path: 'users',    element: <UsersIndex /> },
             { path: 'settings', element: <Settings /> },
+            { path: 'settings/roles', element: <RolesPage /> },
+            { path: 'invoices', element: <InvoicesIndex /> },
+            { path: 'invoices/create', element: <InvoiceCreate /> },
+            { path: 'invoices/:id', element: <InvoiceShow /> },
           ],
         },
       ],

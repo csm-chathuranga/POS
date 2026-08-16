@@ -198,7 +198,7 @@ function CartRow({ item, onChange, onRemove, onZoom, onEnter, highlight }) {
   useEffect(() => { setQtyStr(String(item.qty)); }, [item.qty]);
 
   return (
-    <div className={`grid items-center gap-2 px-4 py-2.5 rounded-lg text-sm transition-all duration-700 ${highlight ? 'bg-green-100 ring-2 ring-green-400' : 'bg-slate-100 hover:bg-slate-200'}`}
+    <div className={`grid items-center gap-2 px-4 py-2.5 text-sm transition-all duration-700 ${highlight ? 'bg-green-100 ring-2 ring-green-400' : 'bg-slate-100 hover:bg-slate-200'}`}
       style={{ gridTemplateColumns: '1fr 64px 76px 64px 84px 24px' }}>
       <button type="button" onClick={onZoom} className="min-w-0 text-left">
         <p className="font-semibold text-slate-800 truncate leading-tight">{item.name}</p>
@@ -213,7 +213,9 @@ function CartRow({ item, onChange, onRemove, onZoom, onEnter, highlight }) {
         onChange={e => onChange({ unit_price: parseFloat(e.target.value) || 0 })}
         onFocus={e => e.target.select()}
         className="cart-cell-input text-right rounded-lg border border-slate-200 px-1.5 py-1 text-sm outline-none focus:ring-1 focus:ring-blue-500 w-full" />
-      <input type="number" min="0" step="0.01" value={item.discount} onChange={e => onChange({ discount: parseFloat(e.target.value) || 0 })}
+      <input type="text" inputMode="numeric" pattern="[0-9]*"
+        value={Math.floor(item.discount || 0)}
+        onChange={e => onChange({ discount: Math.floor(parseInt(e.target.value) || 0) })}
         onFocus={e => e.target.select()}
         placeholder="0"
         className="cart-cell-input text-right rounded-lg border border-slate-200 px-1.5 py-1 text-sm outline-none focus:ring-1 focus:ring-blue-500 w-full" />
@@ -519,6 +521,7 @@ export default function SalesCreate() {
   const [customItem, setCustom]     = useState(null);
   const [zoomedItem, setZoomed]     = useState(null);
   const [err, setErr]           = useState('');
+  const [custErr, setCustErr]   = useState('');
 
   // Payment (inline)
   const [payMethod, setPayMethod] = useState('cash');
@@ -527,6 +530,7 @@ export default function SalesCreate() {
   const [cardRef, setCardRef]     = useState('');
   const [splitCash, setSplitCash] = useState('');
   const [splitCardRef, setSplitCardRef] = useState('');
+  const [splitMode, setSplitMode] = useState('card'); // 'card' | 'credit'
   const cashInputRef = useRef(null);
 
   // Customer
@@ -812,7 +816,8 @@ export default function SalesCreate() {
       }
     }
 
-    if (payMethod === 'credit' && !customer) { setErr(t('lbl.credit_warn')); return; }
+    if (payMethod === 'credit' && !customer) { setCustErr(t('lbl.credit_warn')); return; }
+    if (payMethod === 'split' && splitMode === 'credit' && !customer) { setCustErr(t('lbl.credit_warn')); return; }
     if (payMethod === 'cash' && !saveOnly && cashNum < total) {
       setErr('Cash paid is less than total');
       cashInputRef.current?.focus();
@@ -827,9 +832,14 @@ export default function SalesCreate() {
     else if (payMethod === 'qr')     payments.push({ method: 'qr',     amount: total,      reference: null });
     else if (payMethod === 'credit') payments.push({ method: 'credit', amount: total,      reference: null });
     else if (payMethod === 'split') {
-      const sc = parseFloat(splitCash) || 0;
-      payments.push({ method: 'cash', amount: sc,            reference: null });
-      payments.push({ method: 'card', amount: Math.max(0, total - sc), reference: splitCardRef });
+      const sc        = parseFloat(splitCash) || 0;
+      const remaining = Math.max(0, total - sc);
+      payments.push({ method: 'cash', amount: sc, reference: null });
+      if (splitMode === 'credit') {
+        payments.push({ method: 'credit', amount: remaining, reference: null });
+      } else {
+        payments.push({ method: 'card', amount: remaining, reference: splitCardRef });
+      }
     }
 
     const paid = payMethod === 'cash' ? cashNum : total;
@@ -1044,6 +1054,9 @@ export default function SalesCreate() {
                 + Custom
               </button>
             </div>
+            {err && (
+              <div className="px-3 py-1.5 bg-red-50 border border-red-200 text-red-600 text-xs font-medium rounded-lg">{err}</div>
+            )}
 
             {/* Custom item row */}
             {customItem && (
@@ -1148,9 +1161,9 @@ export default function SalesCreate() {
             </div>
 
             {/* Grand Total */}
-            <div className="flex items-center justify-between bg-slate-50 rounded-xl px-4 py-3">
-              <span className="text-base font-bold text-slate-800">{t('lbl.grand_total')}</span>
-              <span className="text-2xl font-extrabold text-blue-600">{fmtAmt(total)}</span>
+            <div className="flex items-center justify-between bg-slate-700 rounded-xl px-4 py-3">
+              <span className="text-base font-bold text-slate-300">{t('lbl.grand_total')}</span>
+              <span className="text-2xl font-extrabold text-white">{fmtAmt(total)}</span>
             </div>
 
             {totalDisc > 0 && (
@@ -1171,15 +1184,17 @@ export default function SalesCreate() {
                 { id: 'split',  label: 'Split',          shortcut: null,  icon: Icon.split },
               ].map((m, i, arr) => (
                 <button key={m.id} onClick={() => setPayMethod(m.id)}
-                  className={`flex-1 flex flex-col items-center justify-center gap-1 py-3 lg:py-4 text-xs font-semibold transition-all
+                  className={`flex-1 flex flex-col items-center justify-center gap-1 py-3 lg:py-4 text-sm font-semibold transition-all
                     ${i < arr.length - 1 ? 'border-r border-slate-200' : ''}
                     ${payMethod === m.id
                       ? 'bg-green-500 text-white shadow-inner'
                       : 'text-slate-500 hover:bg-slate-50'
                     }`}>
                   {m.icon}
-                  <span>{m.label}</span>
-                  {m.shortcut && <span className="hidden lg:block text-[10px] opacity-60">[{m.shortcut}]</span>}
+                  <span className="flex items-center gap-1">
+                    {m.label}
+                    {m.shortcut && <span className="text-[10px] opacity-60">[{m.shortcut}]</span>}
+                  </span>
                 </button>
               ))}
             </div>
@@ -1215,7 +1230,7 @@ export default function SalesCreate() {
                     {showCustDrop && filteredCusts.length > 0 && (
                       <div className="absolute bottom-full left-0 right-0 z-40 bg-white rounded-xl shadow-xl border border-slate-200 max-h-40 overflow-y-auto mb-1">
                         {filteredCusts.map(c => (
-                          <button key={c.id} onMouseDown={() => { setCustomer(c); setCustQuery(c.name); setShowCust(false); }}
+                          <button key={c.id} onMouseDown={() => { setCustomer(c); setCustQuery(c.name); setShowCust(false); setCustErr(''); }}
                             className="w-full text-left px-3 py-2 text-sm hover:bg-blue-50 border-b border-slate-50 last:border-0">
                             <p className="font-semibold">{c.name}</p>
                             {c.phone && <p className="text-xs text-slate-400">{c.phone}</p>}
@@ -1224,6 +1239,7 @@ export default function SalesCreate() {
                       </div>
                     )}
                   </div>
+                  {custErr && <p className="text-xs text-red-500 mt-1 font-medium">{custErr}</p>}
                 </div>
 
                 {/* Cash paid */}
@@ -1265,7 +1281,7 @@ export default function SalesCreate() {
                   {showCustDrop && filteredCusts.length > 0 && (
                     <div className="absolute bottom-full left-0 right-0 z-40 bg-white rounded-xl shadow-xl border border-slate-200 max-h-40 overflow-y-auto mb-1">
                       {filteredCusts.map(c => (
-                        <button key={c.id} onMouseDown={() => { setCustomer(c); setCustQuery(c.name); setShowCust(false); }}
+                        <button key={c.id} onMouseDown={() => { setCustomer(c); setCustQuery(c.name); setShowCust(false); setCustErr(''); }}
                           className="w-full text-left px-3 py-2 text-sm hover:bg-blue-50 border-b border-slate-50 last:border-0">
                           <p className="font-semibold">{c.name}</p>
                           {c.phone && <p className="text-xs text-slate-400">{c.phone}</p>}
@@ -1274,6 +1290,7 @@ export default function SalesCreate() {
                     </div>
                   )}
                 </div>
+                {custErr && <p className="text-xs text-red-500 mt-1 font-medium">{custErr}</p>}
               </>
             )}
 
@@ -1317,27 +1334,42 @@ export default function SalesCreate() {
             {/* Split */}
             {payMethod === 'split' && (
               <div className="space-y-2">
+                {/* Mode toggle */}
+                <div className="flex gap-1 bg-slate-100 rounded-lg p-1">
+                  {[['card', 'Cash + Card'], ['credit', 'Cash + Credit']].map(([mode, label]) => (
+                    <button key={mode} type="button" onClick={() => setSplitMode(mode)}
+                      className={`flex-1 py-1.5 rounded-md text-xs font-semibold transition-all ${splitMode === mode ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
+                      {label}
+                    </button>
+                  ))}
+                </div>
                 <div>
                   <label className="block text-xs font-semibold text-slate-500 mb-1 uppercase">Cash Amount</label>
                   <input autoFocus type="number" min="0" step="0.01" value={splitCash} onChange={e => setSplitCash(e.target.value)}
+                    onFocus={e => e.target.select()}
                     className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500" />
                 </div>
-                <p className="text-sm text-slate-600">
-                  Card: <strong className="text-blue-700">{fmtAmt(Math.max(0, total - (parseFloat(splitCash) || 0)))}</strong>
-                </p>
-                <div>
-                  <label className="block text-xs font-semibold text-slate-500 mb-1 uppercase">Card Reference</label>
-                  <input type="text" value={splitCardRef} onChange={e => setSplitCardRef(e.target.value)}
-                    className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500" />
-                </div>
+                {splitMode === 'card' ? (
+                  <>
+                    <p className="text-sm text-slate-600">
+                      Card: <strong className="text-blue-700">{fmtAmt(Math.max(0, total - (parseFloat(splitCash) || 0)))}</strong>
+                    </p>
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-500 mb-1 uppercase">Card Reference</label>
+                      <input type="text" value={splitCardRef} onChange={e => setSplitCardRef(e.target.value)}
+                        className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500" />
+                    </div>
+                  </>
+                ) : (
+                  <div className="flex items-center justify-between bg-red-50 rounded-lg px-3 py-2">
+                    <span className="text-xs font-semibold text-slate-500">Credit Balance</span>
+                    <span className="font-bold text-red-600">{fmtAmt(Math.max(0, total - (parseFloat(splitCash) || 0)))}</span>
+                  </div>
+                )}
               </div>
             )}
           </div>
 
-          {/* Error */}
-          {err && (
-            <div className="mx-4 mt-3 px-3 py-2 bg-red-50 border border-red-200 text-red-600 text-xs font-medium rounded-xl">{err}</div>
-          )}
 
           {/* Complete Sale */}
           <div className="px-4 py-4 mt-auto sticky bottom-0 bg-white border-t border-slate-100 shadow-[0_-4px_12px_rgba(0,0,0,0.06)]">

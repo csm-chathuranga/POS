@@ -100,6 +100,7 @@ export default function SaleShow() {
     const paidCard  = payments.filter(p => p.method === 'card').reduce((s, p) => s + parseFloat(p.amount || 0), 0);
     const paidCredit = payments.filter(p => p.method === 'credit').reduce((s, p) => s + parseFloat(p.amount || 0), 0);
     const change     = Math.max(0, parseFloat(sale.paid || 0) - parseFloat(sale.total || 0));
+    const cashGiven  = paidCash + change;
 
     const html = `<!DOCTYPE html>
 <html>
@@ -168,7 +169,7 @@ export default function SaleShow() {
   ${parseFloat(sale.discount) > 0 ? `<div class="disc-box"><span class="disc-label">${rl('lbl.discount')}</span><span class="disc-val">- ${fmt(sale.discount)}</span></div>` : ''}
   ${parseFloat(sale.tax) > 0 ? `<div class="row"><span class="label">${rl('lbl.tax')}</span><span>${fmt(sale.tax)}</span></div>` : ''}
   <div class="total-row"><span class="total-label">${rl('lbl.grand_total')}</span><span class="total-val">${currency} ${fmt(sale.total)}</span></div>
-  ${paidCash > 0  ? `<div class="paid-row"><span>${rl('lbl.cash_paid')} (${rl('lbl.cash')})</span><span>${fmt(paidCash)}</span></div>` : ''}
+  ${paidCash > 0  ? `<div class="paid-row"><span>${rl('lbl.cash_paid')} (${rl('lbl.cash')})</span><span>${fmt(cashGiven)}</span></div>` : ''}
   ${paidCard > 0  ? `<div class="paid-row"><span>${rl('lbl.cash_paid')} (${rl('lbl.card')})</span><span>${fmt(paidCard)}</span></div>` : ''}
   ${paidCredit > 0 ? `<div class="paid-row"><span>${rl('lbl.credit')}</span><span>${fmt(paidCredit)}</span></div>` : ''}
   ${change > 0    ? `<div class="change-row"><span>${rl('lbl.change')}</span><span>${fmt(change)}</span></div>` : ''}
@@ -214,6 +215,7 @@ export default function SaleShow() {
   const paidCard   = payments.filter(p => p.method === 'card').reduce((s, p) => s + parseFloat(p.amount || 0), 0);
   const paidCredit = payments.filter(p => p.method === 'credit').reduce((s, p) => s + parseFloat(p.amount || 0), 0);
   const change     = Math.max(0, parseFloat(sale?.paid || 0) - parseFloat(sale?.total || 0));
+  const cashGiven  = paidCash + change;
   const currency   = shopInfo.currency || 'Rs.';
 
   if (isLoading) return (
@@ -384,7 +386,7 @@ export default function SaleShow() {
             {paidCash   > 0 && (
               <div className="flex justify-between text-sm">
                 <span className="text-slate-500 font-semibold">{t('lbl.cash_paid')} ({t('lbl.cash')})</span>
-                <span className="font-bold text-slate-700">{fmt(paidCash)}</span>
+                <span className="font-bold text-slate-700">{fmt(cashGiven)}</span>
               </div>
             )}
             {paidCard   > 0 && (

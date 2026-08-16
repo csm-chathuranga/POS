@@ -159,6 +159,7 @@ function getModels(sequelize) {
 
   const CreditPayment = sequelize.define('CreditPayment', {
     id:          { type: DataTypes.BIGINT.UNSIGNED, primaryKey: true, autoIncrement: true },
+    invoice_no:  { type: DataTypes.STRING(191), allowNull: true, unique: true },
     customer_id: { type: DataTypes.BIGINT.UNSIGNED, allowNull: false },
     user_id:     { type: DataTypes.BIGINT.UNSIGNED, allowNull: false },
     amount:      { type: DataTypes.DECIMAL(10, 2), allowNull: false },
@@ -170,6 +171,15 @@ function getModels(sequelize) {
     key:   { type: DataTypes.STRING(191), allowNull: false, unique: true },
     value: { type: DataTypes.TEXT('long'), allowNull: true },
   }, { tableName: 'settings' });
+
+  const Feature = sequelize.define('Feature', {
+    id:         { type: DataTypes.BIGINT.UNSIGNED, primaryKey: true, autoIncrement: true },
+    key:        { type: DataTypes.STRING(191), allowNull: false, unique: true },
+    label:      { type: DataTypes.STRING(191), allowNull: false },
+    path:       { type: DataTypes.STRING(191), allowNull: true },
+    group:      { type: DataTypes.STRING(50), allowNull: true },
+    sort_order: { type: DataTypes.INTEGER, defaultValue: 0 },
+  }, { tableName: 'features', timestamps: false });
 
   // ── Associations ────────────────────────────────────────────────────────────
   User.belongsToMany(Role, { through: 'user_role', foreignKey: 'user_id', otherKey: 'role_id', timestamps: false });
@@ -191,11 +201,15 @@ function getModels(sequelize) {
 
   Customer.hasMany(CreditPayment, { foreignKey: 'customer_id', as: 'creditPayments' });
   Customer.hasMany(Sale, { foreignKey: 'customer_id', as: 'sales' });
+  CreditPayment.belongsTo(User, { foreignKey: 'user_id', as: 'user' });
+
+  Role.belongsToMany(Feature, { through: 'role_features', foreignKey: 'role_id', otherKey: 'feature_id', timestamps: false });
+  Feature.belongsToMany(Role, { through: 'role_features', foreignKey: 'feature_id', otherKey: 'role_id', timestamps: false });
 
   return {
     User, Role, Category, Product, ProductVariant,
     Supplier, Customer, Sale, SaleItem, Payment, SaleReturn,
-    Purchase, PurchaseItem, StockMovement, CreditPayment, Setting,
+    Purchase, PurchaseItem, StockMovement, CreditPayment, Setting, Feature,
   };
 }
 

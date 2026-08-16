@@ -35,6 +35,10 @@ export const salesApi = api.injectEndpoints({
       query: ({ id, ...body }) => ({ url: `/sales/${id}/return`, method: 'POST', body }),
       invalidatesTags: (r, e, { id }) => [{ type: 'Sales', id }, { type: 'Sales', id: 'LIST' }],
     }),
+    markSalePaid: build.mutation({
+      query: id => ({ url: `/sales/${id}/mark-paid`, method: 'POST' }),
+      invalidatesTags: (r, e, id) => [{ type: 'Sales', id }, { type: 'Sales', id: 'LIST' }, { type: 'Customers', id: 'LIST' }, 'Dashboard'],
+    }),
   }),
 });
 
@@ -46,4 +50,5 @@ export const {
   useGetHeldSalesQuery,
   useDeleteSaleMutation,
   useReturnSaleMutation,
+  useMarkSalePaidMutation,
 } = salesApi;

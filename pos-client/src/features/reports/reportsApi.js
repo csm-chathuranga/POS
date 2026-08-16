@@ -16,6 +16,13 @@ export const reportsApi = api.injectEndpoints({
       return `/reports/stock-summary?${q}`;
     }}),
     getReportRevenue:         b.query({ query: p => `/reports/revenue?date_from=${p.from}&date_to=${p.to}` }),
+    getReportStockMovements:  b.query({ query: p => {
+      const q = new URLSearchParams({ page: p.page || 1, date_from: p.from, date_to: p.to });
+      if (p.type && p.type !== 'all') q.set('type', p.type);
+      if (p.search) q.set('search', p.search);
+      return `/reports/stock-movements?${q}`;
+    }}),
+    getReportDailySales: b.query({ query: p => `/reports/daily-sales?date_from=${p.from}&date_to=${p.to}` }),
   }),
 });
 
@@ -29,4 +36,6 @@ export const {
   useGetReportCreditCustomersQuery,
   useGetReportStockSummaryQuery,
   useGetReportRevenueQuery,
+  useGetReportStockMovementsQuery,
+  useGetReportDailySalesQuery,
 } = reportsApi;

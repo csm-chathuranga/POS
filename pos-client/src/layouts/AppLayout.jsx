@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Outlet, NavLink, useNavigate, useLocation, useNavigation } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import { logout, selectCurrentUser, selectRole, selectToken } from '../features/auth/authSlice';
+import { logout, selectCurrentUser, selectRole, selectToken, selectFeatures } from '../features/auth/authSlice';
 import { useLocale } from '../contexts/LocaleContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { useConnectivity } from '../contexts/ConnectivityContext';
@@ -37,6 +37,7 @@ const Icons = {
   categories: <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 0 1 0 2.828l-5 5a2 2 0 0 1-2.828 0l-7-7A2 2 0 0 1 3 10V5a2 2 0 0 1 2-2z"/></svg>,
   users:     <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 1 1 0 5.292M15 21H3v-1a6 6 0 0 1 12 0v1zm0 0h6v-1a6 6 0 0 0-9-5.197"/></svg>,
   settings:  <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 0 0 2.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 0 0 1.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 0 0-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 0 0-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 0 0-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 0 0-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 0 0 1.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><circle cx="12" cy="12" r="3" strokeWidth={2}/></svg>,
+  credit:    <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2" strokeWidth={2}/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2 10h20M6 15h4"/></svg>,
   reports:   <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2zm0 0V9a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v10m-6 0a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2m0 0V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v14a2 2 0 0 0-2 2h-2a2 2 0 0 1-2-2z"/></svg>,
   logout:    <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3V7a3 3 0 0 1 3-3h4a3 3 0 0 1 3 3v1"/></svg>,
   bell:      <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0 1 18 14.158V11a6.002 6.002 0 0 0-4-5.659V5a2 2 0 1 0-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 1 1-6 0v-1m6 0H9"/></svg>,
@@ -48,11 +49,14 @@ const PAGE_TITLE_KEYS = {
   '/dashboard':        'page.dashboard',
   '/sales/create':     'page.new_sale',
   '/sales':            'page.sales',
+  '/invoices':         'Invoices',
+  '/invoices/create':  'New Invoice',
   '/products':         'page.products',
   '/products/create':  'page.new_product',
   '/purchases':        'page.purchases',
   '/purchases/create': 'page.new_purchase',
   '/customers':        'page.customers',
+  '/credit':           'nav.credit_book',
   '/suppliers':        'page.suppliers',
   '/categories':       'page.categories',
   '/users':            'page.users',
@@ -68,7 +72,9 @@ export default function AppLayout() {
   const location  = useLocation();
   const user      = useSelector(selectCurrentUser);
   const role      = useSelector(selectRole);
+  const features  = useSelector(selectFeatures); // null = admin (all access)
   const isManager = role === 'admin' || role === 'manager';
+  const canSee    = key => features === null || features.includes(key);
   const { t }     = useLocale();
   const token     = useSelector(selectToken);
 
@@ -200,21 +206,24 @@ export default function AppLayout() {
   // have no offline fallback — they get greyed out / non-clickable while
   // offline instead of navigating to a broken/empty page.
   const mainNav = [
-    { to: '/dashboard',    label: t('nav.dashboard'), icon: Icons.dashboard, offlineOk: true },
-    { to: '/sales/create', label: t('nav.new_sale'),  icon: Icons.pos,      highlight: true, offlineOk: true },
-    { to: '/sales',        label: t('nav.sales'),      icon: Icons.sales,      offlineOk: true },
-    { to: '/products',     label: t('nav.products'),   icon: Icons.products,   offlineOk: true },
-    { to: '/purchases',    label: t('nav.purchases'),  icon: Icons.purchases,  offlineOk: true },
-    { to: '/customers',    label: t('nav.customers'),  icon: Icons.customers,  offlineOk: true },
-    { to: '/suppliers',    label: t('nav.suppliers'),  icon: Icons.suppliers,  offlineOk: true },
-    { to: '/categories',   label: t('nav.categories'), icon: Icons.categories, offlineOk: true },
-  ];
+    { to: '/dashboard',    label: t('nav.dashboard'),   icon: Icons.dashboard, offlineOk: true,  feature: 'dashboard' },
+    { to: '/sales/create', label: t('nav.new_sale'),    icon: Icons.pos,       highlight: true, offlineOk: true,  feature: 'new_sale' },
+    { to: '/sales',        label: t('nav.sales'),       icon: Icons.sales,     offlineOk: true,  feature: 'sales' },
+    { to: '/products',     label: t('nav.products'),    icon: Icons.products,  offlineOk: true,  feature: 'products' },
+    { to: '/purchases',    label: t('nav.purchases'),   icon: Icons.purchases, offlineOk: true,  feature: 'purchases' },
+    { to: '/customers',    label: t('nav.customers'),   icon: Icons.customers, offlineOk: true,  feature: 'customers' },
+    { to: '/invoices',     label: 'Invoices',           icon: Icons.sales,     offlineOk: false, feature: 'invoices' },
+    { to: '/credit',       label: t('nav.credit_book'), icon: Icons.credit,    offlineOk: false, feature: 'credit' },
+    { to: '/suppliers',    label: t('nav.suppliers'),   icon: Icons.suppliers, offlineOk: true,  feature: 'suppliers' },
+    { to: '/categories',   label: t('nav.categories'),  icon: Icons.categories,offlineOk: true,  feature: 'categories' },
+  ].filter(n => canSee(n.feature));
 
   const mgmtNav = [
-    { to: '/reports',  label: t('nav.reports'),    icon: Icons.reports,  offlineOk: false },
-    { to: '/users',    label: t('nav.users'),     icon: Icons.users,    offlineOk: false },
-    { to: '/settings', label: t('nav.settings'),  icon: Icons.settings, offlineOk: false },
-  ];
+    { to: '/reports',       label: t('nav.reports'),   icon: Icons.reports,  offlineOk: false, feature: 'reports' },
+    { to: '/users',         label: t('nav.users'),     icon: Icons.users,    offlineOk: false, feature: 'users' },
+    { to: '/settings',      label: t('nav.settings'),  icon: Icons.settings, offlineOk: false, feature: 'settings' },
+    { to: '/settings/roles',label: 'Role Permissions', icon: Icons.users,    offlineOk: false, feature: 'settings', adminOnly: true },
+  ].filter(n => canSee(n.feature) && (!n.adminOnly || role === 'admin'));
 
   function toggleCollapse() {
     setCollapsed(c => {
@@ -222,6 +231,11 @@ export default function AppLayout() {
       localStorage.setItem('sidebar_collapsed', String(next));
       return next;
     });
+  }
+
+  function expandSidebar() {
+    setCollapsed(false);
+    localStorage.setItem('sidebar_collapsed', 'false');
   }
 
   function handleLogout() {
@@ -259,13 +273,13 @@ export default function AppLayout() {
       {/* ── Mobile overlay backdrop ─────────────────────────────────────── */}
       {mobileOpen && (
         <div
-          className="fixed inset-0 z-[998] bg-black/50 md:hidden"
+          className="fixed inset-0 z-[998] bg-black/50 md:hidden print:hidden"
           onClick={() => setMobileOpen(false)}
         />
       )}
 
       {/* ── Sidebar ────────────────────────────────────────────────────────── */}
-      <aside className={`bg-slate-900 flex flex-col shrink-0 select-none transition-all duration-300 overflow-hidden
+      <aside className={`print:hidden bg-slate-900 flex flex-col shrink-0 select-none transition-all duration-300 overflow-hidden
         fixed inset-y-0 left-0 z-[999] w-64
         ${mobileOpen ? 'translate-x-0' : '-translate-x-full'}
         md:static md:translate-x-0 md:z-auto md:inset-y-auto md:left-auto
@@ -307,9 +321,9 @@ export default function AppLayout() {
             }
             return (
               <NavLink key={to} to={to}
-                end={to === '/sales' || to === '/dashboard'}
+                end={to === '/sales' || to === '/dashboard' || to === '/settings' || to === '/invoices'}
                 title={displayCollapsed ? label : undefined}
-                onClick={() => setMobileOpen(false)}
+                onClick={() => { setMobileOpen(false); if (to !== '/sales/create') expandSidebar(); }}
                 className={({ isActive }) => navCls(isActive)}
               >
                 {icon}
@@ -344,8 +358,9 @@ export default function AppLayout() {
                 }
                 return (
                   <NavLink key={to} to={to}
+                    end={to === '/settings'}
                     title={displayCollapsed ? label : undefined}
-                    onClick={() => setMobileOpen(false)}
+                    onClick={() => { setMobileOpen(false); expandSidebar(); }}
                     className={({ isActive }) => navCls(isActive)}
                   >
                     {icon}
@@ -381,7 +396,7 @@ export default function AppLayout() {
 
         {/* Top header */}
         {!hideHeader && (
-          <header className="h-14 bg-white border-b border-slate-200 flex items-center justify-between px-3 md:px-6 shrink-0 shadow-sm">
+          <header className="print:hidden h-14 bg-white border-b border-slate-200 flex items-center justify-between px-3 md:px-6 shrink-0 shadow-sm">
             <div className="flex items-center gap-2 md:gap-3">
               {/* Hamburger — mobile only */}
               <button

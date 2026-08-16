@@ -60,6 +60,40 @@ router.delete('/:id', auth, async (req, res) => {
   res.json({ message: 'Deleted' });
 });
 
+router.get('/:id/credit-history', auth, async (req, res) => {
+  const { Customer, CreditPayment, User, Sale, Payment } = req.models;
+  const customer = await Customer.findByPk(req.params.id);
+  if (!customer) return res.status(404).json({ error: 'Not found' });
+
+  const payments = await CreditPayment.findAll({
+    where: { customer_id: customer.id },
+    include: [{ model: User, as: 'user', attributes: ['name'] }],
+    order: [['created_at', 'DESC']],
+  });
+
+  const sales = await Sale.findAll({
+    where: { customer_id: customer.id },
+    include: [{ model: Payment, as: 'payments', where: { method: 'credit' }, required: true }],
+    order: [['created_at', 'DESC']],
+  });
+
+  res.json({
+    customer: {
+      id: customer.id, name: customer.name, phone: customer.phone,
+      credit_limit: customer.credit_limit, credit_balance: customer.credit_balance,
+    },
+    payments: payments.map(p => ({
+      id: p.id, invoice_no: p.invoice_no, amount: p.amount, note: p.note,
+      created_at: p.created_at, recorded_by: p.user?.name || '—',
+    })),
+    sales: sales.map(s => ({
+      id: s.id, invoice_no: s.invoice_no, total: s.total,
+      credit_amount: s.payments.reduce((sum, p) => sum + parseFloat(p.amount), 0),
+      created_at: s.created_at,
+    })),
+  });
+});
+
 router.post('/:id/settle-credit', auth, async (req, res) => {
   const { Customer, CreditPayment } = req.models;
   const customer = await Customer.findByPk(req.params.id);
@@ -68,7 +102,9 @@ router.post('/:id/settle-credit', auth, async (req, res) => {
   const amount = parseFloat(req.body.amount);
   if (!amount || amount <= 0) return res.status(422).json({ error: 'Invalid amount' });
 
-  await CreditPayment.create({ customer_id: customer.id, user_id: req.user.id, amount, note: req.body.note });
+  const d = new Date();
+  const invoice_no = `REC-${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}-${Date.now().toString().slice(-5)}`;
+  await CreditPayment.create({ invoice_no, customer_id: customer.id, user_id: req.user.id, amount, note: req.body.note });
   const newBalance = Math.max(0, parseFloat(customer.credit_balance) - amount);
   await customer.update({ credit_balance: newBalance });
   res.json({ message: 'Credit settled', credit_balance: newBalance });

@@ -1,7 +1,10 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useSelector } from 'react-redux';
 import { api } from '../app/baseApi';
 import { useLocale } from '../contexts/LocaleContext';
+import { selectRole } from '../features/auth/authSlice';
+import ManagerDashboard from './ManagerDashboard';
 
 const dashboardApi = api.injectEndpoints({
   endpoints: build => ({
@@ -363,6 +366,9 @@ function FastMoving({ items }) {
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
 export default function Dashboard() {
+  const role = useSelector(selectRole);
+  if (role === 'manager') return <ManagerDashboard />;
+
   const { data, isLoading, refetch } = dashboardApi.useGetDashboardQuery();
   const navigate = useNavigate();
   const { t } = useLocale();

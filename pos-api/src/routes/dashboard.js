@@ -81,4 +81,62 @@ router.get('/', auth, async (req, res) => {
   });
 });
 
+// GET /api/dashboard/manager
+router.get('/manager', auth, async (req, res) => {
+  const db    = req.db;
+  const today = new Date().toISOString().slice(0, 10);
+  const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().slice(0, 10);
+
+  const [todayRow, monthRow, creditRow, creditInvoices, recentInvoices] = await Promise.all([
+    db.query(
+      `SELECT COUNT(*) as cnt, COALESCE(SUM(total),0) as total
+       FROM sales WHERE status != 'held'
+       AND created_at BETWEEN ? AND ?`,
+      { replacements: [`${today} 00:00:00`, `${today} 23:59:59`], type: db.QueryTypes.SELECT }
+    ),
+    db.query(
+      `SELECT COUNT(*) as cnt, COALESCE(SUM(total),0) as total
+       FROM sales WHERE status != 'held' AND created_at >= ?`,
+      { replacements: [`${monthStart} 00:00:00`], type: db.QueryTypes.SELECT }
+    ),
+    db.query(
+      `SELECT COUNT(DISTINCT s.id) as cnt, COALESCE(SUM(s.balance),0) as outstanding
+       FROM sales s JOIN payments p ON p.sale_id = s.id AND p.method = 'credit'
+       WHERE s.status != 'held' AND s.balance > 0`,
+      { type: db.QueryTypes.SELECT }
+    ),
+    db.query(
+      `SELECT s.id, s.invoice_no, s.total, s.balance, s.created_at,
+              c.name as customer_name, c.phone as customer_phone
+       FROM sales s
+       JOIN payments p ON p.sale_id = s.id AND p.method = 'credit'
+       LEFT JOIN customers c ON s.customer_id = c.id
+       WHERE s.status != 'held' AND s.balance > 0
+       ORDER BY s.id DESC LIMIT 50`,
+      { type: db.QueryTypes.SELECT }
+    ),
+    db.query(
+      `SELECT s.id, s.invoice_no, s.total, s.created_at,
+              c.name as customer_name, p.method
+       FROM sales s
+       LEFT JOIN customers c ON s.customer_id = c.id
+       LEFT JOIN payments p ON p.sale_id = s.id
+       WHERE s.status != 'held'
+       ORDER BY s.id DESC LIMIT 10`,
+      { type: db.QueryTypes.SELECT }
+    ),
+  ]);
+
+  res.json({
+    todayInvoices:    parseInt(todayRow[0].cnt || 0),
+    todayTotal:       parseFloat(todayRow[0].total || 0),
+    monthInvoices:    parseInt(monthRow[0].cnt || 0),
+    monthTotal:       parseFloat(monthRow[0].total || 0),
+    creditCount:      parseInt(creditRow[0].cnt || 0),
+    creditOutstanding:parseFloat(creditRow[0].outstanding || 0),
+    creditInvoices,
+    recentInvoices,
+  });
+});
+
 module.exports = router;

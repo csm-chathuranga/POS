@@ -184,7 +184,7 @@ export default function ProductsIndex() {
       setPage(1);
       return;
     }
-    if (search.length < 3) return;
+    if (search.length < 2) return;
     const timer = setTimeout(() => {
       setApplied(a => ({ ...a, search }));
       setPage(1);
@@ -194,7 +194,7 @@ export default function ProductsIndex() {
 
   function applySearch(e) {
     if (e) e.preventDefault();
-    if (search.length > 0 && search.length < 3) return;
+    if (search.length > 0 && search.length < 2) return;
     setApplied({ search, category_id: catId, low_stock: filter === 'low_stock', promo: filter === 'promo' });
     setPage(1);
   }
@@ -232,8 +232,8 @@ export default function ProductsIndex() {
             placeholder={t('pos.search_product')}
             className="w-full pl-9 pr-4 py-2 rounded-lg border border-slate-200 text-sm outline-none focus:ring-2 focus:ring-blue-500 bg-white"
           />
-          {search.length > 0 && search.length < 3 && (
-            <p className="absolute left-0 top-full mt-1 text-[11px] text-slate-400 pl-1">Type {3 - search.length} more character{3 - search.length > 1 ? 's' : ''}…</p>
+          {search.length === 1 && (
+            <p className="absolute left-0 top-full mt-1 text-[11px] text-slate-400 pl-1">Type 1 more character…</p>
           )}
         </div>
 
@@ -498,24 +498,32 @@ export default function ProductsIndex() {
             </table>
           </div>
         )}
-        {data && data.last_page > 1 && (
-          <div className="flex items-center justify-between px-4 py-3 border-t border-slate-100 text-sm text-slate-500">
-            <span>{data.total} {t('nav.products')}</span>
-            <div className="flex items-center gap-1">
-              <button disabled={page <= 1} onClick={() => setPage(p => p - 1)} className="px-3 py-1 rounded-lg border border-slate-200 disabled:opacity-40 hover:bg-slate-50 transition-colors">{'‹'}</button>
-              {Array.from({ length: Math.min(data.last_page, 7) }, (_, i) => {
-                const p = i + 1;
-                return (
-                  <button key={p} onClick={() => setPage(p)}
-                    className={`px-3 py-1 rounded-lg border transition-colors ${p === page ? 'bg-blue-600 text-white border-blue-600' : 'border-slate-200 hover:bg-slate-50'}`}>
-                    {p}
-                  </button>
-                );
-              })}
-              <button disabled={page >= data.last_page} onClick={() => setPage(p => p + 1)} className="px-3 py-1 rounded-lg border border-slate-200 disabled:opacity-40 hover:bg-slate-50 transition-colors">{'›'}</button>
+        {data && data.last_page > 1 && (() => {
+          const last = data.last_page;
+          const pages = [];
+          const btnCls = p => `px-3 py-1 rounded-lg border transition-colors ${p === page ? 'bg-blue-600 text-white border-blue-600' : 'border-slate-200 hover:bg-slate-50'}`;
+          // Build page numbers: always show first, last, current ±2, with '…' gaps
+          const visible = new Set([1, last]);
+          for (let p = Math.max(1, page - 2); p <= Math.min(last, page + 2); p++) visible.add(p);
+          const sorted = [...visible].sort((a, b) => a - b);
+          sorted.forEach((p, idx) => {
+            if (idx > 0 && p - sorted[idx - 1] > 1) pages.push('…');
+            pages.push(p);
+          });
+          return (
+            <div className="flex items-center justify-between px-4 py-3 border-t border-slate-100 text-sm text-slate-500">
+              <span>{data.total} {t('nav.products')}</span>
+              <div className="flex items-center gap-1">
+                <button disabled={page <= 1} onClick={() => setPage(p => p - 1)} className="px-3 py-1 rounded-lg border border-slate-200 disabled:opacity-40 hover:bg-slate-50 transition-colors">‹</button>
+                {pages.map((p, i) => p === '…'
+                  ? <span key={`e${i}`} className="px-2 text-slate-400 select-none">…</span>
+                  : <button key={p} onClick={() => setPage(p)} className={btnCls(p)}>{p}</button>
+                )}
+                <button disabled={page >= last} onClick={() => setPage(p => p + 1)} className="px-3 py-1 rounded-lg border border-slate-200 disabled:opacity-40 hover:bg-slate-50 transition-colors">›</button>
+              </div>
             </div>
-          </div>
-        )}
+          );
+        })()}
       </div>
     </div>
 

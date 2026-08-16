@@ -35,3 +35,5 @@ export const selectCurrentUser = s => s.auth.user;
 export const selectToken       = s => s.auth.token;
 export const selectSettings    = s => s.auth.appSettings;
 export const selectRole        = s => s.auth.user?.role ?? 'cashier';
+// null = admin (all access), array = allowed feature keys
+export const selectFeatures    = s => s.auth.user?.features ?? null;

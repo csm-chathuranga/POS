@@ -29,6 +29,12 @@ router.get('/', auth, async (req, res) => {
   if (req.query.search) {
     where.invoice_no = { [Op.like]: `%${req.query.search}%` };
   }
+  if (req.query.method) {
+    const allowed = ['cash', 'card', 'credit', 'qr'];
+    if (allowed.includes(req.query.method)) {
+      where.id = { [Op.in]: literal(`(SELECT DISTINCT sale_id FROM payments WHERE method = '${req.query.method}')`) };
+    }
+  }
 
   const page  = parseInt(req.query.page || '1');
   const limit = 20;
@@ -151,6 +157,28 @@ router.delete('/:id', auth, role('admin', 'manager'), async (req, res) => {
   if (!sale) return res.status(404).json({ error: 'Not found' });
   await sale.destroy();
   res.json({ message: 'Deleted' });
+});
+
+// POST /api/sales/:id/mark-paid
+router.post('/:id/mark-paid', auth, async (req, res) => {
+  const { Sale, Payment, Customer } = req.models;
+  const sale = await Sale.findByPk(req.params.id, { include: [{ model: Payment, as: 'payments' }] });
+  if (!sale) return res.status(404).json({ error: 'Not found' });
+
+  const balance = parseFloat(sale.balance || 0);
+  if (balance <= 0) return res.status(400).json({ error: 'Invoice already paid' });
+
+  await sale.update({ paid: parseFloat(sale.total), balance: 0 });
+
+  if (sale.customer_id) {
+    const customer = await Customer.findByPk(sale.customer_id);
+    if (customer) {
+      const newBalance = Math.max(0, parseFloat(customer.credit_balance) - balance);
+      await customer.update({ credit_balance: newBalance });
+    }
+  }
+
+  res.json({ message: 'Marked as paid' });
 });
 
 // GET /api/sales/:id/return

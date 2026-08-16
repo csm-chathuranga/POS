@@ -210,4 +210,94 @@ router.get('/revenue', auth, async (req, res) => {
   res.json({ byDay, byPayment, date_from: req.query.date_from, date_to: req.query.date_to });
 });
 
+// GET /api/reports/stock-movements?date_from=&date_to=&type=&search=&page=
+router.get('/stock-movements', auth, async (req, res) => {
+  const db = req.db;
+  const [from, to] = dateRange(req);
+
+  const conditions = ['sm.created_at BETWEEN ? AND ?'];
+  const replacements = [from, to];
+
+  if (req.query.type && req.query.type !== 'all') {
+    conditions.push('sm.type = ?');
+    replacements.push(req.query.type);
+  }
+  if (req.query.search) {
+    conditions.push('p.name LIKE ?');
+    replacements.push(`%${req.query.search}%`);
+  }
+
+  const page  = parseInt(req.query.page || '1');
+  const limit = 50;
+  const offset = (page - 1) * limit;
+
+  const where = conditions.join(' AND ');
+
+  const [rows, [{ total }]] = await Promise.all([
+    db.query(`
+      SELECT sm.id, sm.type, sm.qty, sm.stock_before, sm.stock_after,
+             sm.reference, sm.note, sm.created_at,
+             p.name as product_name, p.unit,
+             u.name as user_name
+      FROM stock_movements sm
+      JOIN products p ON sm.product_id = p.id
+      JOIN users u ON sm.user_id = u.id
+      WHERE ${where}
+      ORDER BY sm.id DESC
+      LIMIT ? OFFSET ?
+    `, { replacements: [...replacements, limit, offset], type: db.QueryTypes.SELECT }),
+    db.query(`
+      SELECT COUNT(*) as total
+      FROM stock_movements sm
+      JOIN products p ON sm.product_id = p.id
+      WHERE ${where}
+    `, { replacements, type: db.QueryTypes.SELECT }),
+  ]);
+
+  res.json({ data: rows, total: parseInt(total), page, last_page: Math.ceil(parseInt(total) / limit) });
+});
+
+// GET /api/reports/daily-sales — pivot: product × date
+router.get('/daily-sales', auth, async (req, res) => {
+  const db = req.db;
+  const [from, to] = dateRange(req);
+
+  const rows = await db.query(`
+    SELECT
+      si.product_name,
+      ROUND(MAX(si.unit_price), 2)    AS unit_price,
+      DATE(s.created_at)              AS sale_date,
+      ROUND(SUM(si.qty), 3)           AS day_qty,
+      ROUND(SUM(si.total), 2)         AS day_total
+    FROM sale_items si
+    JOIN sales s ON si.sale_id = s.id
+    WHERE s.status != 'held'
+      AND s.created_at BETWEEN ? AND ?
+    GROUP BY si.product_name, DATE(s.created_at)
+    ORDER BY si.product_name, DATE(s.created_at)
+  `, { replacements: [from, to], type: db.QueryTypes.SELECT });
+
+  const dateSet = new Set(rows.map(r => r.sale_date));
+  const dates   = [...dateSet].sort();
+
+  const productMap = {};
+  for (const r of rows) {
+    if (!productMap[r.product_name]) {
+      productMap[r.product_name] = {
+        product_name: r.product_name,
+        unit_price:   parseFloat(r.unit_price),
+        total_qty:    0,
+        total_value:  0,
+        by_date:      {},
+      };
+    }
+    const p = productMap[r.product_name];
+    p.by_date[r.sale_date] = parseFloat(r.day_qty);
+    p.total_qty   += parseFloat(r.day_qty);
+    p.total_value += parseFloat(r.day_total);
+  }
+
+  res.json({ dates, rows: Object.values(productMap) });
+});
+
 module.exports = router;

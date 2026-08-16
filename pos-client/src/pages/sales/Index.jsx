@@ -85,10 +85,24 @@ export default function SalesIndex() {
     return <span className={`text-xs px-2 py-0.5 rounded-full font-semibold capitalize ${cls[status] || 'bg-slate-100 text-slate-600'}`}>{status}</span>;
   };
 
+  const METHOD_STYLE = {
+    cash:   'bg-green-100 text-green-700',
+    card:   'bg-blue-100 text-blue-700',
+    qr:     'bg-purple-100 text-purple-700',
+    credit: 'bg-red-100 text-red-600',
+  };
   const payMethod = payments => {
-    if (!payments?.length) return '—';
-    const methods = [...new Set(payments.map(p => p.method))].join(', ');
-    return <span className="capitalize">{methods}</span>;
+    if (!payments?.length) return <span className="text-slate-400">—</span>;
+    const methods = [...new Set(payments.map(p => p.method))];
+    return (
+      <span className="flex flex-wrap gap-1 justify-center">
+        {methods.map(m => (
+          <span key={m} className={`inline-block px-2 py-0.5 rounded-full text-xs font-semibold capitalize ${METHOD_STYLE[m] || 'bg-slate-100 text-slate-600'}`}>
+            {m}
+          </span>
+        ))}
+      </span>
+    );
   };
 
   return (
@@ -151,7 +165,7 @@ export default function SalesIndex() {
             <div className="flex items-center justify-between mb-2">
               <div>
                 <p className="text-xs text-slate-500">{fmtDate(s.created_at)} · {fmtTime(s.created_at)}</p>
-                <p className="text-xs text-slate-400 mt-0.5 capitalize">{payMethod(s.payments)}</p>
+                <div className="flex gap-1 mt-0.5">{payMethod(s.payments)}</div>
               </div>
               <span className="text-base font-extrabold text-slate-800">{fmt(s.total)}</span>
             </div>

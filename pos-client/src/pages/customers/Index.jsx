@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import {
   useGetCustomersQuery, useCreateCustomerMutation, useUpdateCustomerMutation,
@@ -15,6 +16,7 @@ const empty = { name: '', phone: '', email: '', address: '', credit_limit: 0, ac
 export default function CustomersIndex() {
   const { t } = useLocale();
   const { isOnline } = useConnectivity();
+  const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const [page, setPage]     = useState(1);
   const [applied, setApplied] = useState('');
@@ -157,10 +159,10 @@ export default function CustomersIndex() {
               </span>
             </div>
             <div className="flex gap-2 pt-2 border-t border-slate-50">
-              {isOnline && parseFloat(c.credit_balance) > 0 && (
-                <button onClick={() => openCredit(c)}
+              {parseFloat(c.credit_balance) > 0 && (
+                <button onClick={() => navigate(`/customers/${c.id}/credit`)}
                   className="flex-1 py-1.5 text-xs font-semibold text-orange-600 bg-orange-50 hover:bg-orange-100 rounded-lg transition-colors">
-                  {t('btn.settle')}
+                  Credit
                 </button>
               )}
               <button onClick={() => openEdit(c)}
@@ -224,8 +226,8 @@ export default function CustomersIndex() {
                   <td className="px-4 py-3 text-right">
                     <div className="flex items-center justify-end gap-1.5">
                       {(c._offline || c._pending) && <span className="text-[10px] text-amber-600 font-medium">Pending</span>}
-                      {isOnline && parseFloat(c.credit_balance) > 0 && (
-                        <button onClick={() => openCredit(c)} className="inline-flex items-center px-2.5 py-1 rounded-md border border-orange-200 bg-orange-50 text-xs font-medium text-orange-600 hover:bg-orange-100 transition-colors">{t('btn.settle')}</button>
+                      {parseFloat(c.credit_balance) > 0 && (
+                        <button onClick={() => navigate(`/customers/${c.id}/credit`)} className="inline-flex items-center px-2.5 py-1 rounded-md border border-orange-200 bg-orange-50 text-xs font-medium text-orange-600 hover:bg-orange-100 transition-colors">Credit</button>
                       )}
                       <button onClick={() => openEdit(c)} className="inline-flex items-center px-2.5 py-1 rounded-md border border-blue-200 bg-blue-50 text-xs font-medium text-blue-600 hover:bg-blue-100 transition-colors">{t('btn.edit')}</button>
                       {isOnline && <button onClick={() => handleDelete(c)} className="inline-flex items-center px-2.5 py-1 rounded-md border border-red-200 bg-red-50 text-xs font-medium text-red-500 hover:bg-red-100 transition-colors">{t('btn.delete')}</button>}
