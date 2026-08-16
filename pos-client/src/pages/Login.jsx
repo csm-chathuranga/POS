@@ -210,36 +210,6 @@ export default function Login() {
           </button>
         </form>
 
-        {/* Demo accounts */}
-        <div className="mt-6">
-          <p className="text-xs font-semibold text-slate-400 tracking-widest mb-3">
-            DEMO ACCOUNTS (CLICK TO FILL)
-          </p>
-          <div className="space-y-2">
-            {DEMO.map(d => (
-              <button
-                key={d.email}
-                type="button"
-                onClick={() => fillDemo(d.email)}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border border-transparent hover:border-slate-200 transition-all text-left ${d.cardBg}`}
-              >
-                <div className={`w-9 h-9 rounded-full ${d.bg} flex items-center justify-center text-white font-bold text-sm shrink-0`}>
-                  {d.role[0]}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-slate-700">{d.role}</p>
-                  <p className="text-xs text-slate-500 truncate">{d.email}</p>
-                </div>
-                <span className={`text-xs font-medium px-2 py-1 rounded-full shrink-0 ${d.badgeBg}`}>
-                  {d.badge}
-                </span>
-              </button>
-            ))}
-          </div>
-          <p className="text-center text-xs text-slate-400 mt-3">
-            Password: <span className="font-semibold text-slate-500">password</span>
-          </p>
-        </div>
       </div>
     </div>
   );

@@ -314,6 +314,7 @@ ipcMain.handle('printers:print-receipt-html', async (_event, html, options = {})
     deviceName: deviceName || undefined,
     margins: { marginType: 'none' },
     pageSize: is80 ? { width: 80000, height: 297000 } : 'A4',
+    scaleFactor: 95,
   })
 })
 
