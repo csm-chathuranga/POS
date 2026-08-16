@@ -9,10 +9,8 @@ pos-client/.env.production.local
 
 # Build output
 pos-client/dist/
-
-
-# Build output
-Electron
+pos-client/dist-electron/
+pos-client/release/
 
 # Logs
 *.log

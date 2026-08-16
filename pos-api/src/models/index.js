@@ -3,28 +3,28 @@ const { DataTypes } = require('sequelize');
 function getModels(sequelize) {
   const User = sequelize.define('User', {
     id:       { type: DataTypes.BIGINT.UNSIGNED, primaryKey: true, autoIncrement: true },
-    name:     { type: DataTypes.STRING, allowNull: false },
+    name:     { type: DataTypes.STRING(191), allowNull: false },
     email:    { type: DataTypes.STRING(191), allowNull: false, unique: true },
-    password: { type: DataTypes.STRING, allowNull: false },
+    password: { type: DataTypes.STRING(191), allowNull: false },
   }, { tableName: 'users' });
 
   const Role = sequelize.define('Role', {
     id:   { type: DataTypes.BIGINT.UNSIGNED, primaryKey: true, autoIncrement: true },
-    name: { type: DataTypes.STRING, allowNull: false },
+    name: { type: DataTypes.STRING(191), allowNull: false },
   }, { tableName: 'roles', timestamps: false });
 
   const Category = sequelize.define('Category', {
     id:   { type: DataTypes.BIGINT.UNSIGNED, primaryKey: true, autoIncrement: true },
-    name: { type: DataTypes.STRING, allowNull: false },
+    name: { type: DataTypes.STRING(191), allowNull: false },
   }, { tableName: 'categories' });
 
   const Product = sequelize.define('Product', {
     id:             { type: DataTypes.BIGINT.UNSIGNED, primaryKey: true, autoIncrement: true },
     category_id:    { type: DataTypes.BIGINT.UNSIGNED, allowNull: true },
-    name:           { type: DataTypes.STRING, allowNull: false },
-    name_si:        { type: DataTypes.STRING, allowNull: true },
-    barcode:        { type: DataTypes.STRING, allowNull: true },
-    sku:            { type: DataTypes.STRING, allowNull: true },
+    name:           { type: DataTypes.STRING(191), allowNull: false },
+    name_si:        { type: DataTypes.STRING(191), allowNull: true },
+    barcode:        { type: DataTypes.STRING(191), allowNull: true },
+    sku:            { type: DataTypes.STRING(191), allowNull: true },
     description:    { type: DataTypes.TEXT, allowNull: true },
     image:          { type: DataTypes.STRING(512), allowNull: true },
     cost_price:     { type: DataTypes.DECIMAL(10, 2), defaultValue: 0 },
@@ -36,7 +36,7 @@ function getModels(sequelize) {
     expiry_date:    { type: DataTypes.DATEONLY, allowNull: true },
     stock_qty:      { type: DataTypes.DECIMAL(10, 3), defaultValue: 0 },
     alert_qty:      { type: DataTypes.DECIMAL(10, 3), defaultValue: 5 },
-    unit:           { type: DataTypes.STRING, defaultValue: 'pcs' },
+    unit:           { type: DataTypes.STRING(191), defaultValue: 'pcs' },
     active:         { type: DataTypes.BOOLEAN, defaultValue: true },
     is_fast_moving: { type: DataTypes.BOOLEAN, defaultValue: false },
   }, { tableName: 'products' });
@@ -44,8 +44,8 @@ function getModels(sequelize) {
   const ProductVariant = sequelize.define('ProductVariant', {
     id:                { type: DataTypes.BIGINT.UNSIGNED, primaryKey: true, autoIncrement: true },
     product_id:        { type: DataTypes.BIGINT.UNSIGNED, allowNull: false },
-    label:             { type: DataTypes.STRING, allowNull: false },
-    barcode:           { type: DataTypes.STRING, allowNull: true },
+    label:             { type: DataTypes.STRING(191), allowNull: false },
+    barcode:           { type: DataTypes.STRING(191), allowNull: true },
     cost_price:        { type: DataTypes.DECIMAL(10, 2), defaultValue: 0 },
     selling_price:     { type: DataTypes.DECIMAL(10, 2), defaultValue: 0 },
     wholesale_price:   { type: DataTypes.DECIMAL(10, 2), defaultValue: 0 },
@@ -56,18 +56,18 @@ function getModels(sequelize) {
 
   const Supplier = sequelize.define('Supplier', {
     id:      { type: DataTypes.BIGINT.UNSIGNED, primaryKey: true, autoIncrement: true },
-    name:    { type: DataTypes.STRING, allowNull: false },
-    phone:   { type: DataTypes.STRING, allowNull: true },
-    email:   { type: DataTypes.STRING, allowNull: true },
+    name:    { type: DataTypes.STRING(191), allowNull: false },
+    phone:   { type: DataTypes.STRING(191), allowNull: true },
+    email:   { type: DataTypes.STRING(191), allowNull: true },
     address: { type: DataTypes.TEXT, allowNull: true },
     active:  { type: DataTypes.BOOLEAN, defaultValue: true },
   }, { tableName: 'suppliers' });
 
   const Customer = sequelize.define('Customer', {
     id:             { type: DataTypes.BIGINT.UNSIGNED, primaryKey: true, autoIncrement: true },
-    name:           { type: DataTypes.STRING, allowNull: false },
-    phone:          { type: DataTypes.STRING, allowNull: true },
-    email:          { type: DataTypes.STRING, allowNull: true },
+    name:           { type: DataTypes.STRING(191), allowNull: false },
+    phone:          { type: DataTypes.STRING(191), allowNull: true },
+    email:          { type: DataTypes.STRING(191), allowNull: true },
     address:        { type: DataTypes.TEXT, allowNull: true },
     credit_limit:   { type: DataTypes.DECIMAL(10, 2), defaultValue: 0 },
     credit_balance: { type: DataTypes.DECIMAL(10, 2), defaultValue: 0 },
@@ -96,7 +96,7 @@ function getModels(sequelize) {
     sale_id:        { type: DataTypes.BIGINT.UNSIGNED, allowNull: false },
     product_id:     { type: DataTypes.BIGINT.UNSIGNED, allowNull: true },
     variant_id:     { type: DataTypes.BIGINT.UNSIGNED, allowNull: true },
-    product_name:   { type: DataTypes.STRING, allowNull: false },
+    product_name:   { type: DataTypes.STRING(191), allowNull: false },
     unit_price:     { type: DataTypes.DECIMAL(10, 2), allowNull: false },
     original_price: { type: DataTypes.DECIMAL(10, 2), defaultValue: 0 },
     cost_price:     { type: DataTypes.DECIMAL(10, 2), defaultValue: 0 },
@@ -110,7 +110,7 @@ function getModels(sequelize) {
     sale_id:   { type: DataTypes.BIGINT.UNSIGNED, allowNull: false },
     method:    { type: DataTypes.ENUM('cash', 'card', 'qr', 'credit'), defaultValue: 'cash' },
     amount:    { type: DataTypes.DECIMAL(10, 2), allowNull: false },
-    reference: { type: DataTypes.STRING, allowNull: true },
+    reference: { type: DataTypes.STRING(191), allowNull: true },
   }, { tableName: 'payments' });
 
   const SaleReturn = sequelize.define('SaleReturn', {
@@ -125,7 +125,7 @@ function getModels(sequelize) {
 
   const Purchase = sequelize.define('Purchase', {
     id:            { type: DataTypes.BIGINT.UNSIGNED, primaryKey: true, autoIncrement: true },
-    grn_no:        { type: DataTypes.STRING, allowNull: false, unique: true },
+    grn_no:        { type: DataTypes.STRING(191), allowNull: false, unique: true },
     supplier_id:   { type: DataTypes.BIGINT.UNSIGNED, allowNull: true },
     user_id:       { type: DataTypes.BIGINT.UNSIGNED, allowNull: false },
     total:         { type: DataTypes.DECIMAL(10, 2), defaultValue: 0 },
@@ -139,7 +139,7 @@ function getModels(sequelize) {
     id:           { type: DataTypes.BIGINT.UNSIGNED, primaryKey: true, autoIncrement: true },
     purchase_id:  { type: DataTypes.BIGINT.UNSIGNED, allowNull: false },
     product_id:   { type: DataTypes.BIGINT.UNSIGNED, allowNull: false },
-    product_name: { type: DataTypes.STRING, allowNull: false },
+    product_name: { type: DataTypes.STRING(191), allowNull: false },
     qty:          { type: DataTypes.DECIMAL(10, 3), allowNull: false },
     cost_price:   { type: DataTypes.DECIMAL(10, 2), allowNull: false },
     total:        { type: DataTypes.DECIMAL(10, 2), allowNull: false },
@@ -153,7 +153,7 @@ function getModels(sequelize) {
     qty:          { type: DataTypes.DECIMAL(10, 3), allowNull: false },
     stock_before: { type: DataTypes.DECIMAL(10, 3), allowNull: false },
     stock_after:  { type: DataTypes.DECIMAL(10, 3), allowNull: false },
-    reference:    { type: DataTypes.STRING, allowNull: true },
+    reference:    { type: DataTypes.STRING(191), allowNull: true },
     note:         { type: DataTypes.TEXT, allowNull: true },
   }, { tableName: 'stock_movements' });
 
@@ -162,7 +162,7 @@ function getModels(sequelize) {
     customer_id: { type: DataTypes.BIGINT.UNSIGNED, allowNull: false },
     user_id:     { type: DataTypes.BIGINT.UNSIGNED, allowNull: false },
     amount:      { type: DataTypes.DECIMAL(10, 2), allowNull: false },
-    note:        { type: DataTypes.STRING, allowNull: true },
+    note:        { type: DataTypes.STRING(191), allowNull: true },
   }, { tableName: 'credit_payments' });
 
   const Setting = sequelize.define('Setting', {

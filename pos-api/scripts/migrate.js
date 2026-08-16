@@ -90,12 +90,27 @@ async function main() {
     logging: false,
     define:  { timestamps: true, createdAt: 'created_at', updatedAt: 'updated_at', underscored: true },
   });
+  seq.addHook('afterConnect', (connection) => new Promise((resolve, reject) => {
+    connection.query('SET FOREIGN_KEY_CHECKS = 0', (err) => err ? reject(err) : resolve());
+  }));
 
   await seq.authenticate();
   const models = getModels(seq);
 
   // ── Step 1: Schema ──────────────────────────────────────────────────────────
   console.log('\x1b[1mSchema migration\x1b[0m');
+
+  // Drop legacy check constraints — models define none; old constraints break ALTER TABLE
+  const [chkRows] = await seq.query(
+    `SELECT TABLE_NAME, CONSTRAINT_NAME FROM information_schema.TABLE_CONSTRAINTS
+     WHERE CONSTRAINT_TYPE = 'CHECK' AND TABLE_SCHEMA = DATABASE()`
+  );
+  for (const { TABLE_NAME, CONSTRAINT_NAME } of chkRows) {
+    try {
+      await seq.query(`ALTER TABLE \`${TABLE_NAME}\` DROP CHECK \`${CONSTRAINT_NAME}\``);
+    } catch (_) { /* already gone */ }
+  }
+
   await seq.sync({ alter: true });
   log('Tables created / updated.');
 
