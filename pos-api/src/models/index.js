@@ -4,7 +4,7 @@ function getModels(sequelize) {
   const User = sequelize.define('User', {
     id:       { type: DataTypes.BIGINT.UNSIGNED, primaryKey: true, autoIncrement: true },
     name:     { type: DataTypes.STRING, allowNull: false },
-    email:    { type: DataTypes.STRING, allowNull: false, unique: true },
+    email:    { type: DataTypes.STRING(191), allowNull: false, unique: true },
     password: { type: DataTypes.STRING, allowNull: false },
   }, { tableName: 'users' });
 
@@ -76,7 +76,7 @@ function getModels(sequelize) {
 
   const Sale = sequelize.define('Sale', {
     id:           { type: DataTypes.BIGINT.UNSIGNED, primaryKey: true, autoIncrement: true },
-    invoice_no:   { type: DataTypes.STRING, allowNull: false, unique: true },
+    invoice_no:   { type: DataTypes.STRING(191), allowNull: false, unique: true },
     client_id:    { type: DataTypes.STRING(50), allowNull: true, unique: true },
     user_id:      { type: DataTypes.BIGINT.UNSIGNED, allowNull: false },
     customer_id:  { type: DataTypes.BIGINT.UNSIGNED, allowNull: true },
@@ -117,7 +117,7 @@ function getModels(sequelize) {
     id:        { type: DataTypes.BIGINT.UNSIGNED, primaryKey: true, autoIncrement: true },
     sale_id:   { type: DataTypes.BIGINT.UNSIGNED, allowNull: false },
     user_id:   { type: DataTypes.BIGINT.UNSIGNED, allowNull: false },
-    return_no: { type: DataTypes.STRING, allowNull: false, unique: true },
+    return_no: { type: DataTypes.STRING(191), allowNull: false, unique: true },
     reason:    { type: DataTypes.TEXT, allowNull: true },
     total:     { type: DataTypes.DECIMAL(12, 2), defaultValue: 0 },
     items:     { type: DataTypes.JSON, allowNull: false },
@@ -167,7 +167,7 @@ function getModels(sequelize) {
 
   const Setting = sequelize.define('Setting', {
     id:    { type: DataTypes.BIGINT.UNSIGNED, primaryKey: true, autoIncrement: true },
-    key:   { type: DataTypes.STRING, allowNull: false, unique: true },
+    key:   { type: DataTypes.STRING(191), allowNull: false, unique: true },
     value: { type: DataTypes.TEXT('long'), allowNull: true },
   }, { tableName: 'settings' });
 

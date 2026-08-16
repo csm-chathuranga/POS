@@ -181,3 +181,11 @@ PORT=3001
 | `npm run build` | Production build |
 | `npm run electron:dev` | Electron + Vite dev |
 | `npm run electron:build` | Build Electron installer |
+
+
+
+# Existing DB — schema changes only, no data touched
+node scripts/migrate.js chandana-pos.lumac.cc
+
+# New DB — schema + seed roles + settings + admin user
+node scripts/migrate.js newshop-pos.lumac.cc --seed
