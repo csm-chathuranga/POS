@@ -5,8 +5,8 @@ module.exports = {
     username: 'pos_user',
     password: 'Pos@2026Strong',
   },
-  'retail-pos.lumac.cc': {
-    database: 'retail_pos',
+  'ckd-pos.lumac.cc': {
+    database: 'ckd_pos',
     username: 'pos_user',
     password: 'Pos@2026Strong',
   },
