@@ -1,11 +1,14 @@
 /**
  * Tenant migration tool.
  *
- * Existing DB — schema only:
+ * Schema only (safe, keeps data):
  *   node scripts/migrate.js <host>
  *
- * New DB — schema + seed (roles, settings, admin user):
+ * Schema + seed (roles, settings, default users):
  *   node scripts/migrate.js <host> --seed
+ *
+ * Drop everything and start fresh + seed:
+ *   node scripts/migrate.js <host> --fresh
  */
 require('dotenv').config();
 const bcrypt    = require('bcryptjs');
@@ -14,12 +17,14 @@ const getModels = require('../src/models');
 const tenants   = require('../src/config/tenants');
 
 const host  = process.argv[2];
-const seed  = process.argv.includes('--seed');
+const fresh = process.argv.includes('--fresh');
+const seed  = fresh || process.argv.includes('--seed');
 
 if (!host) {
   console.log('Usage:');
-  console.log('  node scripts/migrate.js <host>          — schema migration only');
-  console.log('  node scripts/migrate.js <host> --seed   — schema + seed (new DB)');
+  console.log('  node scripts/migrate.js <host>           — schema only (safe)');
+  console.log('  node scripts/migrate.js <host> --seed    — schema + seed');
+  console.log('  node scripts/migrate.js <host> --fresh   — drop all + seed (destructive)');
   process.exit(1);
 }
 
@@ -44,7 +49,9 @@ const DEFAULT_SETTINGS = [
 ];
 
 async function main() {
-  console.log(`\n\x1b[1m── ${seed ? 'Migrate + Seed' : 'Migrate'}: ${host} → ${tenant.database} ──\x1b[0m\n`);
+  const mode = fresh ? 'Fresh (drop all) + Seed' : seed ? 'Migrate + Seed' : 'Migrate';
+  console.log(`\n\x1b[1m── ${mode}: ${host} → ${tenant.database} ──\x1b[0m\n`);
+  if (fresh) console.log('\x1b[33m⚠\x1b[0m  --fresh will DROP all tables. Ctrl+C to abort.\n');
 
   const DEFAULT_USERS = [
     { name: 'Admin',   email: 'admin@lumac.lk',   password: '123', role: 'admin' },
@@ -69,19 +76,23 @@ async function main() {
   // ── Step 1: Schema ──────────────────────────────────────────────────────────
   console.log('\x1b[1mSchema migration\x1b[0m');
 
-  // Drop legacy check constraints — models define none; old constraints break ALTER TABLE
-  const [chkRows] = await seq.query(
-    `SELECT TABLE_NAME, CONSTRAINT_NAME FROM information_schema.TABLE_CONSTRAINTS
-     WHERE CONSTRAINT_TYPE = 'CHECK' AND TABLE_SCHEMA = DATABASE()`
-  );
-  for (const { TABLE_NAME, CONSTRAINT_NAME } of chkRows) {
-    try {
-      await seq.query(`ALTER TABLE \`${TABLE_NAME}\` DROP CHECK \`${CONSTRAINT_NAME}\``);
-    } catch (_) { /* already gone */ }
+  if (fresh) {
+    await seq.sync({ force: true });
+    log('All tables dropped and recreated.');
+  } else {
+    // Drop legacy check constraints — models define none; old constraints break ALTER TABLE
+    const [chkRows] = await seq.query(
+      `SELECT TABLE_NAME, CONSTRAINT_NAME FROM information_schema.TABLE_CONSTRAINTS
+       WHERE CONSTRAINT_TYPE = 'CHECK' AND TABLE_SCHEMA = DATABASE()`
+    );
+    for (const { TABLE_NAME, CONSTRAINT_NAME } of chkRows) {
+      try {
+        await seq.query(`ALTER TABLE \`${TABLE_NAME}\` DROP CHECK \`${CONSTRAINT_NAME}\``);
+      } catch (_) { /* already gone */ }
+    }
+    await seq.sync({ alter: true });
+    log('Tables created / updated.');
   }
-
-  await seq.sync({ alter: true });
-  log('Tables created / updated.');
 
   if (seed) {
     const { User, Role, Setting } = models;

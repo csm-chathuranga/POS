@@ -189,3 +189,6 @@ node scripts/migrate.js chandana-pos.lumac.cc
 
 # New DB — schema + seed roles + settings + admin user
 node scripts/migrate.js newshop-pos.lumac.cc --seed
+
+
+node scripts/migrate.js newshop-pos.lumac.cc --fresh
