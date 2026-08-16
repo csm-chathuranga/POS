@@ -1,4 +1,5 @@
 const router = require('express').Router();
+const { spawn } = require('child_process');
 const auth   = require('../middleware/auth');
 const role   = require('../middleware/role');
 
@@ -22,6 +23,35 @@ router.post('/', auth, role('admin', 'manager'), async (req, res) => {
   }
   const settings = await Setting.findAll();
   res.json(Object.fromEntries(settings.map(s => [s.key, s.value])));
+});
+
+// POST /api/settings/backup — streams a mysqldump of the tenant database
+router.post('/backup', auth, role('admin'), (req, res) => {
+  const cfg      = req.db.config;
+  const db       = cfg.database;
+  const stamp    = new Date().toISOString().slice(0, 19).replace(/[T:]/g, '-');
+  const filename = `backup-${db}-${stamp}.sql`;
+
+  const args = [
+    '-h', cfg.host || 'localhost',
+    '-P', String(cfg.port || 3306),
+    '-u', cfg.username,
+    `--password=${cfg.password}`,
+    '--single-transaction',
+    '--set-gtid-purged=OFF',
+    db,
+  ];
+
+  res.setHeader('Content-Type', 'application/octet-stream');
+  res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+
+  const dump = spawn('mysqldump', args);
+  dump.stdout.pipe(res);
+  dump.stderr.on('data', d => console.error('mysqldump:', d.toString()));
+  dump.on('error', err => {
+    console.error('mysqldump error:', err);
+    if (!res.headersSent) res.status(500).json({ error: 'mysqldump failed: ' + err.message });
+  });
 });
 
 module.exports = router;

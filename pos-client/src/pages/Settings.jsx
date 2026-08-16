@@ -1,5 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
+import { useSelector } from 'react-redux';
 import { api } from '../app/baseApi';
+import { selectToken } from '../features/auth/authSlice';
+import { getApiUrl } from '../config/runtimeConfig';
 import { useLocale } from '../contexts/LocaleContext';
 
 const settingsApi = api.injectEndpoints({
@@ -91,10 +94,35 @@ function LangPicker({ value, onChange }) {
 export default function Settings() {
   const { data, isLoading } = settingsApi.useGetSettingsQuery();
   const [save, { isLoading: saving }] = settingsApi.useSaveSettingsMutation();
-  const [form, setForm]   = useState({});
-  const [saved, setSaved] = useState(false);
-  const logoInputRef      = useRef(null);
-  const { setLocale, t }  = useLocale();
+  const [form, setForm]     = useState({});
+  const [saved, setSaved]   = useState(false);
+  const [backing, setBacking] = useState(false);
+  const logoInputRef        = useRef(null);
+  const { setLocale, t }    = useLocale();
+  const token               = useSelector(selectToken);
+
+  async function handleBackup() {
+    setBacking(true);
+    try {
+      const res = await fetch(`${getApiUrl()}/settings/backup`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error('Backup failed');
+      const blob = await res.blob();
+      const cd   = res.headers.get('Content-Disposition') || '';
+      const name = cd.match(/filename="([^"]+)"/)?.[1] || 'backup.sql';
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = name;
+      a.click();
+      URL.revokeObjectURL(a.href);
+    } catch (e) {
+      alert(e.message);
+    } finally {
+      setBacking(false);
+    }
+  }
 
   useEffect(() => {
     if (data) {
@@ -154,6 +182,13 @@ export default function Settings() {
         <h1 className="text-xl font-bold text-slate-800">{t('page.settings')}</h1>
         <div className="flex items-center gap-3">
           {saved && <span className="text-sm text-green-600 font-semibold">✓ {t('btn.save')}!</span>}
+          <button type="button" onClick={handleBackup} disabled={backing}
+            className="flex items-center gap-1.5 px-4 py-2 border border-slate-200 text-sm font-semibold text-slate-600 rounded-xl hover:bg-slate-50 disabled:opacity-60 transition-colors">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+            </svg>
+            {backing ? 'Backing up…' : 'Backup DB'}
+          </button>
           <button type="submit" disabled={saving}
             className="px-5 py-2 bg-blue-600 text-white text-sm font-semibold rounded-xl hover:bg-blue-700 disabled:opacity-60 transition-colors shadow-sm">
             {saving ? t('lbl.loading') : t('set.save')}
