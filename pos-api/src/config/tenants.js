@@ -5,6 +5,11 @@ module.exports = {
     username: 'pos_user',
     password: 'Pos@2026Strong',
   },
+  'retail-pos.lumac.cc': {
+    database: 'retail_pos',
+    username: 'pos_user',
+    password: 'Pos@2026Strong',
+  },
   localhost: {
    database: 'chandana_pos',
     username: 'root',
