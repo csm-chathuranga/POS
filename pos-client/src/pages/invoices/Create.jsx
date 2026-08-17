@@ -34,8 +34,10 @@ export default function DayEndCreate() {
 
   const total = entries.reduce((s, p) => s + p.soldQty * parseFloat(p.selling_price || 0), 0);
 
-  function setQty(id, val) {
-    setQtys(prev => ({ ...prev, [id]: val === '' ? '' : Math.max(0, parseFloat(val) || 0) }));
+  function setQty(id, val, maxStock) {
+    if (val === '') { setQtys(prev => ({ ...prev, [id]: '' })); return; }
+    const n = Math.max(0, parseFloat(val) || 0);
+    setQtys(prev => ({ ...prev, [id]: Math.min(n, maxStock) }));
   }
 
   async function handleSave() {
@@ -171,14 +173,17 @@ export default function DayEndCreate() {
                       </td>
                       <td className="px-4 py-2.5 text-right">
                         <input
-                          type="number" min="0" step="1"
+                          type="number" min="0" max={stockQty} step="1"
                           value={qtys[p.id] ?? ''}
-                          onChange={e => setQty(p.id, e.target.value)}
+                          onChange={e => setQty(p.id, e.target.value, stockQty)}
                           placeholder="0"
+                          disabled={stockQty <= 0}
                           className={`w-24 text-right px-2 py-1 rounded-lg border text-sm outline-none focus:ring-2 focus:ring-blue-500
-                            ${hasQty
-                              ? 'border-blue-300 bg-white font-semibold text-blue-700'
-                              : 'border-slate-200 bg-white text-slate-700'}`}
+                            ${stockQty <= 0
+                              ? 'border-slate-100 bg-slate-50 text-slate-300 cursor-not-allowed'
+                              : hasQty
+                                ? 'border-blue-300 bg-white font-semibold text-blue-700'
+                                : 'border-slate-200 bg-white text-slate-700'}`}
                         />
                       </td>
                       <td className="px-4 py-2.5 text-right text-slate-500 tabular-nums">{fmt(p.selling_price)}</td>
