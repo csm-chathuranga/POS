@@ -1,11 +1,14 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { Link } from 'react-router-dom';
+import { useSelector } from 'react-redux';
 import {
   useGetProductsQuery,
   useDeleteProductMutation,
   useUpdateProductMutation,
   useGetCategoriesQuery,
 } from '../../features/products/productsApi';
+import { selectToken } from '../../features/auth/authSlice';
+import { getApiUrl } from '../../config/runtimeConfig';
 import { useLocale } from '../../contexts/LocaleContext';
 import { useConnectivity } from '../../contexts/ConnectivityContext';
 import { getLocalProducts, getLocalCategories } from '../../services/cacheSync';
@@ -90,12 +93,33 @@ const fmtStock = (qty, unit) => {
 export default function ProductsIndex() {
   const { t } = useLocale();
   const { isOnline } = useConnectivity();
+  const token = useSelector(selectToken);
   const searchRef = useRef(null);
+  const [exporting, setExporting] = useState(false);
+
+  async function handleExport() {
+    setExporting(true);
+    try {
+      const res = await fetch(`${getApiUrl()}/products/export`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const blob = await res.blob();
+      const name = res.headers.get('Content-Disposition')?.match(/filename="([^"]+)"/)?.[1] || 'products.csv';
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = name;
+      a.click();
+      URL.revokeObjectURL(a.href);
+    } finally {
+      setExporting(false);
+    }
+  }
 
   const [search, setSearch]     = useState('');
   const [catId,  setCatId]      = useState('');
   const [filter, setFilter]     = useState('all');
   const [page,   setPage]       = useState(1);
+  const [viewAll, setViewAll]   = useState(() => localStorage.getItem('products_viewAll') === 'true');
   const [applied, setApplied]   = useState({ search: '', category_id: '', low_stock: false, promo: false });
 
   const [offlineProducts,   setOfflineProducts]   = useState([]);
@@ -110,13 +134,18 @@ export default function ProductsIndex() {
     getPendingQueueByTypes(['product_create', 'product_edit']).then(setPendingProducts);
   }, [isOnline]);
 
-  const { data, isLoading } = useGetProductsQuery({
-    ...(applied.search      ? { search:      applied.search }      : {}),
-    ...(applied.category_id ? { category_id: applied.category_id } : {}),
-    ...(applied.low_stock   ? { low_stock:   'true' }              : {}),
-    ...(applied.promo       ? { promo:       'true' }              : {}),
-    page,
-  }, { skip: !isOnline });
+  const { data, isLoading } = useGetProductsQuery(
+    viewAll
+      ? { page: 1, limit: 9999 }
+      : {
+          ...(applied.search      ? { search:      applied.search }      : {}),
+          ...(applied.category_id ? { category_id: applied.category_id } : {}),
+          ...(applied.low_stock   ? { low_stock:   'true' }              : {}),
+          ...(applied.promo       ? { promo:       'true' }              : {}),
+          page,
+        },
+    { skip: !isOnline }
+  );
   const { data: categories = [] } = useGetCategoriesQuery(undefined, { skip: !isOnline });
   const [deleteProduct]  = useDeleteProductMutation();
   const [updateProduct]  = useUpdateProductMutation();
@@ -136,7 +165,19 @@ export default function ProductsIndex() {
     return result;
   }, [isOnline, offlineProducts, applied]);
 
-  const baseRows = isOnline ? (data?.data || []) : offlineFiltered;
+  const serverRows = isOnline ? (data?.data || []) : offlineFiltered;
+  const baseRows = useMemo(() => {
+    if (!viewAll || !isOnline) return serverRows;
+    let result = serverRows;
+    if (applied.search) {
+      const q = applied.search.toLowerCase();
+      result = result.filter(p => p.name?.toLowerCase().includes(q) || p.barcode?.includes(applied.search));
+    }
+    if (applied.category_id) result = result.filter(p => String(p.category_id) === String(applied.category_id));
+    if (applied.low_stock)   result = result.filter(p => parseFloat(p.stock_qty) <= parseFloat(p.alert_qty || 0));
+    if (applied.promo)       result = result.filter(p => p.promo_price);
+    return result;
+  }, [viewAll, isOnline, serverRows, applied]);
   const rows = [...pendingProducts, ...baseRows.filter(r => !pendingProducts.some(p => p.id === r.id))];
 
   const [printModal,   setPrintModal]   = useState(null);  // { product }
@@ -289,12 +330,31 @@ export default function ProductsIndex() {
               <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" /> Offline – changes sync when online
             </span>
           )}
+          <button
+            onClick={() => { setViewAll(v => { localStorage.setItem('products_viewAll', String(!v)); return !v; }); setPage(1); }}
+            className={`flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg border transition-colors shadow-sm ${viewAll ? 'bg-slate-800 text-white border-slate-800 hover:bg-slate-700' : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'}`}
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+            </svg>
+            {viewAll ? 'Paginated' : 'View All'}
+          </button>
+          <button
+            onClick={handleExport}
+            disabled={exporting}
+            className="flex items-center gap-1.5 px-4 py-2 bg-emerald-600 text-white text-sm font-semibold rounded-lg hover:bg-emerald-700 transition-colors shadow-sm disabled:opacity-60"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+            </svg>
+            {exporting ? 'Exporting…' : 'Export CSV'}
+          </button>
           <Link
             to="/products/create"
             className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition-colors shadow-sm"
           >
-              <span className="text-lg leading-none">+</span> {t('btn.new_product')}
-            </Link>
+            <span className="text-lg leading-none">+</span> {t('btn.new_product')}
+          </Link>
         </div>
       </div>
 
@@ -384,7 +444,7 @@ export default function ProductsIndex() {
             </div>
           );
         })}
-        {data && data.last_page > 1 && (
+        {!viewAll && data && data.last_page > 1 && (
           <div className="flex items-center justify-between px-2 py-2 text-sm text-slate-500">
             <span>{data.total} {t('nav.products')}</span>
             <div className="flex gap-2">
@@ -498,7 +558,7 @@ export default function ProductsIndex() {
             </table>
           </div>
         )}
-        {data && data.last_page > 1 && (() => {
+        {!viewAll && data && data.last_page > 1 && (() => {
           const last = data.last_page;
           const pages = [];
           const btnCls = p => `px-3 py-1 rounded-lg border transition-colors ${p === page ? 'bg-blue-600 text-white border-blue-600' : 'border-slate-200 hover:bg-slate-50'}`;

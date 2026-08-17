@@ -92,7 +92,7 @@ export default function CustomerCredit() {
           <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-4 flex-1">
             <p className="text-xs text-slate-400 mb-1">Total Repaid</p>
             <p className="text-xl font-bold text-green-600">
-              Rs. {fmt(payments?.reduce((s, p) => s + parseFloat(p.amount), 0) || 0)}
+              Rs. {fmt(payments?.reduce((s, p) => { const a = parseFloat(p.amount); return s + (a > 0 ? a : 0); }, 0) || 0)}
             </p>
             <p className="text-xs text-slate-400 mt-1">{payments?.length || 0} payment{payments?.length !== 1 ? 's' : ''}</p>
           </div>
@@ -142,23 +142,39 @@ export default function CustomerCredit() {
                 <tr>
                   <th className="px-5 py-3 text-left font-semibold">Receipt No</th>
                   <th className="px-5 py-3 text-left font-semibold">Date</th>
-                  <th className="px-5 py-3 text-right font-semibold">Amount</th>
+                  <th className="px-5 py-3 text-left font-semibold">Type</th>
+                  <th className="px-5 py-3 text-right font-semibold">Debit</th>
+                  <th className="px-5 py-3 text-right font-semibold">Credit</th>
                   <th className="px-5 py-3 text-left font-semibold">Note</th>
                   <th className="px-5 py-3 text-left font-semibold">Recorded By</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
-                {payments.map(p => (
-                  <tr key={p.id} className="hover:bg-slate-50 transition-colors">
-                    <td className="px-5 py-3.5 font-mono text-xs text-slate-700">{p.invoice_no || '—'}</td>
-                    <td className="px-5 py-3.5 text-slate-500 text-xs">{fmtDate(p.created_at)}</td>
-                    <td className="px-5 py-3.5 text-right">
-                      <span className="font-bold text-green-600">Rs. {fmt(p.amount)}</span>
-                    </td>
-                    <td className="px-5 py-3.5 text-slate-400 text-xs">{p.note || '—'}</td>
-                    <td className="px-5 py-3.5 text-slate-500 text-xs">{p.recorded_by}</td>
-                  </tr>
-                ))}
+                {payments.map(p => {
+                  const amt     = parseFloat(p.amount);
+                  const isDebit = amt < 0;        // negative = credit added (debit to balance)
+                  const absAmt  = Math.abs(amt);
+                  return (
+                    <tr key={p.id} className="hover:bg-slate-50 transition-colors">
+                      <td className="px-5 py-3.5 font-mono text-xs text-slate-700">{p.invoice_no || '—'}</td>
+                      <td className="px-5 py-3.5 text-slate-500 text-xs">{fmtDate(p.created_at)}</td>
+                      <td className="px-5 py-3.5">
+                        {isDebit
+                          ? <span className="inline-block px-2 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-600">Debit</span>
+                          : <span className="inline-block px-2 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-700">Credit</span>
+                        }
+                      </td>
+                      <td className="px-5 py-3.5 text-right font-bold text-red-500">
+                        {isDebit ? `Rs. ${fmt(absAmt)}` : '—'}
+                      </td>
+                      <td className="px-5 py-3.5 text-right font-bold text-green-600">
+                        {!isDebit ? `Rs. ${fmt(absAmt)}` : '—'}
+                      </td>
+                      <td className="px-5 py-3.5 text-slate-400 text-xs">{p.note || '—'}</td>
+                      <td className="px-5 py-3.5 text-slate-500 text-xs">{p.recorded_by}</td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           )}

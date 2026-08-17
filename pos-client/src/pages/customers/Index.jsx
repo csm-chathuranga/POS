@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import {
   useGetCustomersQuery, useCreateCustomerMutation, useUpdateCustomerMutation,
-  useDeleteCustomerMutation, useSettleCreditMutation,
+  useDeleteCustomerMutation, useSettleCreditMutation, useAdjustCreditMutation,
 } from '../../features/customers/customersApi';
 import { useLocale } from '../../contexts/LocaleContext';
 import { useConnectivity } from '../../contexts/ConnectivityContext';
@@ -22,6 +22,7 @@ export default function CustomersIndex() {
   const [applied, setApplied] = useState('');
   const [modal, setModal]   = useState(null);
   const [creditAmt, setCreditAmt] = useState('');
+  const [adjForm, setAdjForm]     = useState({ type: 'add', amount: '', note: '' });
   const { register, handleSubmit: rhfSubmit, formState: { errors }, reset } = useForm({ defaultValues: empty });
   const [err, setErr]       = useState('');
   const [saving, setSaving] = useState(false);
@@ -50,11 +51,13 @@ export default function CustomersIndex() {
   const [create, { isLoading: creating }] = useCreateCustomerMutation();
   const [update, { isLoading: updating }] = useUpdateCustomerMutation();
   const [del]     = useDeleteCustomerMutation();
-  const [settle, { isLoading: settling }] = useSettleCreditMutation();
+  const [settle, { isLoading: settling }]   = useSettleCreditMutation();
+  const [adjustCredit, { isLoading: adjusting }] = useAdjustCreditMutation();
 
   function openCreate() { reset(empty); setErr(''); setModal({ mode: 'form', data: null }); }
   function openEdit(c) { reset({ ...c }); setErr(''); setModal({ mode: 'form', data: c }); }
   function openCredit(c) { setCreditAmt(''); setErr(''); setModal({ mode: 'credit', data: c }); }
+  function openAdjust(c) { setAdjForm({ type: 'add', amount: '', note: '' }); setErr(''); setModal({ mode: 'adjust', data: c }); }
   function close() { setModal(null); }
 
   const handleSave = rhfSubmit(async (data) => {
@@ -86,6 +89,17 @@ export default function CustomersIndex() {
     setErr('');
     try {
       await settle({ id: modal.data.id, amount: parseFloat(creditAmt) }).unwrap();
+      close();
+    } catch (e) { setErr(e?.data?.error || 'Failed'); }
+  }
+
+  async function handleAdjust(e) {
+    e.preventDefault();
+    setErr('');
+    const amount = parseFloat(adjForm.amount);
+    if (!amount || amount <= 0) return setErr('Enter a valid amount');
+    try {
+      await adjustCredit({ id: modal.data.id, type: adjForm.type, amount, note: adjForm.note }).unwrap();
       close();
     } catch (e) { setErr(e?.data?.error || 'Failed'); }
   }
@@ -229,6 +243,7 @@ export default function CustomersIndex() {
                       {parseFloat(c.credit_balance) > 0 && (
                         <button onClick={() => navigate(`/customers/${c.id}/credit`)} className="inline-flex items-center px-2.5 py-1 rounded-md border border-orange-200 bg-orange-50 text-xs font-medium text-orange-600 hover:bg-orange-100 transition-colors">Credit</button>
                       )}
+                      <button onClick={() => openAdjust(c)} className="inline-flex items-center px-2.5 py-1 rounded-md border border-violet-200 bg-violet-50 text-xs font-medium text-violet-600 hover:bg-violet-100 transition-colors">Adjust</button>
                       <button onClick={() => openEdit(c)} className="inline-flex items-center px-2.5 py-1 rounded-md border border-blue-200 bg-blue-50 text-xs font-medium text-blue-600 hover:bg-blue-100 transition-colors">{t('btn.edit')}</button>
                       {isOnline && <button onClick={() => handleDelete(c)} className="inline-flex items-center px-2.5 py-1 rounded-md border border-red-200 bg-red-50 text-xs font-medium text-red-500 hover:bg-red-100 transition-colors">{t('btn.delete')}</button>}
                     </div>
@@ -303,6 +318,41 @@ export default function CustomersIndex() {
               <button type="button" onClick={close} className="px-4 py-2 rounded-lg border border-slate-200 text-sm text-slate-600 hover:bg-slate-50">{t('btn.cancel')}</button>
               <button type="submit" disabled={settling} className="px-4 py-2 rounded-lg bg-orange-500 text-white text-sm font-semibold disabled:opacity-60 hover:bg-orange-600">
                 {settling ? t('lbl.loading') : t('btn.settle')}
+              </button>
+            </div>
+          </form>
+        </Modal>
+      )}
+
+      {/* Credit Adjustment Modal */}
+      {modal?.mode === 'adjust' && (
+        <Modal title={`Adjust Credit — ${modal.data.name}`} onClose={close}>
+          <p className="text-sm text-slate-500 mb-4">
+            Current balance: <strong className={parseFloat(modal.data.credit_balance) > 0 ? 'text-red-600' : 'text-green-600'}>{fmt(modal.data.credit_balance)}</strong>
+          </p>
+          <form onSubmit={handleAdjust} className="space-y-3">
+            {err && <p className="text-sm text-red-600">{err}</p>}
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 mb-1">Type</label>
+              <select value={adjForm.type} onChange={e => setAdjForm(f => ({ ...f, type: e.target.value }))}
+                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+                <option value="add">Add credit (increase balance owed)</option>
+                <option value="reduce">Reduce credit (payment / write-off)</option>
+              </select>
+            </div>
+            <Field label="Amount" type="number" min="0.01" step="0.01" required
+              value={adjForm.amount} onChange={e => setAdjForm(f => ({ ...f, amount: e.target.value }))} />
+            <Field label="Note (optional)"
+              value={adjForm.note} onChange={e => setAdjForm(f => ({ ...f, note: e.target.value }))}
+              placeholder="Reason for adjustment" />
+            <div className="flex justify-end gap-2 pt-2">
+              <button type="button" onClick={close}
+                className="px-4 py-2 rounded-lg border border-slate-200 text-sm text-slate-600 hover:bg-slate-50">
+                Cancel
+              </button>
+              <button type="submit" disabled={adjusting}
+                className="px-4 py-2 rounded-lg bg-violet-600 text-white text-sm font-semibold disabled:opacity-60 hover:bg-violet-700">
+                {adjusting ? 'Saving…' : 'Save Adjustment'}
               </button>
             </div>
           </form>

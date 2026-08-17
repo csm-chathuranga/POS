@@ -158,7 +158,7 @@ router.get('/stock-summary', auth, async (req, res) => {
   if (req.query.category_id) where.category_id = req.query.category_id;
 
   const page  = parseInt(req.query.page || '1');
-  const limit = 50;
+  const limit = Math.min(parseInt(req.query.limit || '50'), 9999);
   const { count, rows } = await Product.findAndCountAll({
     where,
     include: [{ model: Category, as: 'category', attributes: ['id', 'name'] }],

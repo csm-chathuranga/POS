@@ -464,26 +464,49 @@ function LowStock() {
 // ─── Tab: Stock Summary ────────────────────────────────────────────────────────
 function StockSummary() {
   const { t } = useLocale();
-  const [search, setSearch] = useState('');
+  const [search, setSearch]   = useState('');
   const [applied, setApplied] = useState('');
-  const [page, setPage] = useState(1);
-  const { data, isLoading } = useGetReportStockSummaryQuery({ search: applied, page });
-  const products = data?.products?.data || [];
-  const meta     = data?.products || {};
-  const summary  = data?.summary  || {};
+  const [page, setPage]       = useState(1);
+  const [viewAll, setViewAll] = useState(() => localStorage.getItem('stock_summary_viewAll') === 'true');
+
+  const { data, isLoading } = useGetReportStockSummaryQuery(
+    viewAll
+      ? { limit: 9999, page: 1 }
+      : { search: applied, page }
+  );
+
+  const allProducts = data?.products?.data || [];
+  const products = viewAll
+    ? allProducts.filter(p => !search || p.name?.toLowerCase().includes(search.toLowerCase()))
+    : allProducts;
+  const meta    = data?.products || {};
+  const summary = data?.summary  || {};
 
   function handleSearch() { setApplied(search); setPage(1); }
 
+  function toggleViewAll() {
+    setViewAll(v => {
+      localStorage.setItem('stock_summary_viewAll', String(!v));
+      return !v;
+    });
+    setSearch('');
+    setApplied('');
+    setPage(1);
+  }
+
   return (
     <div className="space-y-4">
-      <div className="flex gap-2">
+      <div className="flex gap-2 flex-wrap">
         <input value={search} onChange={e => setSearch(e.target.value)}
-          onKeyDown={e => e.key === 'Enter' && handleSearch()}
-          placeholder={t('lbl.search')}
-          className="flex-1 px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
-        <button onClick={handleSearch}
-          className="px-4 py-2 text-sm font-semibold bg-blue-600 text-white rounded-lg hover:bg-blue-700">
-          {t('btn.search')}
+          disabled={!viewAll}
+          placeholder={viewAll ? t('lbl.search') : '—'}
+          className={`flex-1 min-w-0 px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${!viewAll ? 'opacity-40 cursor-not-allowed bg-slate-50' : ''}`} />
+        <button onClick={toggleViewAll}
+          className={`flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg border transition-colors ${viewAll ? 'bg-slate-800 text-white border-slate-800 hover:bg-slate-700' : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'}`}>
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+          </svg>
+          {viewAll ? 'Paginated' : 'View All'}
         </button>
       </div>
 
@@ -495,18 +518,22 @@ function StockSummary() {
       </div>
 
       <TableWrap footer={
-        meta.last_page > 1 && (
+        !viewAll && meta.last_page > 1 ? (
           <div className="flex items-center justify-between px-4 py-3 border-t border-slate-100 text-sm text-slate-500">
             <span>{meta.total} {t('nav.products')}</span>
             <div className="flex gap-2">
               <button disabled={page <= 1} onClick={() => setPage(p => p - 1)}
-                className="px-3 py-1 rounded border border-slate-200 disabled:opacity-40 hover:bg-slate-50">Prev</button>
+                className="px-3 py-1 rounded border border-slate-200 disabled:opacity-40 hover:bg-slate-50">‹</button>
               <span className="px-2 py-1">{page} / {meta.last_page}</span>
               <button disabled={page >= meta.last_page} onClick={() => setPage(p => p + 1)}
-                className="px-3 py-1 rounded border border-slate-200 disabled:opacity-40 hover:bg-slate-50">Next</button>
+                className="px-3 py-1 rounded border border-slate-200 disabled:opacity-40 hover:bg-slate-50">›</button>
             </div>
           </div>
-        )
+        ) : viewAll && products.length > 0 ? (
+          <div className="px-4 py-2.5 border-t border-slate-100 text-xs text-slate-400 text-right">
+            {products.length} {t('nav.products')}
+          </div>
+        ) : null
       }>
         {isLoading ? <Spin /> : (
           <table className="w-full text-sm">

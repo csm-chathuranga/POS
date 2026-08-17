@@ -63,6 +63,25 @@ router.get('/version', auth, async (req, res) => {
   res.json({ version });
 });
 
+// GET /api/products/export — CSV download
+router.get('/export', auth, async (req, res) => {
+  const { Product } = req.models;
+  const products = await Product.findAll({
+    where: { active: true },
+    order: [['id', 'ASC']],
+    attributes: ['id', 'name', 'stock_qty', 'cost_price', 'selling_price'],
+  });
+
+  const header = 'ID,Name,Qty,Cost Price,Selling Price\n';
+  const rows   = products.map(p =>
+    [p.id, `"${(p.name || '').replace(/"/g, '""')}"`, parseFloat(p.stock_qty), parseFloat(p.cost_price), parseFloat(p.selling_price)].join(',')
+  ).join('\n');
+
+  res.setHeader('Content-Type', 'text/csv');
+  res.setHeader('Content-Disposition', `attachment; filename="products-${new Date().toISOString().slice(0,10)}.csv"`);
+  res.send(header + rows);
+});
+
 // GET /api/products/search?q=&barcode=
 router.get('/search', auth, async (req, res) => {
   const { Product, ProductVariant } = req.models;

@@ -37,6 +37,14 @@ export const customersApi = api.injectEndpoints({
       query: body => ({ url: '/customers/quick-add', method: 'POST', body }),
       invalidatesTags: [{ type: 'Customers', id: 'LIST' }],
     }),
+    adjustCredit: build.mutation({
+      query: ({ id, ...body }) => ({ url: `/customers/${id}/credit-adjustment`, method: 'POST', body }),
+      invalidatesTags: (r, e, { id }) => [
+        { type: 'Customers', id },
+        { type: 'Customers', id: 'LIST' },
+        { type: 'Customers', id: `CREDIT-${id}` },
+      ],
+    }),
   }),
 });
 
@@ -48,4 +56,5 @@ export const {
   useSettleCreditMutation,
   useGetCreditHistoryQuery,
   useQuickAddCustomerMutation,
+  useAdjustCreditMutation,
 } = customersApi;

@@ -10,7 +10,7 @@ const fmtDate = s => new Date(s).toLocaleDateString('en-LK');
 const fmtTime = s => new Date(s).toLocaleTimeString('en-LK', { hour: '2-digit', minute: '2-digit' });
 
 const STATUS_CLS = { completed: 'bg-green-100 text-green-700', held: 'bg-yellow-100 text-yellow-700', returned: 'bg-red-100 text-red-700' };
-const METHOD_CLS = { cash: 'bg-green-100 text-green-700', card: 'bg-blue-100 text-blue-700', qr: 'bg-purple-100 text-purple-700', credit: 'bg-red-100 text-red-600' };
+const METHOD_CLS = { cash: 'bg-green-100 text-green-700', card: 'bg-blue-100 text-blue-700', qr: 'bg-purple-100 text-purple-700', credit: 'bg-red-100 text-red-600', day_end: 'bg-slate-100 text-slate-700' };
 
 function StatusBadge({ status }) {
   return <span className={`text-xs px-2 py-0.5 rounded-full font-semibold capitalize ${STATUS_CLS[status] || 'bg-slate-100 text-slate-600'}`}>{status}</span>;
@@ -65,7 +65,7 @@ export default function InvoicesIndex() {
     sorted.forEach((p, i) => { if (i > 0 && p - sorted[i-1] > 1) pages.push('…'); pages.push(p); });
     return (
       <div className="flex items-center justify-between px-4 py-3 border-t border-slate-100 text-sm text-slate-500">
-        <span>{data.total} invoices</span>
+        <span>{data.total} entries</span>
         <div className="flex items-center gap-1">
           <button disabled={page <= 1} onClick={() => setPage(p => p-1)} className="px-3 py-1 rounded-lg border border-slate-200 disabled:opacity-40 hover:bg-slate-50">‹</button>
           {pages.map((p, i) => p === '…'
@@ -83,22 +83,22 @@ export default function InvoicesIndex() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold text-slate-800">Invoices</h1>
-          <p className="text-xs text-slate-400 mt-0.5">All issued invoices</p>
+          <h1 className="text-xl font-bold text-slate-800">Day End</h1>
+          <p className="text-xs text-slate-400 mt-0.5">Daily stock entries</p>
         </div>
         <Link to="/invoices/create"
           className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition-colors shadow-sm">
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4"/>
           </svg>
-          New Invoice
+          New Day End Entry
         </Link>
       </div>
 
       {/* Filters */}
       <form onSubmit={handleSearch} className="bg-white rounded-xl p-4 shadow-sm border border-slate-100 flex flex-wrap gap-3 items-end">
         <div className="flex-1 min-w-40">
-          <label className="block text-xs font-semibold text-slate-600 mb-1">Invoice No</label>
+          <label className="block text-xs font-semibold text-slate-600 mb-1">Entry No</label>
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="INV-0001"
             className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500" />
           {search.length === 1 && <p className="text-[11px] text-slate-400 mt-1">Type 2 more characters…</p>}

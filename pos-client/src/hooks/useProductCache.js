@@ -24,7 +24,10 @@ export default function useProductCache() {
   const [products, setProducts] = useState(() => loadFromStorage() || []);
   const [ready, setReady]       = useState(() => loadFromStorage()?.length > 0);
 
-  const { data: serverVersion } = allApi.useGetProductVersionQuery(undefined, { pollingInterval: 60000 });
+  const { data: serverVersion } = allApi.useGetProductVersionQuery(undefined, {
+    pollingInterval: 60000,
+    refetchOnMountOrArgChange: true,
+  });
 
   const fetchAll = useCallback(async () => {
     const result = await store.dispatch(

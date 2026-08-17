@@ -110,4 +110,32 @@ router.post('/:id/settle-credit', auth, async (req, res) => {
   res.json({ message: 'Credit settled', credit_balance: newBalance });
 });
 
+// POST /api/customers/:id/credit-adjustment — manual add or reduce credit balance
+router.post('/:id/credit-adjustment', auth, async (req, res) => {
+  const { Customer, CreditPayment } = req.models;
+  const customer = await Customer.findByPk(req.params.id);
+  if (!customer) return res.status(404).json({ error: 'Not found' });
+
+  const amount = parseFloat(req.body.amount);
+  if (!amount || amount <= 0) return res.status(422).json({ error: 'Invalid amount' });
+
+  const type = req.body.type === 'add' ? 'add' : 'reduce';
+  const current = parseFloat(customer.credit_balance) || 0;
+  const newBalance = type === 'add'
+    ? current + amount
+    : Math.max(0, current - amount);
+
+  const d = new Date();
+  const ref = `ADJ-${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}-${Date.now().toString().slice(-5)}`;
+  await CreditPayment.create({
+    invoice_no: ref,
+    customer_id: customer.id,
+    user_id: req.user.id,
+    amount: type === 'add' ? -amount : amount,
+    note: req.body.note || `Manual ${type === 'add' ? 'credit added' : 'credit reduced'}`,
+  });
+  await customer.update({ credit_balance: newBalance });
+  res.json({ message: 'Adjusted', credit_balance: newBalance });
+});
+
 module.exports = router;

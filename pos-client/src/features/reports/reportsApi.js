@@ -11,6 +11,7 @@ export const reportsApi = api.injectEndpoints({
     getReportCreditCustomers: b.query({ query: () => '/reports/credit-customers' }),
     getReportStockSummary:    b.query({ query: p => {
       const q = new URLSearchParams({ page: p.page || 1 });
+      if (p.limit) q.set('limit', p.limit);
       if (p.search) q.set('search', p.search);
       if (p.category_id) q.set('category_id', p.category_id);
       return `/reports/stock-summary?${q}`;
