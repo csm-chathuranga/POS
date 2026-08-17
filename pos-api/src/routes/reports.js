@@ -162,7 +162,7 @@ router.get('/stock-summary', auth, async (req, res) => {
   const { count, rows } = await Product.findAndCountAll({
     where,
     include: [{ model: Category, as: 'category', attributes: ['id', 'name'] }],
-    order: [['name', 'ASC']],
+    order: [['id', 'ASC']],
     limit,
     offset: (page - 1) * limit,
   });
