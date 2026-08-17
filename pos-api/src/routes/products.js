@@ -44,6 +44,7 @@ router.get('/all', auth, async (req, res) => {
   const products = await Product.findAll({
     where: { active: true },
     include: [{ model: ProductVariant, as: 'variants' }],
+    order: [['id', 'ASC']],
   });
 
   const data = products.map(productToItem);
@@ -85,6 +86,7 @@ router.get('/search', auth, async (req, res) => {
       ],
     },
     include: [{ model: ProductVariant, as: 'variants' }],
+    order: [['id', 'ASC']],
     limit: 20,
   });
   res.json(products.map(productToItem));
@@ -118,7 +120,7 @@ router.get('/', auth, async (req, res) => {
       { model: Category,        as: 'category' },
       { model: ProductVariant,  as: 'variants' },
     ],
-    order: [['created_at', 'DESC']],
+    order: [['id', 'ASC']],
     limit,
     offset: (page - 1) * limit,
   });
