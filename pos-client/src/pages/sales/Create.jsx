@@ -1,8 +1,8 @@
 import { useState, useRef, useCallback, useMemo, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import { logout, selectCurrentUser, selectRole } from '../../features/auth/authSlice';
-import { useCreateSaleMutation } from '../../features/sales/salesApi';
+import { logout, selectCurrentUser, selectRole, selectToken } from '../../features/auth/authSlice';
+import { useCreateSaleMutation, useReturnSaleMutation } from '../../features/sales/salesApi';
 import useProductCache from '../../hooks/useProductCache';
 import { useConnectivity } from '../../contexts/ConnectivityContext';
 import { enqueueOfflineSale, getPendingCount, OFFLINE_LIMIT } from '../../services/offlineQueue';
@@ -16,6 +16,8 @@ const posApi = api.injectEndpoints({
     quickAddCustomer: b.mutation({ query: body => ({ url: '/customers/quick-add', method: 'POST', body }) }),
     getPOSCustomers:  b.query({ query: () => ({ url: '/customers', params: { page: 1, limit: 500 } }) }),
     getPOSSettings:   b.query({ query: () => '/settings' }),
+    searchSaleByInvoice: b.query({ query: no => `/sales?search=${encodeURIComponent(no)}&limit=1` }),
+    getSaleForReturn:    b.query({ query: id => `/sales/${id}/return` }),
   }),
   overrideExisting: false,
 });
@@ -38,7 +40,7 @@ const Icon = {
   credit: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2"/></svg>,
   split: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4M4 17h12m0 0l-4-4m4 4l-4 4"/></svg>,
   print: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 14h12v8H6v-8z"/></svg>,
-  pause: <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 9v6m4-6v6"/></svg>,
+  pause: <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 9v6m4-6v6"/></svg>,
   save: <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/></svg>,
   user: <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 1 1-8 0 4 4 0 0 1 8 0zM12 14a7 7 0 0 0-7 7h14a7 7 0 0 0-7-7z"/></svg>,
   lightning: <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>,
@@ -191,32 +193,44 @@ function CartItemZoomModal({ item, onChange, onRemove, onClose }) {
 }
 
 // ─── Cart Row ─────────────────────────────────────────────────────────────────
-function CartRow({ item, onChange, onRemove, onZoom, onEnter, highlight }) {
+function CartRow({ item, onChange, onRemove, onZoom, onEnter, onArrow, highlight, isSinhala }) {
   const qtyRef = useRef(null);
   const [qtyStr, setQtyStr] = useState(String(item.qty));
   useEffect(() => { if (highlight) qtyRef.current?.focus(); }, [highlight]);
   useEffect(() => { setQtyStr(String(item.qty)); }, [item.qty]);
 
+  const stockQty = parseFloat(item.stock_qty || 0);
+  const overStock = stockQty > 0 && item.qty > stockQty;
+  const priceOverridden = item.default_price != null && item.unit_price !== item.default_price;
+  const navKey = e => {
+    if (e.key === 'ArrowUp')   { e.preventDefault(); onArrow?.(-1); }
+    if (e.key === 'ArrowDown') { e.preventDefault(); onArrow?.(1); }
+  };
+
   return (
-    <div className={`grid items-center gap-2 px-4 py-2.5 text-sm transition-all duration-700 ${highlight ? 'bg-green-100 ring-2 ring-green-400' : 'bg-slate-100 hover:bg-slate-200'}`}
+    <div className={`grid items-center gap-2 px-4 py-2.5 text-sm transition-all duration-700 ${highlight ? 'bg-green-100 ring-2 ring-green-400' : overStock ? 'bg-orange-50' : 'bg-slate-100 hover:bg-slate-200'}`}
       style={{ gridTemplateColumns: '1fr 64px 76px 64px 84px 24px' }}>
       <button type="button" onClick={onZoom} className="min-w-0 text-left">
-        <p className="font-semibold text-slate-800 truncate leading-tight">{item.name}</p>
+        <p className="font-semibold text-slate-800 truncate leading-tight">{isSinhala && item.name_si ? item.name_si : item.name}</p>
         {item.barcode && <p className="text-xs text-slate-400 font-mono leading-tight">{item.barcode}</p>}
+        {overStock && <p className="text-xs text-orange-500 font-semibold leading-tight">⚠ Exceeds stock ({stockQty})</p>}
       </button>
       <input ref={qtyRef} type="number" min="0.001" step="0.001" value={qtyStr}
         onChange={e => { setQtyStr(e.target.value); const v = parseFloat(e.target.value); if (v > 0) onChange({ qty: v }); }}
         onFocus={e => e.target.select()}
-        onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); onEnter?.(); } }}
-        className="cart-qty-input text-right rounded-lg border border-slate-200 px-1.5 py-1 text-sm outline-none focus:ring-1 focus:ring-blue-500 w-full" />
+        onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); onEnter?.(); } navKey(e); }}
+        className={`cart-qty-input text-right rounded-lg border px-1.5 py-1 text-sm outline-none focus:ring-1 focus:ring-blue-500 w-full ${overStock ? 'border-orange-400 bg-orange-50' : 'border-slate-200'}`}
+        title={overStock ? `Stock: ${stockQty}` : undefined} />
       <input type="number" min="0" step="0.01" value={item.unit_price}
         onChange={e => onChange({ unit_price: parseFloat(e.target.value) || 0 })}
         onFocus={e => e.target.select()}
-        className="cart-cell-input text-right rounded-lg border border-slate-200 px-1.5 py-1 text-sm outline-none focus:ring-1 focus:ring-blue-500 w-full" />
+        onKeyDown={navKey}
+        className={`cart-cell-input text-right rounded-lg border px-1.5 py-1 text-sm outline-none focus:ring-1 focus:ring-blue-500 w-full ${priceOverridden ? 'border-amber-400 bg-amber-50 font-semibold' : 'border-slate-200'}`} />
       <input type="text" inputMode="numeric" pattern="[0-9]*"
         value={Math.floor(item.discount || 0)}
         onChange={e => onChange({ discount: Math.floor(parseInt(e.target.value) || 0) })}
         onFocus={e => e.target.select()}
+        onKeyDown={navKey}
         placeholder="0"
         className="cart-cell-input text-right rounded-lg border border-slate-200 px-1.5 py-1 text-sm outline-none focus:ring-1 focus:ring-blue-500 w-full" />
       <p className="text-right font-bold text-slate-800">{fmt(item.total)}</p>
@@ -255,7 +269,7 @@ function Receipt({ sale, settings, user, onClose }) {
 
     const itemsHtml = (sale.items || []).map((item, idx) => `
       <div class="item-row">
-        <div class="item-name">${idx + 1} ${item.name}</div>
+        <div class="item-name">${idx + 1} ${isSinhala && item.name_si ? item.name_si : item.name}</div>
         <div class="item-total">${f(item.total)}</div>
       </div>
       <div class="item-sub">
@@ -477,6 +491,7 @@ export default function SalesCreate() {
   const dispatch = useDispatch();
   const user     = useSelector(selectCurrentUser);
   const role     = useSelector(selectRole);
+  const token    = useSelector(selectToken);
 
   const { t } = useLocale();
   const { products, ready, deductStock, invalidate } = useProductCache();
@@ -490,6 +505,7 @@ export default function SalesCreate() {
     else setLocalCustomers([]);
   }, [isOnline]);
   const { data: settings } = posApi.useGetPOSSettingsQuery();
+  const isSinhala = (settings?.receipt_language || 'en') === 'si';
 
   // Search
   const searchRef   = useRef(null);
@@ -549,24 +565,71 @@ export default function SalesCreate() {
   // Receipt
   const [receipt, setReceipt] = useState(null);
 
+  // Qty multiplier shortcut (e.g. "3*cola")
+  const [qtyMultiplier, setQtyMultiplier] = useState(1);
+
+  // Category filter
+  const [selectedCategory, setSelectedCategory] = useState(null);
+
+  // Return modal
+  const [showReturn, setShowReturn] = useState(false);
+  const [returnInvoiceNo, setReturnInvoiceNo] = useState('');
+  const [returnSaleId, setReturnSaleId] = useState(null);
+  const [returnSaleData, setReturnSaleData] = useState(null);
+  const [returnItemQtys, setReturnItemQtys] = useState({});
+  const [returnLoading, setReturnLoading] = useState(false);
+  const [returnErr, setReturnErr] = useState('');
+  const [returnDone, setReturnDone] = useState(null);
+  const [doReturn] = useReturnSaleMutation();
+
+  async function loadReturnSale() {
+    if (!returnInvoiceNo.trim()) return;
+    setReturnLoading(true); setReturnErr(''); setReturnSaleData(null); setReturnItemQtys({});
+    try {
+      // Step 1: find sale ID by invoice_no
+      const listRes = await fetch(`/api/sales?search=${encodeURIComponent(returnInvoiceNo.trim())}&limit=5`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const listData = await listRes.json();
+      const found = (listData.data || []).find(s => s.invoice_no === returnInvoiceNo.trim());
+      if (!found) { setReturnErr('Invoice not found'); return; }
+      // Step 2: fetch with items
+      const detailRes = await fetch(`/api/sales/${found.id}/return`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!detailRes.ok) { setReturnErr('Failed to load invoice details'); return; }
+      const detail = await detailRes.json();
+      setReturnSaleData(detail); setReturnSaleId(found.id);
+    } catch { setReturnErr('Network error'); }
+    finally { setReturnLoading(false); }
+  }
+
   // Mobile tab: 'cart' | 'pay'
   const [mobileTab, setMobileTab] = useState('cart');
 
   // ─── Derived ─────────────────────────────────────────────────────────────────
+  const categories = useMemo(() => {
+    const map = new Map();
+    products.forEach(p => { if (p.category_id && p.category?.name) map.set(p.category_id, p.category.name); });
+    return [...map.entries()].map(([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name));
+  }, [products]);
+
   const dropdownItems = useMemo(() => {
+    let base = selectedCategory ? products.filter(p => p.category_id === selectedCategory) : products;
     const q = query.trim().toLowerCase();
-    if (!q) return products.slice(0, 20);
-    return products.filter(p =>
+    if (!q) return base.slice(0, 20);
+    return base.filter(p =>
       p.name.toLowerCase().includes(q) ||
       (p.name_si && p.name_si.includes(q)) ||
       (p.barcode && p.barcode.includes(q))
     ).slice(0, 20);
-  }, [query, products]);
+  }, [query, products, selectedCategory]);
 
   const fastProducts = useMemo(() => {
-    const fast = products.filter(p => p.is_fast_moving);
-    return (fast.length > 0 ? fast : products).slice(0, 6);
-  }, [products]);
+    const base = selectedCategory ? products.filter(p => p.category_id === selectedCategory) : products;
+    const fast = base.filter(p => p.is_fast_moving);
+    return (fast.length > 0 ? fast : base).slice(0, 6);
+  }, [products, selectedCategory]);
 
   const subtotal    = cart.reduce((s, i) => s + i.qty * i.unit_price, 0);
   const lineDisc    = cart.reduce((s, i) => s + (i.discount || 0), 0);
@@ -748,8 +811,8 @@ export default function SalesCreate() {
       flash(key);
       return [...prev, recalc({
         product_id: product.id, variant_id: variantId,
-        name: product.name_si ? `${product.name} / ${product.name_si}` : product.name,
-        barcode: product.barcode || '', qty: qty ?? 1, unit_price: price,
+        name: product.name, name_si: product.name_si || '',
+        barcode: product.barcode || '', qty: qty ?? 1, unit_price: price, default_price: price,
         selling_price: parseFloat(product.selling_price) || 0, promo_price: promo,
         wholesale_price: ws, discount: 0, total: 0,
         unit: product.unit || 'pcs', stock_qty: product.stock_qty || 0,
@@ -792,14 +855,14 @@ export default function SalesCreate() {
         const bc = query.trim();
         isScan.current = false; keyIntervals.current = []; lastKeyTime.current = 0;
         const hit = products.find(p => p.barcode === bc);
-        if (hit) addToCart(hit, null, false);
-        setQuery(''); setShowDrop(false); refocus(); return;
+        if (hit) addToCart(hit, qtyMultiplier, false);
+        setQtyMultiplier(1); setQuery(''); setShowDrop(false); refocus(); return;
       }
       const items = dropdownItems;
-      if (activeIdx >= 0 && items[activeIdx]) { addToCart(items[activeIdx]); return; }
+      if (activeIdx >= 0 && items[activeIdx]) { addToCart(items[activeIdx], qtyMultiplier); setQtyMultiplier(1); return; }
       const q = query.trim().toLowerCase();
       const found = items.find(p => p.barcode?.toLowerCase() === q) || items[0];
-      if (found) addToCart(found);
+      if (found) { addToCart(found, qtyMultiplier); setQtyMultiplier(1); }
     }
   }
 
@@ -845,7 +908,7 @@ export default function SalesCreate() {
     const paid = payMethod === 'cash' ? cashNum : total;
     const items = cart.map(i => ({
       product_id: i.product_id, variant_id: i.variant_id || null,
-      product_name: i.name, unit_price: i.unit_price,
+      product_name: isSinhala && i.name_si ? i.name_si : i.name, unit_price: i.unit_price,
       original_price: i.promo_price ? i.selling_price : 0,
       cost_price: 0, qty: i.qty, discount: i.discount || 0, total: i.total,
     }));
@@ -963,13 +1026,13 @@ export default function SalesCreate() {
         </div>
 
         {/* Mobile tab switcher */}
-        <div className="flex lg:hidden rounded-lg border border-slate-200 overflow-hidden text-xs font-bold">
+        <div className="flex lg:hidden rounded-lg border border-slate-300 overflow-hidden text-xs font-bold">
           <button onClick={() => setMobileTab('cart')}
             className={`px-4 py-1.5 transition-colors ${mobileTab === 'cart' ? 'bg-slate-800 text-white' : 'bg-white text-slate-600'}`}>
             {t('pos.add_products')}
           </button>
           <button onClick={() => setMobileTab('pay')}
-            className={`px-4 py-1.5 transition-colors border-l border-slate-200 ${mobileTab === 'pay' ? 'bg-blue-600 text-white' : 'bg-white text-slate-600'}`}>
+            className={`px-4 py-1.5 transition-colors border-l border-slate-300 ${mobileTab === 'pay' ? 'bg-blue-600 text-white' : 'bg-white text-slate-600'}`}>
             {t('pos.payment_method_label')}
           </button>
         </div>
@@ -978,6 +1041,12 @@ export default function SalesCreate() {
           {/* Day End */}
           <button className="hidden sm:flex items-center gap-1.5 bg-blue-600 text-white text-xs font-bold px-2.5 py-1.5 rounded-lg hover:bg-blue-700 transition-colors">
             {Icon.sun} <span className="hidden md:inline">{t('rep.day_end')}</span>
+          </button>
+
+          {/* Return */}
+          <button onClick={() => { setShowReturn(true); setReturnInvoiceNo(''); setReturnSaleId(null); setReturnSaleData(null); setReturnErr(''); setReturnDone(null); }}
+            className="hidden sm:flex items-center gap-1 text-xs font-bold px-2.5 py-1.5 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 transition-colors">
+            ↩ Return
           </button>
 
           {/* Held bills badge */}
@@ -1011,49 +1080,77 @@ export default function SalesCreate() {
           <div className="px-4 pt-3 pb-2 space-y-2 shrink-0">
             <Step n="1" label={t('pos.add_products').toUpperCase()} />
 
-            {/* Search bar */}
-            <div className="flex gap-2">
+            {/* Search bar + mode tabs inline */}
+            <div className="flex gap-2 items-center">
               <div className="relative flex-1">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">{Icon.search}</span>
                 <input
                   ref={searchRef}
-                  value={query}
-                  onChange={e => { setQuery(e.target.value); if (!isScan.current) { setShowDrop(true); setActive(-1); } }}
+                  value={qtyMultiplier > 1 ? `${qtyMultiplier}*${query}` : query}
+                  onChange={e => {
+                    const val = e.target.value;
+                    const m = val.match(/^(\d+)\*(.*)$/);
+                    if (m) { setQtyMultiplier(parseInt(m[1])); setQuery(m[2]); }
+                    else { setQtyMultiplier(1); setQuery(val); }
+                    if (!isScan.current) { setShowDrop(true); setActive(-1); }
+                  }}
                   onFocus={() => { if (!isScan.current) setShowDrop(ready && dropdownItems.length > 0); }}
                   onBlur={() => setTimeout(() => setShowDrop(false), 150)}
                   onKeyDown={onSearchKeyDown}
                   placeholder={ready ? t('pos.search_product') : t('lbl.loading')}
                   readOnly={!ready}
                   autoFocus
-                  className="w-full pl-9 pr-4 py-2 rounded-xl border border-slate-200 bg-white text-sm outline-none focus:ring-2 focus:ring-blue-500 shadow-sm"
+                  className="w-full pl-9 pr-16 py-2 rounded-xl border border-slate-400 bg-white text-sm outline-none focus:ring-2 focus:ring-blue-500 shadow-sm"
                 />
                 <button className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1 text-xs text-slate-500 bg-slate-100 hover:bg-slate-200 px-2 py-0.5 rounded-md transition-colors">
                   {Icon.barcode} <span>Scan</span>
                 </button>
                 {showDrop && (
                   <ProductDropdown items={dropdownItems} activeIdx={activeIdx}
-                    onSelect={p => { addToCart(p); setShowDrop(false); }} />
+                    onSelect={p => { addToCart(p, qtyMultiplier); setQtyMultiplier(1); setShowDrop(false); }} />
                 )}
               </div>
+              <div className="flex gap-1.5 shrink-0">
+                <button onClick={() => setPriceMode('retail')}
+                  className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold transition-colors ${
+                    priceMode === 'retail' ? 'bg-blue-600 text-white shadow-sm' : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-300'}`}>
+                  {Icon.retail} {t('pos.retail_mode')}
+                </button>
+                <button onClick={() => setPriceMode('wholesale')}
+                  className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold transition-colors ${
+                    priceMode === 'wholesale' ? 'bg-blue-600 text-white shadow-sm' : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-300'}`}>
+                  {Icon.tag} {t('pos.wholesale_mode')}
+                </button>
+                <button onClick={() => setCustom({ name: '', price: '' })}
+                  className="flex items-center gap-1 px-3 py-2 rounded-lg text-xs font-semibold bg-white text-slate-600 hover:bg-slate-50 border border-slate-300 transition-colors">
+                  + Custom
+                </button>
+              </div>
             </div>
+            {/* Qty multiplier badge */}
+            {qtyMultiplier > 1 && (
+              <div className="flex items-center gap-2 px-3 py-1.5 bg-blue-50 border border-blue-200 rounded-lg text-xs font-semibold text-blue-700">
+                <span>×{qtyMultiplier} qty — next product will be added with this quantity</span>
+                <button onClick={() => setQtyMultiplier(1)} className="text-blue-400 hover:text-blue-600 font-bold">&times;</button>
+              </div>
+            )}
 
-            {/* Price mode tabs */}
-            <div className="flex gap-1.5">
-              <button onClick={() => setPriceMode('retail')}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
-                  priceMode === 'retail' ? 'bg-blue-600 text-white shadow-sm' : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200'}`}>
-                {Icon.retail} {t('pos.retail_mode')}
-              </button>
-              <button onClick={() => setPriceMode('wholesale')}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
-                  priceMode === 'wholesale' ? 'bg-blue-600 text-white shadow-sm' : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200'}`}>
-                {Icon.tag} {t('pos.wholesale_mode')}
-              </button>
-              <button onClick={() => setCustom({ name: '', price: '' })}
-                className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold bg-white text-slate-600 hover:bg-slate-50 border border-slate-200 transition-colors">
-                + Custom
-              </button>
-            </div>
+            {/* Category chips */}
+            {categories.length > 0 && (
+              <div className="flex gap-1.5 overflow-x-auto pb-0.5 scrollbar-hide">
+                <button onClick={() => setSelectedCategory(null)}
+                  className={`shrink-0 px-3 py-1 rounded-full text-xs font-semibold transition-colors ${!selectedCategory ? 'bg-blue-600 text-white' : 'bg-white text-slate-600 border border-slate-300 hover:bg-slate-50'}`}>
+                  All
+                </button>
+                {categories.map(c => (
+                  <button key={c.id} onClick={() => setSelectedCategory(selectedCategory === c.id ? null : c.id)}
+                    className={`shrink-0 px-3 py-1 rounded-full text-xs font-semibold transition-colors ${selectedCategory === c.id ? 'bg-blue-600 text-white' : 'bg-white text-slate-600 border border-slate-300 hover:bg-slate-50'}`}>
+                    {c.name}
+                  </button>
+                ))}
+              </div>
+            )}
+
             {err && (
               <div className="px-3 py-1.5 bg-red-50 border border-red-200 text-red-600 text-xs font-medium rounded-lg">{err}</div>
             )}
@@ -1063,9 +1160,9 @@ export default function SalesCreate() {
               <div className="flex gap-2 items-center bg-yellow-50 rounded-xl p-2 border border-yellow-200">
                 <input value={customItem.name} onChange={e => setCustom(c => ({ ...c, name: e.target.value }))}
                   placeholder="Item name" autoFocus
-                  className="flex-1 rounded-lg border border-slate-200 px-3 py-1.5 text-sm outline-none focus:ring-1 focus:ring-blue-500 bg-white" />
+                  className="flex-1 rounded-lg border border-slate-400 px-3 py-1.5 text-sm outline-none focus:ring-1 focus:ring-blue-500 bg-white" />
                 <input type="number" value={customItem.price} onChange={e => setCustom(c => ({ ...c, price: e.target.value }))}
-                  placeholder="Price" className="w-24 rounded-lg border border-slate-200 px-3 py-1.5 text-sm outline-none focus:ring-1 focus:ring-blue-500 bg-white text-right" />
+                  placeholder="Price" className="w-24 rounded-lg border border-slate-400 px-3 py-1.5 text-sm outline-none focus:ring-1 focus:ring-blue-500 bg-white text-right" />
                 <button onClick={addCustomItem} className="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-semibold hover:bg-blue-700">Add</button>
                 <button onClick={() => setCustom(null)} className="px-2 py-1.5 text-slate-500 hover:text-slate-700 text-lg leading-none">&times;</button>
               </div>
@@ -1073,11 +1170,11 @@ export default function SalesCreate() {
           </div>
 
           {/* Cart area */}
-          <div className="flex-1 min-h-0 overflow-y-auto mx-4 mb-2 bg-white rounded-xl shadow-sm border border-slate-100">
+          <div className="flex-1 min-h-0 overflow-y-auto mx-4 mb-2 bg-white rounded-xl shadow-sm border border-slate-300">
             {cart.length > 0 ? (
               <>
                 {/* Cart header */}
-                <div className="grid gap-2 px-4 py-2 text-xs font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 sticky top-0 bg-white"
+                <div className="grid gap-2 px-4 py-2 text-xs font-bold text-slate-400 uppercase tracking-wider border-b border-slate-300 sticky top-0 bg-white"
                   style={{ gridTemplateColumns: '40px 1fr 64px 76px 64px 84px 24px' }}>
                   <span></span>
                   <span>{t('th.product')}</span>
@@ -1091,10 +1188,18 @@ export default function SalesCreate() {
                   {cart.map((item, i) => (
                     <CartRow key={itemKey(item)} item={item}
                       highlight={!!highlights[itemKey(item)]}
+                      isSinhala={isSinhala}
                       onChange={changes => setCart(prev => prev.map((it, j) => j === i ? recalc({ ...it, ...changes }) : it))}
                       onRemove={() => setCart(prev => prev.filter((_, j) => j !== i))}
                       onZoom={() => setZoomed({ item, idx: i })}
                       onEnter={() => searchRef.current?.focus()}
+                      onArrow={dir => {
+                        const inputs = document.querySelectorAll('.cart-qty-input');
+                        const arr = Array.from(inputs);
+                        const idx2 = arr.indexOf(document.activeElement);
+                        if (idx2 >= 0 && arr[idx2 + dir]) { arr[idx2 + dir].focus(); arr[idx2 + dir].select(); }
+                        else if (idx2 + dir < 0) searchRef.current?.focus();
+                      }}
                     />
                   ))}
                 </div>
@@ -1118,7 +1223,7 @@ export default function SalesCreate() {
               <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
                 {fastProducts.map(p => (
                   <button key={p.id} onMouseDown={() => addToCart(p)}
-                    className="shrink-0 w-24 bg-white rounded-xl border border-slate-100 shadow-sm p-2 text-left hover:border-blue-300 hover:shadow-md transition-all">
+                    className="shrink-0 w-24 bg-white rounded-xl border border-slate-300 shadow-sm p-2 text-left hover:border-blue-400 hover:shadow-md transition-all">
                     <div className="w-full aspect-square bg-slate-100 rounded-lg mb-1.5 flex items-center justify-center overflow-hidden">
                       {p.image ? (
                         <img src={p.image} alt={p.name} className="w-full h-full object-cover" />
@@ -1138,18 +1243,18 @@ export default function SalesCreate() {
         </div>
 
         {/* ═══ RIGHT PANEL (Payment) ═══════════════════════════════════════════ */}
-        <div className={`bg-white border-l border-slate-200 flex-col shrink-0 overflow-y-auto
+        <div className={`bg-white border-l border-slate-300 flex-col shrink-0 overflow-y-auto
           w-full lg:w-[40%]
           ${mobileTab === 'cart' ? 'hidden lg:flex' : 'flex'}`}>
 
           {/* Discount + Grand Total */}
-          <div className="px-4 pt-4 pb-3 border-b border-slate-100">
+          <div className="px-4 pt-4 pb-3 border-b border-slate-300">
             {/* Discount row */}
             <div className="flex items-center gap-2 mb-3">
               <span className="text-sm font-bold text-orange-500 w-20 shrink-0">{t('lbl.discount')}</span>
               <input type="number" min="0" step="0.01" value={billDiscount}
                 onChange={e => setBillDisc(e.target.value)} placeholder="0"
-                className="w-20 rounded-lg border border-slate-200 px-2 py-1.5 text-sm outline-none focus:ring-1 focus:ring-orange-400 text-right" />
+                className="w-20 rounded-lg border border-slate-400 px-2 py-1.5 text-sm outline-none focus:ring-1 focus:ring-orange-400 text-right" />
               <button onClick={() => setDiscType('amount')}
                 className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-colors ${discType === 'amount' ? 'bg-slate-700 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>Rs</button>
               {[0, 5, 10, 15, 20].map(pct => (
@@ -1161,9 +1266,9 @@ export default function SalesCreate() {
             </div>
 
             {/* Grand Total */}
-            <div className="flex items-center justify-between bg-slate-700 rounded-xl px-4 py-3">
-              <span className="text-base font-bold text-slate-300">{t('lbl.grand_total')}</span>
-              <span className="text-2xl font-extrabold text-white">{fmtAmt(total)}</span>
+            <div className="flex items-center justify-between bg-blue-100 rounded-xl px-4 py-3">
+              <span className="text-base font-bold text-blue-700">{t('lbl.grand_total')}</span>
+              <span className="text-2xl font-extrabold text-blue-800">{fmtAmt(total)}</span>
             </div>
 
             {totalDisc > 0 && (
@@ -1174,20 +1279,20 @@ export default function SalesCreate() {
           </div>
 
           {/* Payment method */}
-          <div className="px-4 py-3 border-b border-slate-100">
+          <div className="px-4 py-3 border-b border-slate-300">
             <Step n="2" label={t('pos.payment_method_label').toUpperCase()} />
-            <div className="flex rounded-2xl border border-slate-200 overflow-hidden bg-white">
+            <div className="flex rounded-2xl border-2 border-slate-300 overflow-hidden bg-white">
               {[
-                { id: 'cash',   label: t('lbl.cash'),   shortcut: 'F2', icon: Icon.cash },
-                { id: 'card',   label: t('lbl.card'),   shortcut: 'F3', icon: Icon.card },
-                { id: 'credit', label: t('lbl.credit'), shortcut: 'F4', icon: Icon.credit },
-                { id: 'split',  label: 'Split',          shortcut: null,  icon: Icon.split },
+                { id: 'cash',   label: t('lbl.cash'),   shortcut: 'F2', icon: Icon.cash,   active: 'bg-green-500 text-white' },
+                { id: 'card',   label: t('lbl.card'),   shortcut: 'F3', icon: Icon.card,   active: 'bg-blue-500 text-white' },
+                { id: 'credit', label: t('lbl.credit'), shortcut: 'F4', icon: Icon.credit, active: 'bg-orange-500 text-white' },
+                { id: 'split',  label: 'Split',          shortcut: null,  icon: Icon.split,  active: 'bg-violet-500 text-white' },
               ].map((m, i, arr) => (
                 <button key={m.id} onClick={() => setPayMethod(m.id)}
                   className={`flex-1 flex flex-col items-center justify-center gap-1 py-3 lg:py-4 text-sm font-semibold transition-all
-                    ${i < arr.length - 1 ? 'border-r border-slate-200' : ''}
+                    ${i < arr.length - 1 ? 'border-r border-slate-300' : ''}
                     ${payMethod === m.id
-                      ? 'bg-green-500 text-white shadow-inner'
+                      ? `${m.active} shadow-inner`
                       : 'text-slate-500 hover:bg-slate-50'
                     }`}>
                   {m.icon}
@@ -1201,7 +1306,7 @@ export default function SalesCreate() {
           </div>
 
           {/* Cash paid / customer */}
-          <div className="px-4 py-3 border-b border-slate-100">
+          <div className="px-4 py-3 border-b border-slate-300">
             <Step n="3" label={payMethod === 'cash' ? t('pos.cash_paid_label').toUpperCase() : payMethod === 'card' ? 'CARD DETAILS' : payMethod === 'credit' ? t('lbl.credit').toUpperCase() : 'SPLIT PAYMENT'} />
 
             {/* Customer + Cash paid inline */}
@@ -1222,7 +1327,7 @@ export default function SalesCreate() {
                       onFocus={() => setShowCust(true)}
                       onBlur={() => setTimeout(() => setShowCust(false), 150)}
                       placeholder={t('lbl.select_customer')}
-                      className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-blue-500" />
+                      className="w-full rounded-lg border border-slate-400 px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-blue-500" />
                     {customer && (
                       <button onClick={() => { setCustomer(null); setCustQuery(''); }}
                         className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-lg">&times;</button>
@@ -1243,7 +1348,7 @@ export default function SalesCreate() {
                 </div>
 
                 {/* Cash paid */}
-                <div className="w-36 shrink-0">
+                <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">{t('pos.cash_paid_label')}</span>
                   </div>
@@ -1273,7 +1378,7 @@ export default function SalesCreate() {
                     onFocus={() => setShowCust(true)}
                     onBlur={() => setTimeout(() => setShowCust(false), 150)}
                     placeholder={t('lbl.select_customer')}
-                    className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-blue-500" />
+                    className="w-full rounded-lg border border-slate-400 px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-blue-500" />
                   {customer && (
                     <button onClick={() => { setCustomer(null); setCustQuery(''); }}
                       className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-lg">&times;</button>
@@ -1300,7 +1405,7 @@ export default function SalesCreate() {
                 <div className="flex gap-1.5 flex-wrap mb-1">
                   {[100, 500, 1000, 2000, 5000].map(v => (
                     <button key={v} onClick={() => setCashPaid(String(v))}
-                      className="flex-1 py-1.5 border-2 border-slate-200 hover:border-blue-400 hover:bg-blue-50 hover:text-blue-700 rounded-lg text-xs font-bold text-slate-600 transition-colors min-w-0">
+                      className="flex-1 py-1.5 border-2 border-slate-300 hover:border-blue-400 hover:bg-blue-50 hover:text-blue-700 rounded-lg text-xs font-bold text-slate-600 transition-colors min-w-0">
                       {v}
                     </button>
                   ))}
@@ -1319,7 +1424,7 @@ export default function SalesCreate() {
               <div>
                 <label className="block text-xs font-semibold text-slate-500 mb-1 uppercase">Card Reference No.</label>
                 <input autoFocus type="text" value={cardRef} onChange={e => setCardRef(e.target.value)} placeholder="Optional"
-                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500" />
+                  className="w-full rounded-lg border border-slate-400 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500" />
               </div>
             )}
 
@@ -1347,7 +1452,7 @@ export default function SalesCreate() {
                   <label className="block text-xs font-semibold text-slate-500 mb-1 uppercase">Cash Amount</label>
                   <input autoFocus type="number" min="0" step="0.01" value={splitCash} onChange={e => setSplitCash(e.target.value)}
                     onFocus={e => e.target.select()}
-                    className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500" />
+                    className="w-full rounded-lg border border-slate-400 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500" />
                 </div>
                 {splitMode === 'card' ? (
                   <>
@@ -1357,7 +1462,7 @@ export default function SalesCreate() {
                     <div>
                       <label className="block text-xs font-semibold text-slate-500 mb-1 uppercase">Card Reference</label>
                       <input type="text" value={splitCardRef} onChange={e => setSplitCardRef(e.target.value)}
-                        className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500" />
+                        className="w-full rounded-lg border border-slate-400 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500" />
                     </div>
                   </>
                 ) : (
@@ -1372,7 +1477,7 @@ export default function SalesCreate() {
 
 
           {/* Complete Sale */}
-          <div className="px-4 py-4 mt-auto sticky bottom-0 bg-white border-t border-slate-100 shadow-[0_-4px_12px_rgba(0,0,0,0.06)]">
+          <div className="px-4 py-4 mt-auto sticky bottom-0 bg-white border-t border-slate-300 shadow-[0_-4px_12px_rgba(0,0,0,0.06)]">
             <div className="flex gap-2 mb-2">
               {/* Main button */}
               <button
@@ -1423,6 +1528,114 @@ export default function SalesCreate() {
           user={user}
           onClose={newSale}
         />
+      )}
+
+      {/* ── Return modal ── */}
+      {showReturn && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col">
+            <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b border-slate-200 shrink-0">
+              <div>
+                <h2 className="text-base font-bold text-slate-800">Process Return</h2>
+                <p className="text-xs text-slate-400 mt-0.5">Enter invoice number to load items</p>
+              </div>
+              <button onClick={() => setShowReturn(false)} className="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100 text-xl leading-none">&times;</button>
+            </div>
+
+            <div className="px-6 py-4 overflow-y-auto flex-1">
+              {/* Invoice lookup */}
+              {!returnDone && (
+                <div className="flex gap-2 mb-4">
+                  <input value={returnInvoiceNo} onChange={e => setReturnInvoiceNo(e.target.value)}
+                    placeholder="Invoice No (e.g. INV-00123)"
+                    onKeyDown={e => e.key === 'Enter' && loadReturnSale()}
+                    className="flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-red-400" />
+                  <button onClick={loadReturnSale}
+                    disabled={!returnInvoiceNo.trim()}
+                    className="px-4 py-2 bg-slate-800 text-white text-sm font-semibold rounded-lg hover:bg-slate-700 disabled:opacity-40 transition-colors">
+                    Load
+                  </button>
+                </div>
+              )}
+
+              {returnLoading && !returnSaleData && <p className="text-sm text-slate-400 text-center py-6">Loading…</p>}
+              {returnErr && <p className="text-sm text-red-500 bg-red-50 rounded-lg px-3 py-2 mb-3">{returnErr}</p>}
+
+              {returnDone && (
+                <div className="text-center py-8">
+                  <div className="w-14 h-14 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <svg className="w-7 h-7 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7"/></svg>
+                  </div>
+                  <p className="font-bold text-slate-800 text-lg">Return Processed</p>
+                  <p className="text-xs text-slate-400 mt-1">Ref: {returnDone.return_no}</p>
+                  <p className="text-sm text-green-600 font-semibold mt-1">Stock has been restored</p>
+                  <button onClick={() => setShowReturn(false)} className="mt-4 px-6 py-2 bg-slate-800 text-white rounded-lg text-sm font-semibold hover:bg-slate-700">Close</button>
+                </div>
+              )}
+
+              {returnSaleData && !returnDone && (
+                <>
+                  <div className="bg-slate-50 rounded-xl px-4 py-3 mb-4 flex items-center justify-between">
+                    <div>
+                      <p className="text-xs text-slate-400">Invoice</p>
+                      <p className="font-bold text-slate-800 text-sm">{returnSaleData.invoice_no}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-xs text-slate-400">Total</p>
+                      <p className="font-bold text-slate-800">Rs. {fmt(returnSaleData.total)}</p>
+                    </div>
+                  </div>
+
+                  <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Select items & qty to return</p>
+                  <div className="space-y-2 mb-4">
+                    {(returnSaleData.items || []).map(item => (
+                      <div key={item.id} className="flex items-center gap-3 py-2 border-b border-slate-100">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold text-slate-800 truncate">{item.product_name}</p>
+                          <p className="text-xs text-slate-400">{parseFloat(item.qty)} × Rs. {fmt(item.unit_price)}</p>
+                        </div>
+                        <input type="number" min="0" max={parseFloat(item.qty)} step="1"
+                          value={returnItemQtys[item.id] ?? ''}
+                          onChange={e => setReturnItemQtys(prev => ({ ...prev, [item.id]: e.target.value }))}
+                          placeholder="0"
+                          className="w-20 text-right rounded-lg border border-slate-300 px-2 py-1 text-sm outline-none focus:ring-1 focus:ring-red-400" />
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Return summary */}
+                  {(() => {
+                    const returnItems = (returnSaleData.items || []).filter(i => parseFloat(returnItemQtys[i.id]) > 0);
+                    const returnTotal = returnItems.reduce((s, i) => s + parseFloat(returnItemQtys[i.id]) * parseFloat(i.unit_price), 0);
+                    return returnItems.length > 0 ? (
+                      <div className="bg-red-50 rounded-xl px-4 py-3 mb-4 flex items-center justify-between">
+                        <span className="text-sm font-semibold text-red-700">{returnItems.length} item(s) to return</span>
+                        <span className="font-bold text-red-700">Rs. {fmt(returnTotal)}</span>
+                      </div>
+                    ) : null;
+                  })()}
+
+                  <button
+                    disabled={returnLoading || !(returnSaleData.items || []).some(i => parseFloat(returnItemQtys[i.id]) > 0)}
+                    onClick={async () => {
+                      const items = (returnSaleData.items || [])
+                        .filter(i => parseFloat(returnItemQtys[i.id]) > 0)
+                        .map(i => ({ product_id: i.product_id, product_name: i.product_name, qty: parseFloat(returnItemQtys[i.id]), unit_price: parseFloat(i.unit_price) }));
+                      setReturnLoading(true); setReturnErr('');
+                      try {
+                        const res = await doReturn({ id: returnSaleData.id, items, total: items.reduce((s, i) => s + i.qty * i.unit_price, 0) }).unwrap();
+                        setReturnDone(res);
+                      } catch (e) { setReturnErr(e?.data?.error || 'Return failed'); }
+                      finally { setReturnLoading(false); }
+                    }}
+                    className="w-full py-3 bg-red-500 hover:bg-red-600 disabled:opacity-40 text-white font-bold rounded-xl text-sm transition-colors">
+                    {returnLoading ? 'Processing…' : 'Confirm Return & Restore Stock'}
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Hold modal */}

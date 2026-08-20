@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { api } from '../app/baseApi';
 import { store } from '../app/store';
 import { db } from '../db/localDb';
+import { getApiUrl } from '../config/runtimeConfig';
 
 const allApi = api.injectEndpoints({
   endpoints: build => ({
@@ -30,15 +31,18 @@ export default function useProductCache() {
   });
 
   const fetchAll = useCallback(async () => {
-    const result = await store.dispatch(
-      allApi.endpoints.getAllProducts.initiate(undefined, { forceRefetch: true })
-    );
-    if (result.data) {
-      setProducts(result.data);
+    try {
+      const token = store.getState().auth?.token;
+      const resp  = await fetch(`${getApiUrl()}/api/products/all`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (!resp.ok) throw new Error('not ok');
+      const data = await resp.json();
+      setProducts(data);
       setReady(true);
-      localStorage.setItem(LS_KEY, JSON.stringify(result.data));
+      localStorage.setItem(LS_KEY, JSON.stringify(data));
       localStorage.setItem(LS_VER, serverVersion?.version || '');
-    } else {
+    } catch {
       // API unreachable (offline) — fall back to Dexie cache
       const local = await db.products.toArray();
       if (local.length > 0) {
@@ -71,7 +75,7 @@ export default function useProductCache() {
   function deductStock(productId, qty) {
     setProducts(prev => {
       const updated = prev.map(p =>
-        p.id === productId ? { ...p, stock_qty: Math.max(0, (p.stock_qty || 0) - qty) } : p
+        p.id === productId ? { ...p, stock_qty: Math.max(0, parseFloat(p.stock_qty || 0) - parseFloat(qty)) } : p
       );
       localStorage.setItem(LS_KEY, JSON.stringify(updated));
       return updated;
