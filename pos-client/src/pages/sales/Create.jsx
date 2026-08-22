@@ -267,16 +267,25 @@ function Receipt({ sale, settings, user, onClose }) {
     const rl = key => (translations[receiptLang] || translations.en)[key] ?? translations.en[key];
     const minDelay = new Promise(r => setTimeout(r, 1200));
 
-    const itemsHtml = (sale.items || []).map((item, idx) => `
+    const itemsHtml = (sale.items || []).map((item, idx) => {
+      const qty = Number(item.qty || 0);
+      const unit = parseFloat(item.unit_price || 0);
+      const lineDiscount = parseFloat(item.discount || 0);
+      const originalLineTotal = qty * unit;
+      const reducedLineTotal = Math.max(0, originalLineTotal - lineDiscount);
+      const ourUnit = qty > 0 ? Math.max(0, reducedLineTotal / qty) : unit;
+      return `
       <div class="item-row">
         <div class="item-name">${idx + 1} ${isSinhala && item.name_si ? item.name_si : item.name}</div>
-        <div class="item-total">${f(item.total)}</div>
       </div>
-      <div class="item-sub">
-        <span>${Number(item.qty)} × ${f(item.unit_price)}</span>
-        ${parseFloat(item.discount) > 0 ? `<span class="disc-inline">- ${f(item.discount)}</span>` : ''}
+      <div class="item-data">
+        <span class="qty-col">${qty}</span>
+        <span class="orig-col">${f(unit)}</span>
+        <span class="our-col">${f(ourUnit)}</span>
+        <span class="line-col">${f(reducedLineTotal)}</span>
       </div>
-    `).join('');
+    `;
+    }).join('');
 
     const html = `<!DOCTYPE html>
 <html>
@@ -304,12 +313,13 @@ function Receipt({ sale, settings, user, onClose }) {
     .row { display:flex; justify-content:space-between; gap:6px; padding:3px 0; font-size:12px; }
     .row span:first-child { flex-shrink:0; }
     .row span:last-child { text-align:right; word-break:break-word; min-width:0; }
-    .col-header { display:flex; justify-content:space-between; font-weight:900; padding:4px 0 3px; border-top:2px solid #000; border-bottom:2px solid #000; margin:6px 0; font-size:12px; }
+    .col-header { display:flex; justify-content:flex-end; font-weight:900; padding:4px 0 3px; border-top:2px solid #000; border-bottom:2px solid #000; margin:6px 0; font-size:12px; }
+    .col-head-prices { display:grid; grid-template-columns: 30px repeat(3, 1fr); gap:8px; min-width:168px; text-align:right; }
     .item-row { display:flex; justify-content:space-between; align-items:flex-start; gap:6px; font-weight:900; padding-top:5px; font-size:13px; }
     .item-name { flex:1; min-width:0; word-break:break-word; overflow-wrap:break-word; }
-    .item-total { flex-shrink:0; text-align:right; }
-    .item-sub { display:flex; justify-content:space-between; padding-left:10px; font-weight:900; padding-bottom:4px; font-size:12px; }
-    .disc-inline { font-weight:900; }
+    .item-data { display:grid; grid-template-columns: 30px repeat(3, 1fr); gap:8px; text-align:right; padding:2px 0 5px; font-size:12px; font-weight:900; }
+    .qty-col { text-align:left; }
+    .orig-col, .our-col, .line-col { text-align:right; }
     .disc-box { border:2px solid #000; border-radius:4px; padding:3px 8px; display:flex; justify-content:space-between; gap:6px; margin:5px 0; }
     .total-row { display:flex; justify-content:space-between; align-items:baseline; gap:6px; font-weight:900; font-size:15px; padding:6px 0 4px; border-top:2px solid #000; margin-top:4px; }
     .paid-row { display:flex; justify-content:space-between; gap:6px; padding:3px 0; font-weight:900; font-size:12px; }
@@ -334,11 +344,11 @@ function Receipt({ sale, settings, user, onClose }) {
   <div class="row"><span>${rl('th.date')}</span><span>${fmtDate(sale.created_at)} ${fmtTime(sale.created_at)}</span></div>
   <div class="row"><span>${rl('lbl.cashier')}</span><span>${user?.name || '—'}</span></div>
   ${sale.customer_name ? `<div class="row"><span>${rl('lbl.customer')}</span><span>${sale.customer_name}</span></div>` : ''}
-  <div class="col-header"><span># ${rl('th.product')}</span><span>${rl('th.total')}</span></div>
+  <div class="col-header"><span class="col-head-prices"><span>${rl('th.qty')}</span><span>${rl('lbl.original_price')}</span><span>${rl('lbl.our_price')}</span><span>${rl('th.total')}</span></span></div>
   ${itemsHtml}
   <hr class="divider">
   <div class="row"><span>${rl('lbl.subtotal')}</span><span>${f(sale.subtotal)}</span></div>
-  ${parseFloat(sale.discount) > 0 ? `<div class="disc-box"><span>${rl('lbl.discount')}</span><span>- ${f(sale.discount)}</span></div>` : ''}
+  ${parseFloat(sale.discount) > 0 ? `<div class="disc-box"><span>${rl('lbl.earned_profit')}</span><span>- ${f(sale.discount)}</span></div>` : ''}
   <div class="total-row"><span>${rl('lbl.grand_total')}</span><span>${currency} ${f(sale.total)}</span></div>
   ${paidCash > 0  ? `<div class="paid-row"><span>${rl('lbl.cash_paid')} (${rl('lbl.cash')})</span><span>${f(paidCard === 0 && paidCredit === 0 ? parseFloat(sale.paid || 0) : paidCash)}</span></div>` : ''}
   ${paidCard > 0  ? `<div class="paid-row"><span>${rl('lbl.cash_paid')} (${rl('lbl.card')})</span><span>${f(paidCard)}</span></div>` : ''}
@@ -404,20 +414,33 @@ function Receipt({ sale, settings, user, onClose }) {
           <hr className="border-slate-200 my-4" />
 
           <div className="mb-3">
-            <div className="flex justify-between text-sm font-black text-slate-700 border-b-2 border-slate-200 pb-2 mb-3">
-              <span># {t('th.product')}</span><span>{t('th.total')}</span>
+            <div className="flex justify-end text-sm font-black text-slate-700 border-b-2 border-slate-200 pb-2 mb-3">
+              <div className="grid grid-cols-[30px_repeat(3,minmax(0,1fr))] gap-2 min-w-[220px] text-right">
+                <span>{t('th.qty')}</span>
+                <span>{t('lbl.original_price')}</span>
+                <span>{t('lbl.our_price')}</span>
+                <span>{t('th.total')}</span>
+              </div>
             </div>
-            {(sale.items || []).map((item, idx) => (
+            {(sale.items || []).map((item, idx) => {
+              const qty = Number(item.qty || 0);
+              const unit = parseFloat(item.unit_price || 0);
+              const lineDiscount = parseFloat(item.discount || 0);
+              const originalLineTotal = qty * unit;
+              const reducedLineTotal = Math.max(0, originalLineTotal - lineDiscount);
+              const ourUnit = qty > 0 ? Math.max(0, reducedLineTotal / qty) : unit;
+              return (
               <div key={idx} className="mb-3">
-                <div className="flex justify-between text-sm font-bold text-slate-900">
-                  <span>{idx + 1} {item.name}</span><span>{f(item.total)}</span>
-                </div>
-                <div className="flex justify-between text-sm text-slate-400 font-medium pl-4 mt-0.5">
-                  <span>{Number(item.qty)} × {f(item.unit_price)}</span>
-                  {parseFloat(item.discount) > 0 && <span className="text-red-400">- {f(item.discount)}</span>}
+                <div className="text-sm font-bold text-slate-900">{idx + 1} {item.name}</div>
+                <div className="grid grid-cols-[30px_repeat(3,minmax(0,1fr))] gap-2 text-sm text-slate-700 font-semibold pl-1 mt-0.5">
+                  <span className="text-left">{qty}</span>
+                  <span className="text-right">{f(unit)}</span>
+                  <span className="text-right text-red-500">{f(ourUnit)}</span>
+                  <span className="text-right">{f(reducedLineTotal)}</span>
                 </div>
               </div>
-            ))}
+            );
+            })}
           </div>
 
           <hr className="border-slate-200 mb-4" />
@@ -429,7 +452,7 @@ function Receipt({ sale, settings, user, onClose }) {
             </div>
             {parseFloat(sale.discount) > 0 && (
               <div className="flex justify-between items-center border-2 border-blue-300 rounded-lg px-3 py-1.5 bg-blue-50">
-                <span className="text-blue-700 font-bold text-sm">{t('lbl.discount')}</span>
+                <span className="text-blue-700 font-bold text-sm">{t('lbl.earned_profit')}</span>
                 <span className="text-red-500 font-extrabold text-sm">- {f(sale.discount)}</span>
               </div>
             )}

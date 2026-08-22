@@ -84,16 +84,25 @@ export default function SaleShow() {
     const rl = key => (translations[receiptLang] || translations.en)[key] ?? translations.en[key];
     const minDelay = new Promise(r => setTimeout(r, 2200));
 
-    const itemsHtml = (sale.items || []).map((item, idx) => `
+    const itemsHtml = (sale.items || []).map((item, idx) => {
+      const qty = Number(item.qty || 0);
+      const unit = parseFloat(item.unit_price || 0);
+      const lineDiscount = parseFloat(item.discount || 0);
+      const originalLineTotal = qty * unit;
+      const reducedLineTotal = Math.max(0, originalLineTotal - lineDiscount);
+      const ourUnit = qty > 0 ? Math.max(0, reducedLineTotal / qty) : unit;
+      return `
       <div class="item-row">
-        <div class="item-name">${idx + 1} ${item.product_name}</div>
-        <div class="item-total">${fmt(item.total)}</div>
+        <div class="item-name">${item.product_name}</div>
       </div>
-      <div class="item-sub">
-        <span>${Number(item.qty)} × ${fmt(item.unit_price)}</span>
-        ${parseFloat(item.discount) > 0 ? `<span class="disc-inline">- ${fmt(item.discount)}</span>` : ''}
+      <div class="item-data">
+        <span class="qty-col">${qty}</span>
+        <span class="orig-col">${fmt(unit)}</span>
+        <span class="our-col">${fmt(ourUnit)}</span>
+        <span class="line-col">${fmt(reducedLineTotal)}</span>
       </div>
-    `).join('');
+    `;
+    }).join('');
 
     const payments  = sale.payments || [];
     const paidCash  = payments.filter(p => p.method === 'cash').reduce((s, p) => s + parseFloat(p.amount || 0), 0);
@@ -129,12 +138,13 @@ export default function SaleShow() {
     .row { display:flex; justify-content:space-between; gap:6px; padding:3px 0; font-size:${is80 ? '12px' : '14px'}; color:#000; }
     .row .label { color:#000; font-weight:900; flex-shrink:0; }
     .row .value { font-weight:900; color:#000; text-align:right; min-width:0; word-break:break-word; }
-    .col-header { display:flex; justify-content:space-between; font-weight:900; padding:4px 0 3px; border-top:2px solid #000; border-bottom:2px solid #000; margin:6px 0; font-size:${is80 ? '12px' : '14px'}; color:#000; }
+    .col-header { display:flex; justify-content:flex-end; font-weight:900; padding:4px 0 3px; border-top:2px solid #000; border-bottom:2px solid #000; margin:6px 0; font-size:${is80 ? '12px' : '14px'}; color:#000; }
+    .col-head-prices { display:grid; grid-template-columns: 30px repeat(3, 1fr); gap:8px; min-width:${is80 ? '168px' : '240px'}; text-align:right; }
     .item-row { display:flex; justify-content:space-between; align-items:flex-start; gap:6px; font-weight:900; padding-top:5px; font-size:${is80 ? '13px' : '15px'}; color:#000; }
     .item-name { flex:1; min-width:0; word-break:break-word; overflow-wrap:break-word; }
-    .item-total { flex-shrink:0; text-align:right; }
-    .item-sub { display:flex; justify-content:space-between; padding-left:10px; color:#000; font-weight:900; padding-bottom:4px; font-size:${is80 ? '12px' : '13px'}; }
-    .disc-inline { color:#000; font-weight:900; }
+    .item-data { display:grid; grid-template-columns: 30px repeat(3, 1fr); gap:8px; text-align:right; padding:2px 0 5px; font-size:${is80 ? '12px' : '13px'}; font-weight:900; color:#000; }
+    .qty-col { text-align:left; }
+    .orig-col, .our-col, .line-col { text-align:right; }
     .disc-box { border:2px solid #000; border-radius:4px; padding:3px 8px; display:flex; justify-content:space-between; gap:6px; margin:5px 0; }
     .disc-label { color:#000; font-weight:900; flex-shrink:0; }
     .disc-val { color:#000; font-weight:900; }
@@ -162,11 +172,11 @@ export default function SaleShow() {
   <div class="row"><span class="label">${rl('th.date')}</span><span class="value">${fmtDate(sale.created_at)} ${fmtTime(sale.created_at)}</span></div>
   <div class="row"><span class="label">${rl('lbl.cashier')}</span><span class="value">${sale.user?.name || '—'}</span></div>
   ${sale.customer?.name ? `<div class="row"><span class="label">${rl('lbl.customer')}</span><span class="value">${sale.customer.name}</span></div>` : ''}
-  <div class="col-header"><span># ${rl('th.product')}</span><span>${rl('th.total')}</span></div>
+  <div class="col-header"><span class="col-head-prices"><span>${rl('th.qty')}</span><span>${rl('lbl.original_price')}</span><span>${rl('lbl.our_price')}</span><span>${rl('th.total')}</span></span></div>
   ${itemsHtml}
   <hr class="divider">
   <div class="row"><span class="label">${rl('lbl.subtotal')}</span><span>${fmt(sale.subtotal)}</span></div>
-  ${parseFloat(sale.discount) > 0 ? `<div class="disc-box"><span class="disc-label">${rl('lbl.discount')}</span><span class="disc-val">- ${fmt(sale.discount)}</span></div>` : ''}
+  ${parseFloat(sale.discount) > 0 ? `<div class="disc-box"><span class="disc-label">${rl('lbl.earned_profit')}</span><span class="disc-val">- ${fmt(sale.discount)}</span></div>` : ''}
   ${parseFloat(sale.tax) > 0 ? `<div class="row"><span class="label">${rl('lbl.tax')}</span><span>${fmt(sale.tax)}</span></div>` : ''}
   <div class="total-row"><span class="total-label">${rl('lbl.grand_total')}</span><span class="total-val">${currency} ${fmt(sale.total)}</span></div>
   ${paidCash > 0  ? `<div class="paid-row"><span>${rl('lbl.cash_paid')} (${rl('lbl.cash')})</span><span>${fmt(cashGiven)}</span></div>` : ''}
@@ -335,24 +345,31 @@ export default function SaleShow() {
 
           {/* Items */}
           <div className="mb-3">
-            <div className="flex justify-between text-sm font-black text-slate-700 border-b-2 border-slate-200 pb-2 mb-3">
-              <span># {t('th.product')}</span>
+            <div className="grid grid-cols-[30px_repeat(3,minmax(0,1fr))] gap-2 pl-1 text-sm font-black text-slate-700 border-b-2 border-slate-200 pb-2 mb-3 text-right">
+              <span className="text-left">{t('th.qty')}</span>
+              <span>{t('lbl.original_price')}</span>
+              <span>{t('lbl.our_price')}</span>
               <span>{t('th.total')}</span>
             </div>
-            {(sale.items || []).map((item, idx) => (
+            {(sale.items || []).map((item, idx) => {
+              const qty = Number(item.qty || 0);
+              const unit = parseFloat(item.unit_price || 0);
+              const lineDiscount = parseFloat(item.discount || 0);
+              const originalLineTotal = qty * unit;
+              const reducedLineTotal = Math.max(0, originalLineTotal - lineDiscount);
+              const ourUnit = qty > 0 ? Math.max(0, reducedLineTotal / qty) : unit;
+              return (
               <div key={item.id} className="mb-3">
-                <div className="flex justify-between text-sm font-bold text-slate-900">
-                  <span>{idx + 1} {item.product_name}</span>
-                  <span>{fmt(item.total)}</span>
-                </div>
-                <div className="flex justify-between text-sm text-slate-400 font-medium pl-4 mt-0.5">
-                  <span>{Number(item.qty)} × {fmt(item.unit_price)}</span>
-                  {parseFloat(item.discount) > 0 && (
-                    <span className="text-red-400">- {fmt(item.discount)}</span>
-                  )}
+                <div className="text-sm font-bold text-slate-900">{item.product_name}</div>
+                <div className="grid grid-cols-[30px_repeat(3,minmax(0,1fr))] gap-2 text-sm text-slate-700 font-semibold pl-1 mt-0.5">
+                  <span className="text-left">{qty}</span>
+                  <span className="text-right">{fmt(unit)}</span>
+                  <span className="text-right text-red-500">{fmt(ourUnit)}</span>
+                  <span className="text-right">{fmt(reducedLineTotal)}</span>
                 </div>
               </div>
-            ))}
+            );
+            })}
           </div>
 
           <hr className="border-slate-200 mb-4" />
@@ -366,7 +383,7 @@ export default function SaleShow() {
 
             {parseFloat(sale.discount) > 0 && (
               <div className="flex justify-between items-center border-2 border-blue-300 rounded-lg px-3 py-1.5 bg-blue-50">
-                <span className="text-blue-700 font-bold text-sm">{t('lbl.discount')}</span>
+                <span className="text-blue-700 font-bold text-sm">{t('lbl.earned_profit')}</span>
                 <span className="text-red-500 font-extrabold text-sm">- {fmt(sale.discount)}</span>
               </div>
             )}

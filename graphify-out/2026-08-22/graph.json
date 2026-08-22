@@ -5997,7 +5997,7 @@
       "label": "Step()",
       "file_type": "code",
       "source_file": "pos-client/src/pages/sales/Create.jsx",
-      "source_location": "L501",
+      "source_location": "L504",
       "_origin": "ast",
       "id": "pos_client_src_pages_sales_create_step",
       "community": 11,
@@ -6008,7 +6008,7 @@
       "label": "SalesCreate()",
       "file_type": "code",
       "source_file": "pos-client/src/pages/sales/Create.jsx",
-      "source_location": "L511",
+      "source_location": "L514",
       "_origin": "ast",
       "id": "pos_client_src_pages_sales_create_salescreate",
       "community": 11,
@@ -6228,7 +6228,7 @@
       "label": "MetaRow()",
       "file_type": "code",
       "source_file": "pos-client/src/pages/sales/Show.jsx",
-      "source_location": "L514",
+      "source_location": "L519",
       "_origin": "ast",
       "id": "pos_client_src_pages_sales_show_metarow",
       "community": 1,
@@ -7277,8 +7277,8 @@
       "_origin": "ast",
       "community": 34,
       "norm_label": "preload.mjs",
-      "community_name": "preload.mjs",
-      "id": "pos_client_dist_electron_preload"
+      "id": "pos_client_dist_electron_preload",
+      "community_name": "preload.mjs"
     },
     {
       "label": "Graphify Skill Trigger Rule",
@@ -7292,8 +7292,8 @@
       "community": 5,
       "norm_label": "graphify skill trigger rule",
       "_origin": "semantic",
-      "community_name": "Graphify Build Pipeline",
-      "id": "_claude_claude_graphify_skill_trigger"
+      "id": "_claude_claude_graphify_skill_trigger",
+      "community_name": "Graphify Build Pipeline"
     },
     {
       "label": "Graphify Build Pipeline",
@@ -7307,8 +7307,8 @@
       "community": 5,
       "norm_label": "graphify build pipeline",
       "_origin": "semantic",
-      "community_name": "Graphify Build Pipeline",
-      "id": "_claude_skills_graphify_skill_graphify_pipeline"
+      "id": "_claude_skills_graphify_skill_graphify_pipeline",
+      "community_name": "Graphify Build Pipeline"
     },
     {
       "label": "Fast Path: Existing Graph Query Shortcut",
@@ -7322,8 +7322,8 @@
       "community": 5,
       "norm_label": "fast path: existing graph query shortcut",
       "_origin": "semantic",
-      "community_name": "Graphify Build Pipeline",
-      "id": "_claude_skills_graphify_skill_fast_path_query"
+      "id": "_claude_skills_graphify_skill_fast_path_query",
+      "community_name": "Graphify Build Pipeline"
     },
     {
       "label": "AST Structural Extraction (Part A)",
@@ -7337,8 +7337,8 @@
       "community": 5,
       "norm_label": "ast structural extraction (part a)",
       "_origin": "semantic",
-      "community_name": "Graphify Build Pipeline",
-      "id": "_claude_skills_graphify_skill_ast_extraction"
+      "id": "_claude_skills_graphify_skill_ast_extraction",
+      "community_name": "Graphify Build Pipeline"
     },
     {
       "label": "Semantic Extraction via Subagents (Part B)",
@@ -7352,8 +7352,8 @@
       "community": 5,
       "norm_label": "semantic extraction via subagents (part b)",
       "_origin": "semantic",
-      "community_name": "Graphify Build Pipeline",
-      "id": "_claude_skills_graphify_skill_semantic_extraction"
+      "id": "_claude_skills_graphify_skill_semantic_extraction",
+      "community_name": "Graphify Build Pipeline"
     },
     {
       "label": "Graph Community Detection and Labeling",
@@ -7367,8 +7367,8 @@
       "community": 5,
       "norm_label": "graph community detection and labeling",
       "_origin": "semantic",
-      "community_name": "Graphify Build Pipeline",
-      "id": "_claude_skills_graphify_skill_community_detection"
+      "id": "_claude_skills_graphify_skill_community_detection",
+      "community_name": "Graphify Build Pipeline"
     },
     {
       "label": "Add URL Command",
@@ -7382,8 +7382,8 @@
       "community": 5,
       "norm_label": "add url command",
       "_origin": "semantic",
-      "community_name": "Graphify Build Pipeline",
-      "id": "_claude_skills_graphify_references_add_watch_add_url_command"
+      "id": "_claude_skills_graphify_references_add_watch_add_url_command",
+      "community_name": "Graphify Build Pipeline"
     },
     {
       "label": "Watch Mode Auto-Rebuild",
@@ -7397,8 +7397,8 @@
       "community": 5,
       "norm_label": "watch mode auto-rebuild",
       "_origin": "semantic",
-      "community_name": "Graphify Build Pipeline",
-      "id": "_claude_skills_graphify_references_add_watch_watch_mode"
+      "id": "_claude_skills_graphify_references_add_watch_watch_mode",
+      "community_name": "Graphify Build Pipeline"
     },
     {
       "label": "Wiki Export (agent-crawlable index)",
@@ -7412,8 +7412,8 @@
       "community": 5,
       "norm_label": "wiki export (agent-crawlable index)",
       "_origin": "semantic",
-      "community_name": "Graphify Build Pipeline",
-      "id": "_claude_skills_graphify_references_exports_wiki_export"
+      "id": "_claude_skills_graphify_references_exports_wiki_export",
+      "community_name": "Graphify Build Pipeline"
     },
     {
       "label": "Neo4j Graph Export",
@@ -7427,8 +7427,8 @@
       "community": 31,
       "norm_label": "neo4j graph export",
       "_origin": "semantic",
-      "community_name": "Neo4j Graph Export",
-      "id": "_claude_skills_graphify_references_exports_neo4j_export"
+      "id": "_claude_skills_graphify_references_exports_neo4j_export",
+      "community_name": "Neo4j Graph Export"
     },
     {
       "label": "FalkorDB Graph Export",
@@ -7442,8 +7442,8 @@
       "community": 30,
       "norm_label": "falkordb graph export",
       "_origin": "semantic",
-      "community_name": "FalkorDB Graph Export",
-      "id": "_claude_skills_graphify_references_exports_falkordb_export"
+      "id": "_claude_skills_graphify_references_exports_falkordb_export",
+      "community_name": "FalkorDB Graph Export"
     },
     {
       "label": "MCP Server for Agent Graph Access",
@@ -7457,8 +7457,8 @@
       "community": 5,
       "norm_label": "mcp server for agent graph access",
       "_origin": "semantic",
-      "community_name": "Graphify Build Pipeline",
-      "id": "_claude_skills_graphify_references_exports_mcp_server"
+      "id": "_claude_skills_graphify_references_exports_mcp_server",
+      "community_name": "Graphify Build Pipeline"
     },
     {
       "label": "Token Reduction Benchmark",
@@ -7472,8 +7472,8 @@
       "community": 32,
       "norm_label": "token reduction benchmark",
       "_origin": "semantic",
-      "community_name": "Token Reduction Benchmark",
-      "id": "_claude_skills_graphify_references_exports_token_benchmark"
+      "id": "_claude_skills_graphify_references_exports_token_benchmark",
+      "community_name": "Token Reduction Benchmark"
     },
     {
       "label": "Extraction Subagent Prompt Template",
@@ -7487,8 +7487,8 @@
       "community": 5,
       "norm_label": "extraction subagent prompt template",
       "_origin": "semantic",
-      "community_name": "Graphify Build Pipeline",
-      "id": "_claude_skills_graphify_references_extraction_spec_extraction_subagent_prompt"
+      "id": "_claude_skills_graphify_references_extraction_spec_extraction_subagent_prompt",
+      "community_name": "Graphify Build Pipeline"
     },
     {
       "label": "Node ID Format Convention (full-path stem)",
@@ -7502,8 +7502,8 @@
       "community": 5,
       "norm_label": "node id format convention (full-path stem)",
       "_origin": "semantic",
-      "community_name": "Graphify Build Pipeline",
-      "id": "_claude_skills_graphify_references_extraction_spec_node_id_format"
+      "id": "_claude_skills_graphify_references_extraction_spec_node_id_format",
+      "community_name": "Graphify Build Pipeline"
     },
     {
       "label": "Confidence Scoring Rubric (EXTRACTED/INFERRED/AMBIGUOUS)",
@@ -7517,8 +7517,8 @@
       "community": 5,
       "norm_label": "confidence scoring rubric (extracted/inferred/ambiguous)",
       "_origin": "semantic",
-      "community_name": "Graphify Build Pipeline",
-      "id": "_claude_skills_graphify_references_extraction_spec_confidence_rubric"
+      "id": "_claude_skills_graphify_references_extraction_spec_confidence_rubric",
+      "community_name": "Graphify Build Pipeline"
     },
     {
       "label": "GitHub Repo Clone Workflow",
@@ -7532,8 +7532,8 @@
       "community": 5,
       "norm_label": "github repo clone workflow",
       "_origin": "semantic",
-      "community_name": "Graphify Build Pipeline",
-      "id": "_claude_skills_graphify_references_github_and_merge_github_clone"
+      "id": "_claude_skills_graphify_references_github_and_merge_github_clone",
+      "community_name": "Graphify Build Pipeline"
     },
     {
       "label": "Cross-Repo Knowledge Graph Merge",
@@ -7547,8 +7547,8 @@
       "community": 5,
       "norm_label": "cross-repo knowledge graph merge",
       "_origin": "semantic",
-      "community_name": "Graphify Build Pipeline",
-      "id": "_claude_skills_graphify_references_github_and_merge_cross_repo_merge"
+      "id": "_claude_skills_graphify_references_github_and_merge_cross_repo_merge",
+      "community_name": "Graphify Build Pipeline"
     },
     {
       "label": "Monorepo Multi-Subfolder Graph Merge",
@@ -7562,8 +7562,8 @@
       "community": 5,
       "norm_label": "monorepo multi-subfolder graph merge",
       "_origin": "semantic",
-      "community_name": "Graphify Build Pipeline",
-      "id": "_claude_skills_graphify_references_github_and_merge_monorepo_merge"
+      "id": "_claude_skills_graphify_references_github_and_merge_monorepo_merge",
+      "community_name": "Graphify Build Pipeline"
     },
     {
       "label": "Git Commit Hook Auto-Rebuild",
@@ -7577,8 +7577,8 @@
       "community": 5,
       "norm_label": "git commit hook auto-rebuild",
       "_origin": "semantic",
-      "community_name": "Graphify Build Pipeline",
-      "id": "_claude_skills_graphify_references_hooks_git_commit_hook"
+      "id": "_claude_skills_graphify_references_hooks_git_commit_hook",
+      "community_name": "Graphify Build Pipeline"
     },
     {
       "label": "Native CLAUDE.md Graphify Integration",
@@ -7592,8 +7592,8 @@
       "community": 5,
       "norm_label": "native claude.md graphify integration",
       "_origin": "semantic",
-      "community_name": "Graphify Build Pipeline",
-      "id": "_claude_skills_graphify_references_hooks_native_claude_md_integration"
+      "id": "_claude_skills_graphify_references_hooks_native_claude_md_integration",
+      "community_name": "Graphify Build Pipeline"
     },
     {
       "label": "BFS Graph Traversal (broad context)",
@@ -7607,8 +7607,8 @@
       "community": 5,
       "norm_label": "bfs graph traversal (broad context)",
       "_origin": "semantic",
-      "community_name": "Graphify Build Pipeline",
-      "id": "_claude_skills_graphify_references_query_bfs_traversal"
+      "id": "_claude_skills_graphify_references_query_bfs_traversal",
+      "community_name": "Graphify Build Pipeline"
     },
     {
       "label": "DFS Graph Traversal (path tracing)",
@@ -7622,8 +7622,8 @@
       "community": 5,
       "norm_label": "dfs graph traversal (path tracing)",
       "_origin": "semantic",
-      "community_name": "Graphify Build Pipeline",
-      "id": "_claude_skills_graphify_references_query_dfs_traversal"
+      "id": "_claude_skills_graphify_references_query_dfs_traversal",
+      "community_name": "Graphify Build Pipeline"
     },
     {
       "label": "Constrained Query Expansion via Graph Vocabulary",
@@ -7637,8 +7637,8 @@
       "community": 5,
       "norm_label": "constrained query expansion via graph vocabulary",
       "_origin": "semantic",
-      "community_name": "Graphify Build Pipeline",
-      "id": "_claude_skills_graphify_references_query_query_expansion"
+      "id": "_claude_skills_graphify_references_query_query_expansion",
+      "community_name": "Graphify Build Pipeline"
     },
     {
       "label": "Shortest Path Query Between Concepts",
@@ -7652,8 +7652,8 @@
       "community": 5,
       "norm_label": "shortest path query between concepts",
       "_origin": "semantic",
-      "community_name": "Graphify Build Pipeline",
-      "id": "_claude_skills_graphify_references_query_path_query"
+      "id": "_claude_skills_graphify_references_query_path_query",
+      "community_name": "Graphify Build Pipeline"
     },
     {
       "label": "Node Plain-Language Explanation",
@@ -7667,8 +7667,8 @@
       "community": 5,
       "norm_label": "node plain-language explanation",
       "_origin": "semantic",
-      "community_name": "Graphify Build Pipeline",
-      "id": "_claude_skills_graphify_references_query_explain_node"
+      "id": "_claude_skills_graphify_references_query_explain_node",
+      "community_name": "Graphify Build Pipeline"
     },
     {
       "label": "Save Query Result to Graph (self-improving loop)",
@@ -7682,8 +7682,8 @@
       "community": 5,
       "norm_label": "save query result to graph (self-improving loop)",
       "_origin": "semantic",
-      "community_name": "Graphify Build Pipeline",
-      "id": "_claude_skills_graphify_references_query_save_result"
+      "id": "_claude_skills_graphify_references_query_save_result",
+      "community_name": "Graphify Build Pipeline"
     },
     {
       "label": "Whisper Audio/Video Transcription",
@@ -7697,8 +7697,8 @@
       "community": 5,
       "norm_label": "whisper audio/video transcription",
       "_origin": "semantic",
-      "community_name": "Graphify Build Pipeline",
-      "id": "_claude_skills_graphify_references_transcribe_whisper_transcription"
+      "id": "_claude_skills_graphify_references_transcribe_whisper_transcription",
+      "community_name": "Graphify Build Pipeline"
     },
     {
       "label": "Incremental Graph Update (changed files only)",
@@ -7712,8 +7712,8 @@
       "community": 5,
       "norm_label": "incremental graph update (changed files only)",
       "_origin": "semantic",
-      "community_name": "Graphify Build Pipeline",
-      "id": "_claude_skills_graphify_references_update_incremental_update"
+      "id": "_claude_skills_graphify_references_update_incremental_update",
+      "community_name": "Graphify Build Pipeline"
     },
     {
       "label": "Cluster-Only Re-clustering (no re-extraction)",
@@ -7727,8 +7727,8 @@
       "community": 33,
       "norm_label": "cluster-only re-clustering (no re-extraction)",
       "_origin": "semantic",
-      "community_name": "Cluster-Only Re-clustering (no re-extraction)",
-      "id": "_claude_skills_graphify_references_update_cluster_only"
+      "id": "_claude_skills_graphify_references_update_cluster_only",
+      "community_name": "Cluster-Only Re-clustering (no re-extraction)"
     },
     {
       "label": "Project Graphify Knowledge Graph Config",
@@ -7742,8 +7742,8 @@
       "community": 5,
       "norm_label": "project graphify knowledge graph config",
       "_origin": "semantic",
-      "community_name": "Graphify Build Pipeline",
-      "id": "claude_graphify_knowledge_graph"
+      "id": "claude_graphify_knowledge_graph",
+      "community_name": "Graphify Build Pipeline"
     },
     {
       "label": "React Vite Template Setup",
@@ -7757,8 +7757,8 @@
       "community": 29,
       "norm_label": "react vite template setup",
       "_origin": "semantic",
-      "community_name": "POS Client HTML App Entry Point",
-      "id": "pos_client_readme_react_vite_setup"
+      "id": "pos_client_readme_react_vite_setup",
+      "community_name": "POS Client HTML App Entry Point"
     },
     {
       "label": "POS Client HTML App Entry Point",
@@ -7772,8 +7772,8 @@
       "community": 29,
       "norm_label": "pos client html app entry point",
       "_origin": "semantic",
-      "community_name": "POS Client HTML App Entry Point",
-      "id": "pos_client_index_pos_client_app_entry"
+      "id": "pos_client_index_pos_client_app_entry",
+      "community_name": "POS Client HTML App Entry Point"
     },
     {
       "label": "Electron Builder NSIS Installer Config",
@@ -7787,8 +7787,8 @@
       "community": 23,
       "norm_label": "electron builder nsis installer config",
       "_origin": "semantic",
-      "community_name": "Electron Builder NSIS Installer Config",
-      "id": "pos_client_release_builder_debug_electron_builder_config"
+      "id": "pos_client_release_builder_debug_electron_builder_config",
+      "community_name": "Electron Builder NSIS Installer Config"
     },
     {
       "label": "Electron License (MIT/Chromium)",
@@ -7802,8 +7802,8 @@
       "community": 23,
       "norm_label": "electron license (mit/chromium)",
       "_origin": "semantic",
-      "community_name": "Electron Builder NSIS Installer Config",
-      "id": "pos_client_release_win_unpacked_license_electron_electron_license"
+      "id": "pos_client_release_win_unpacked_license_electron_electron_license",
+      "community_name": "Electron Builder NSIS Installer Config"
     },
     {
       "label": "Chromium Third-Party Licenses",
@@ -7817,8 +7817,8 @@
       "community": 23,
       "norm_label": "chromium third-party licenses",
       "_origin": "semantic",
-      "community_name": "Electron Builder NSIS Installer Config",
-      "id": "pos_client_release_win_unpacked_licenses_chromium_chromium_licenses"
+      "id": "pos_client_release_win_unpacked_licenses_chromium_chromium_licenses",
+      "community_name": "Electron Builder NSIS Installer Config"
     },
     {
       "label": "Tenant Management Externalization Plan (deferred)",
@@ -7832,8 +7832,8 @@
       "community": 53,
       "norm_label": "tenant management externalization plan (deferred)",
       "_origin": "semantic",
-      "community_name": "Tenant Management Externalization Plan (deferred)",
-      "id": "summaries_2026_07_31_session_summary_tenant_management_plan"
+      "id": "summaries_2026_07_31_session_summary_tenant_management_plan",
+      "community_name": "Tenant Management Externalization Plan (deferred)"
     },
     {
       "label": "Electron Packaged App 404 Router Bug Fix",
@@ -7847,8 +7847,8 @@
       "community": 23,
       "norm_label": "electron packaged app 404 router bug fix",
       "_origin": "semantic",
-      "community_name": "Electron Builder NSIS Installer Config",
-      "id": "summaries_2026_07_31_session_summary_electron_404_bug_fix"
+      "id": "summaries_2026_07_31_session_summary_electron_404_bug_fix",
+      "community_name": "Electron Builder NSIS Installer Config"
     },
     {
       "label": "Hash Router Strategy for Electron file:// Protocol",
@@ -7862,8 +7862,8 @@
       "community": 23,
       "norm_label": "hash router strategy for electron file:// protocol",
       "_origin": "semantic",
-      "community_name": "Electron Builder NSIS Installer Config",
-      "id": "summaries_2026_07_31_session_summary_hash_router_strategy"
+      "id": "summaries_2026_07_31_session_summary_hash_router_strategy",
+      "community_name": "Electron Builder NSIS Installer Config"
     },
     {
       "label": "Offline Navigation Locking Feature",
@@ -7877,8 +7877,8 @@
       "community": 52,
       "norm_label": "offline navigation locking feature",
       "_origin": "semantic",
-      "community_name": "Offline Navigation Locking Feature",
-      "id": "summaries_2026_07_31_session_summary_offline_nav_locking"
+      "id": "summaries_2026_07_31_session_summary_offline_nav_locking",
+      "community_name": "Offline Navigation Locking Feature"
     },
     {
       "label": "Home Button in POS Interface Headers",
@@ -7892,8 +7892,8 @@
       "community": 51,
       "norm_label": "home button in pos interface headers",
       "_origin": "semantic",
-      "community_name": "Home Button in POS Interface Headers",
-      "id": "summaries_2026_07_31_session_summary_home_button_feature"
+      "id": "summaries_2026_07_31_session_summary_home_button_feature",
+      "community_name": "Home Button in POS Interface Headers"
     },
     {
       "label": "Create2 Offline Receipt Gap vs Create",
@@ -7907,8 +7907,8 @@
       "community": 50,
       "norm_label": "create2 offline receipt gap vs create",
       "_origin": "semantic",
-      "community_name": "Create2 Offline Receipt Gap vs Create",
-      "id": "summaries_2026_07_31_session_summary_create2_offline_gap"
+      "id": "summaries_2026_07_31_session_summary_create2_offline_gap",
+      "community_name": "Create2 Offline Receipt Gap vs Create"
     },
     {
       "label": "POS Application Favicon SVG Icon",
@@ -7923,8 +7923,8 @@
       "community": 36,
       "norm_label": "pos application favicon svg icon",
       "_origin": "semantic",
-      "community_name": "POS Application Favicon SVG Icon",
-      "id": "pos_client_public_favicon_icon"
+      "id": "pos_client_public_favicon_icon",
+      "community_name": "POS Application Favicon SVG Icon"
     },
     {
       "label": "Icons SVG Sprite Sheet",
@@ -7939,8 +7939,8 @@
       "community": 17,
       "norm_label": "icons svg sprite sheet",
       "_origin": "semantic",
-      "community_name": "Icons SVG Sprite Sheet",
-      "id": "pos_client_public_icons_svg_sprite"
+      "id": "pos_client_public_icons_svg_sprite",
+      "community_name": "Icons SVG Sprite Sheet"
     },
     {
       "label": "Bluesky Social Icon",
@@ -7955,8 +7955,8 @@
       "community": 17,
       "norm_label": "bluesky social icon",
       "_origin": "semantic",
-      "community_name": "Icons SVG Sprite Sheet",
-      "id": "pos_client_public_icons_bluesky_icon"
+      "id": "pos_client_public_icons_bluesky_icon",
+      "community_name": "Icons SVG Sprite Sheet"
     },
     {
       "label": "Discord Social Icon",
@@ -7971,8 +7971,8 @@
       "community": 17,
       "norm_label": "discord social icon",
       "_origin": "semantic",
-      "community_name": "Icons SVG Sprite Sheet",
-      "id": "pos_client_public_icons_discord_icon"
+      "id": "pos_client_public_icons_discord_icon",
+      "community_name": "Icons SVG Sprite Sheet"
     },
     {
       "label": "Documentation Icon",
@@ -7987,8 +7987,8 @@
       "community": 17,
       "norm_label": "documentation icon",
       "_origin": "semantic",
-      "community_name": "Icons SVG Sprite Sheet",
-      "id": "pos_client_public_icons_documentation_icon"
+      "id": "pos_client_public_icons_documentation_icon",
+      "community_name": "Icons SVG Sprite Sheet"
     },
     {
       "label": "GitHub Icon",
@@ -8003,8 +8003,8 @@
       "community": 17,
       "norm_label": "github icon",
       "_origin": "semantic",
-      "community_name": "Icons SVG Sprite Sheet",
-      "id": "pos_client_public_icons_github_icon"
+      "id": "pos_client_public_icons_github_icon",
+      "community_name": "Icons SVG Sprite Sheet"
     },
     {
       "label": "Social / User Profile Icon",
@@ -8019,8 +8019,8 @@
       "community": 17,
       "norm_label": "social / user profile icon",
       "_origin": "semantic",
-      "community_name": "Icons SVG Sprite Sheet",
-      "id": "pos_client_public_icons_social_icon"
+      "id": "pos_client_public_icons_social_icon",
+      "community_name": "Icons SVG Sprite Sheet"
     },
     {
       "label": "X (Twitter) Social Icon",
@@ -8035,8 +8035,8 @@
       "community": 17,
       "norm_label": "x (twitter) social icon",
       "_origin": "semantic",
-      "community_name": "Icons SVG Sprite Sheet",
-      "id": "pos_client_public_icons_x_icon"
+      "id": "pos_client_public_icons_x_icon",
+      "community_name": "Icons SVG Sprite Sheet"
     },
     {
       "label": "Hero Marketing Image (Isometric Layered Cards)",
@@ -8051,8 +8051,8 @@
       "community": 37,
       "norm_label": "hero marketing image (isometric layered cards)",
       "_origin": "semantic",
-      "community_name": "Hero Marketing Image (Isometric Layered Cards)",
-      "id": "pos_client_src_assets_hero_hero_image"
+      "id": "pos_client_src_assets_hero_hero_image",
+      "community_name": "Hero Marketing Image (Isometric Layered Cards)"
     },
     {
       "label": "React Logo SVG Asset",
@@ -8066,8 +8066,8 @@
       "community": 38,
       "norm_label": "react logo svg asset",
       "_origin": "semantic",
-      "community_name": "React Logo SVG Asset",
-      "id": "pos_client_src_assets_react_react_logo"
+      "id": "pos_client_src_assets_react_react_logo",
+      "community_name": "React Logo SVG Asset"
     },
     {
       "label": "Vite Logo SVG",
@@ -8081,8 +8081,8 @@
       "community": 39,
       "norm_label": "vite logo svg",
       "_origin": "semantic",
-      "community_name": "Vite Logo SVG",
-      "id": "pos_client_src_assets_vite_vite_logo"
+      "id": "pos_client_src_assets_vite_vite_logo",
+      "community_name": "Vite Logo SVG"
     },
     {
       "label": "Electron Builder Config",
@@ -8096,8 +8096,8 @@
       "community": 28,
       "norm_label": "electron builder config",
       "_origin": "semantic",
-      "community_name": "Electron Builder Config",
-      "id": "pos_client_release_builder_effective_config_electron_builder"
+      "id": "pos_client_release_builder_effective_config_electron_builder",
+      "community_name": "Electron Builder Config"
     },
     {
       "label": "Lumac POS",
@@ -8111,8 +8111,8 @@
       "community": 28,
       "norm_label": "lumac pos",
       "_origin": "semantic",
-      "community_name": "Electron Builder Config",
-      "id": "pos_client_release_builder_effective_config_lumac_pos"
+      "id": "pos_client_release_builder_effective_config_lumac_pos",
+      "community_name": "Electron Builder Config"
     },
     {
       "label": "NSIS Windows Installer Target",
@@ -8126,8 +8126,8 @@
       "community": 28,
       "norm_label": "nsis windows installer target",
       "_origin": "semantic",
-      "community_name": "Electron Builder Config",
-      "id": "pos_client_release_builder_effective_config_nsis_target"
+      "id": "pos_client_release_builder_effective_config_nsis_target",
+      "community_name": "Electron Builder Config"
     },
     {
       "label": "Electron v43.2.0",
@@ -8141,8 +8141,8 @@
       "community": 28,
       "norm_label": "electron v43.2.0",
       "_origin": "semantic",
-      "community_name": "Electron Builder Config",
-      "id": "pos_client_release_builder_effective_config_electron_v43"
+      "id": "pos_client_release_builder_effective_config_electron_v43",
+      "community_name": "Electron Builder Config"
     }
   ],
   "links": [
@@ -14725,7 +14725,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "pos-client/src/pages/sales/Create.jsx",
-      "source_location": "L523",
+      "source_location": "L526",
       "weight": 1.0,
       "_origin": "ast",
       "source": "pos_client_src_pages_sales_create_salescreate",
@@ -15620,7 +15620,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "pos-client/src/pages/sales/Create.jsx",
-      "source_location": "L519",
+      "source_location": "L522",
       "weight": 1.0,
       "_origin": "ast",
       "source": "pos_client_src_pages_sales_create_salescreate",
@@ -16316,7 +16316,7 @@
       "confidence": "INFERRED",
       "confidence_score": 0.8,
       "source_file": "pos-client/src/pages/sales/Create.jsx",
-      "source_location": "L515",
+      "source_location": "L518",
       "weight": 1.0,
       "_origin": "ast",
       "source": "pos_client_src_pages_sales_create_salescreate",
@@ -16484,7 +16484,7 @@
       "confidence": "INFERRED",
       "confidence_score": 0.8,
       "source_file": "pos-client/src/pages/sales/Create.jsx",
-      "source_location": "L517",
+      "source_location": "L520",
       "weight": 1.0,
       "_origin": "ast",
       "source": "pos_client_src_pages_sales_create_salescreate",
@@ -16700,7 +16700,7 @@
       "confidence": "INFERRED",
       "confidence_score": 0.8,
       "source_file": "pos-client/src/pages/sales/Create.jsx",
-      "source_location": "L516",
+      "source_location": "L519",
       "weight": 1.0,
       "_origin": "ast",
       "source": "pos_client_src_pages_sales_create_salescreate",
@@ -17359,7 +17359,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "pos-client/src/pages/sales/Create.jsx",
-      "source_location": "L520",
+      "source_location": "L523",
       "weight": 1.0,
       "_origin": "ast",
       "source": "pos_client_src_pages_sales_create_salescreate",
@@ -20652,7 +20652,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "pos-client/src/pages/sales/Create.jsx",
-      "source_location": "L511",
+      "source_location": "L514",
       "weight": 1.0,
       "_origin": "ast",
       "source": "pos_client_src_pages_sales_create",
@@ -20674,7 +20674,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "pos-client/src/pages/sales/Create.jsx",
-      "source_location": "L501",
+      "source_location": "L504",
       "weight": 1.0,
       "_origin": "ast",
       "source": "pos_client_src_pages_sales_create",
@@ -20806,7 +20806,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "pos-client/src/pages/sales/Create.jsx",
-      "source_location": "L1260",
+      "source_location": "L1263",
       "weight": 1.0,
       "_origin": "ast",
       "source": "pos_client_src_pages_sales_create_salescreate",
@@ -20830,7 +20830,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "pos-client/src/pages/sales/Create.jsx",
-      "source_location": "L1294",
+      "source_location": "L1297",
       "weight": 1.0,
       "_origin": "ast",
       "source": "pos_client_src_pages_sales_create_salescreate",
@@ -20842,7 +20842,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "pos-client/src/pages/sales/Create.jsx",
-      "source_location": "L1212",
+      "source_location": "L1215",
       "weight": 1.0,
       "_origin": "ast",
       "source": "pos_client_src_pages_sales_create_salescreate",
@@ -20854,7 +20854,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "pos-client/src/pages/sales/Create.jsx",
-      "source_location": "L1215",
+      "source_location": "L1218",
       "weight": 1.0,
       "_origin": "ast",
       "source": "pos_client_src_pages_sales_create_salescreate",
@@ -20867,7 +20867,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "pos-client/src/pages/sales/Create.jsx",
-      "source_location": "L527",
+      "source_location": "L530",
       "weight": 1.0,
       "_origin": "ast",
       "source": "pos_client_src_pages_sales_create_salescreate",
@@ -21210,7 +21210,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "pos-client/src/pages/sales/Show.jsx",
-      "source_location": "L514",
+      "source_location": "L519",
       "weight": 1.0,
       "_origin": "ast",
       "source": "pos_client_src_pages_sales_show",
@@ -21245,7 +21245,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "pos-client/src/pages/sales/Show.jsx",
-      "source_location": "L365",
+      "source_location": "L363",
       "weight": 1.0,
       "_origin": "ast",
       "source": "pos_client_src_pages_sales_show_saleshow",
@@ -21257,7 +21257,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "pos-client/src/pages/sales/Show.jsx",
-      "source_location": "L338",
+      "source_location": "L340",
       "weight": 1.0,
       "_origin": "ast",
       "source": "pos_client_src_pages_sales_show_saleshow",
@@ -21269,7 +21269,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "pos-client/src/pages/sales/Show.jsx",
-      "source_location": "L338",
+      "source_location": "L340",
       "weight": 1.0,
       "_origin": "ast",
       "source": "pos_client_src_pages_sales_show_saleshow",

@@ -1,7 +1,7 @@
 # Graph Report - POS-sinhala  (2026-08-22)
 
 ## Corpus Check
-- 115 files · ~90,155 words
+- 115 files · ~90,136 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary

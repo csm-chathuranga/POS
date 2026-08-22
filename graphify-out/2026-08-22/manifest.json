@@ -320,8 +320,8 @@
     "semantic_hash": ""
   },
   "pos-client/src/pages/sales/Create.jsx": {
-    "mtime": 1787388279.7041173,
-    "ast_hash": "11fa39397c7d31dd4e372442d3179277",
+    "mtime": 1787388177.9437106,
+    "ast_hash": "f5bc644f5503c1f03b31ec7200f5c002",
     "semantic_hash": ""
   },
   "pos-client/src/pages/sales/Create2.jsx": {
@@ -335,8 +335,8 @@
     "semantic_hash": ""
   },
   "pos-client/src/pages/sales/Show.jsx": {
-    "mtime": 1787388269.2249763,
-    "ast_hash": "62a3a34299f94948ab1fe475e0b8c430",
+    "mtime": 1787388177.9385138,
+    "ast_hash": "ab051a0110c3fd033fb4056798a22a62",
     "semantic_hash": ""
   },
   "pos-client/src/pages/suppliers/Index.jsx": {
