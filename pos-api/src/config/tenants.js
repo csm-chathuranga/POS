@@ -15,7 +15,7 @@ module.exports = {
     username: 'pos_user',
     password: 'Pos@2026Strong',
   },
-  'newAnura-pos.lumac.cc': {
+  'newanura-pos.lumac.cc': {
     database: 'newAnura_pos',
     username: 'pos_user',
     password: 'Pos@2026Strong',
