@@ -15,6 +15,11 @@ module.exports = {
     username: 'pos_user',
     password: 'Pos@2026Strong',
   },
+  'newAnura-pos.lumac.cc': {
+    database: 'newAnura_pos',
+    username: 'pos_user',
+    password: 'Pos@2026Strong',
+  },
   localhost: {
    database: 'ckd',
     username: 'root',
