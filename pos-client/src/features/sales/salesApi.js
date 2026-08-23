@@ -1,4 +1,5 @@
 import { api } from '../../app/baseApi';
+import { deductStockFromCache, restoreStockToCache } from '../../hooks/useProductCache';
 
 export const salesApi = api.injectEndpoints({
   endpoints: build => ({
@@ -16,7 +17,10 @@ export const salesApi = api.injectEndpoints({
     }),
     createSale: build.mutation({
       query: body => ({ url: '/sales', method: 'POST', body }),
-      invalidatesTags: [{ type: 'Sales', id: 'LIST' }],
+      invalidatesTags: [{ type: 'Sales', id: 'LIST' }, { type: 'Products', id: 'LIST' }],
+      onQueryStarted: async (body, { queryFulfilled }) => {
+        try { await queryFulfilled; deductStockFromCache(body.items || []); } catch {}
+      },
     }),
     holdSale: build.mutation({
       query: body => ({ url: '/sales/hold', method: 'POST', body }),
@@ -33,7 +37,10 @@ export const salesApi = api.injectEndpoints({
     }),
     returnSale: build.mutation({
       query: ({ id, ...body }) => ({ url: `/sales/${id}/return`, method: 'POST', body }),
-      invalidatesTags: (r, e, { id }) => [{ type: 'Sales', id }, { type: 'Sales', id: 'LIST' }],
+      invalidatesTags: (r, e, { id }) => [{ type: 'Sales', id }, { type: 'Sales', id: 'LIST' }, { type: 'Products', id: 'LIST' }],
+      onQueryStarted: async (body, { queryFulfilled }) => {
+        try { await queryFulfilled; restoreStockToCache(body.items || []); } catch {}
+      },
     }),
     markSalePaid: build.mutation({
       query: id => ({ url: `/sales/${id}/mark-paid`, method: 'POST' }),

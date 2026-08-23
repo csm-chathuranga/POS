@@ -82,6 +82,19 @@ router.get('/export', auth, async (req, res) => {
   res.send(header + rows);
 });
 
+// GET /api/products/intake-lookup?barcode=  — finds any product (active or not)
+router.get('/intake-lookup', auth, role('admin', 'manager'), async (req, res) => {
+  const { Product, Category } = req.models;
+  const barcode = (req.query.barcode || '').trim();
+  if (!barcode) return res.status(400).json({ error: 'barcode required' });
+  const product = await Product.findOne({
+    where: { barcode },
+    include: [{ model: Category, as: 'category' }],
+  });
+  if (!product) return res.status(404).json({ error: 'Not found' });
+  res.json(product);
+});
+
 // GET /api/products/search?q=&barcode=
 router.get('/search', auth, async (req, res) => {
   const { Product, ProductVariant } = req.models;
@@ -124,6 +137,7 @@ router.get('/', auth, async (req, res) => {
     ];
   }
   if (req.query.category_id) where.category_id = req.query.category_id;
+  if (req.query.active !== undefined) where.active = req.query.active === 'true' || req.query.active === '1';
   if (req.query.low_stock === 'true') {
     where[Op.and] = [
       ...(where[Op.and] || []),

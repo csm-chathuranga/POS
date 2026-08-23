@@ -124,8 +124,9 @@ export default function ProductsIndex() {
 
   const { data, isLoading } = useGetProductsQuery(
     viewAll
-      ? { page: 1, limit: 9999 }
+      ? { page: 1, limit: 9999, active: '1' }
       : {
+          active: '1',
           ...(applied.search      ? { search:      applied.search }      : {}),
           ...(applied.category_id ? { category_id: applied.category_id } : {}),
           ...(applied.low_stock   ? { low_stock:   'true' }              : {}),
@@ -247,7 +248,7 @@ export default function ProductsIndex() {
       {/* Top toolbar */}
       <div className="flex flex-wrap items-center gap-2">
         {/* Search */}
-        <div className="relative flex-1 min-w-0 w-full sm:min-w-60 pb-4">
+        <div className="relative flex-1 min-w-0 w-full sm:min-w-60">
           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
@@ -270,10 +271,10 @@ export default function ProductsIndex() {
         <select
           value={catId}
           onChange={e => { setCatId(e.target.value); }}
-          className="rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+          className="rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500 bg-white max-w-48"
         >
           <option value="">{t('lbl.all')} {t('prod.category')}</option>
-          {displayCategories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+          {displayCategories.map(c => <option key={c.id} value={c.id}>{c.name?.length > 50 ? c.name.slice(0, 50) + '…' : c.name}</option>)}
         </select>
 
         {/* All / Low Stock / Promo toggle */}

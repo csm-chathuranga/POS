@@ -9,6 +9,7 @@ import Dashboard   from '../pages/Dashboard';
 import ProductsIndex  from '../pages/products/Index';
 import ProductCreate  from '../pages/products/Create';
 import ProductEdit    from '../pages/products/Edit';
+import ProductIntake  from '../pages/products/Intake';
 import SalesIndex     from '../pages/sales/Index';
 import SalesCreate    from '../pages/sales/Create';
 import SalesCreate2   from '../pages/sales/Create2';
@@ -82,6 +83,7 @@ export const router = createAppRouter([
         { path: 'sales/:id',            element: <SalesShow /> },
         { path: 'products',             element: <ProductsIndex /> },
         { path: 'products/create',      element: <ProductCreate /> },
+        { path: 'products/intake',      element: <ProductIntake /> },
         { path: 'products/:id/edit',    element: <ProductEdit /> },
         { path: 'customers',            element: <CustomersIndex /> },
         { path: 'customers/:id/credit', element: <CustomerCredit /> },

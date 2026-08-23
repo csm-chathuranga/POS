@@ -12,8 +12,37 @@ const allApi = api.injectEndpoints({
   overrideExisting: false,
 });
 
-const LS_KEY   = 'pos_products_v2';
-const LS_VER   = 'pos_products_version';
+const LS_KEY        = 'pos_products_v2';
+const LS_VER        = 'pos_products_version';
+const DEDUCT_EVENT  = 'pos-stock-deducted';
+
+export function deductStockFromCache(items) {
+  try {
+    const stored = loadFromStorage();
+    if (!stored || !Array.isArray(items) || !items.length) return;
+    const updated = stored.map(p => {
+      const sold = items.find(i => Number(i.product_id) === Number(p.id));
+      if (!sold) return p;
+      return { ...p, stock_qty: Math.max(0, parseFloat(p.stock_qty || 0) - parseFloat(sold.qty || 0)) };
+    });
+    localStorage.setItem(LS_KEY, JSON.stringify(updated));
+    window.dispatchEvent(new CustomEvent(DEDUCT_EVENT));
+  } catch {}
+}
+
+export function restoreStockToCache(items) {
+  try {
+    const stored = loadFromStorage();
+    if (!stored || !Array.isArray(items) || !items.length) return;
+    const updated = stored.map(p => {
+      const ret = items.find(i => Number(i.product_id) === Number(p.id));
+      if (!ret) return p;
+      return { ...p, stock_qty: parseFloat(p.stock_qty || 0) + parseFloat(ret.qty || 0) };
+    });
+    localStorage.setItem(LS_KEY, JSON.stringify(updated));
+    window.dispatchEvent(new CustomEvent(DEDUCT_EVENT));
+  } catch {}
+}
 
 function loadFromStorage() {
   try {
@@ -52,6 +81,15 @@ export default function useProductCache() {
       }
     }
   }, [serverVersion]);
+
+  useEffect(() => {
+    const handler = () => {
+      const fresh = loadFromStorage();
+      if (fresh) setProducts(fresh);
+    };
+    window.addEventListener(DEDUCT_EVENT, handler);
+    return () => window.removeEventListener(DEDUCT_EVENT, handler);
+  }, []);
 
   useEffect(() => {
     const stored     = loadFromStorage();

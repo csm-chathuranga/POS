@@ -38,6 +38,7 @@ const Icons = {
   users:     <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 1 1 0 5.292M15 21H3v-1a6 6 0 0 1 12 0v1zm0 0h6v-1a6 6 0 0 0-9-5.197"/></svg>,
   settings:  <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 0 0 2.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 0 0 1.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 0 0-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 0 0-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 0 0-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 0 0-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 0 0 1.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><circle cx="12" cy="12" r="3" strokeWidth={2}/></svg>,
   upload:    <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16v2a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2v-2M12 3v12m0 0l-3-3m3 3l3-3"/></svg>,
+  intake:    <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="3" y="4" width="2" height="16" rx="1" strokeWidth={2}/><rect x="7" y="4" width="1" height="16" rx="0.5" strokeWidth={2}/><rect x="10" y="4" width="3" height="16" rx="1" strokeWidth={2}/><rect x="15" y="4" width="1" height="16" rx="0.5" strokeWidth={2}/><rect x="18" y="4" width="3" height="16" rx="1" strokeWidth={2}/></svg>,
   credit:    <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2" strokeWidth={2}/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2 10h20M6 15h4"/></svg>,
   reports:   <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2zm0 0V9a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v10m-6 0a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2m0 0V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v14a2 2 0 0 0-2 2h-2a2 2 0 0 1-2-2z"/></svg>,
   logout:    <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3V7a3 3 0 0 1 3-3h4a3 3 0 0 1 3 3v1"/></svg>,
@@ -54,6 +55,7 @@ const PAGE_TITLE_KEYS = {
   '/invoices/create':  'New Day End Entry',
   '/products':         'page.products',
   '/products/create':  'page.new_product',
+  '/products/intake':  'Stock Intake',
   '/purchases':        'page.purchases',
   '/purchases/create': 'page.new_purchase',
   '/customers':        'page.customers',
@@ -218,7 +220,8 @@ export default function AppLayout() {
     { to: '/dashboard',    label: t('nav.dashboard'),   icon: Icons.dashboard, offlineOk: false, feature: 'dashboard' },
     { to: '/sales/create', label: t('nav.new_sale'),    icon: Icons.pos,       highlight: true, offlineOk: true,  feature: 'new_sale' },
     { to: '/sales',        label: t('nav.sales'),       icon: Icons.sales,     offlineOk: true,  feature: 'sales' },
-    { to: '/products',     label: t('nav.products'),    icon: Icons.products,  offlineOk: false, feature: 'products' },
+    { to: '/products',        label: t('nav.products'),     icon: Icons.products, offlineOk: false, feature: 'products', end: true },
+    { to: '/products/intake', label: t('nav.stock_intake'), icon: Icons.intake,   offlineOk: false, feature: 'stock_intake' },
     { to: '/purchases',    label: t('nav.purchases'),   icon: Icons.purchases, offlineOk: false, feature: 'purchases' },
     { to: '/customers',    label: t('nav.customers'),   icon: Icons.customers, offlineOk: false, feature: 'customers' },
     { to: '/invoices',     label: 'Day End',            icon: Icons.sales,     offlineOk: false, feature: 'invoices' },
@@ -316,7 +319,7 @@ export default function AppLayout() {
 
         {/* Nav */}
         <nav className={`flex-1 overflow-y-auto py-3 space-y-0.5 ${displayCollapsed ? 'px-1' : 'px-2'}`}>
-          {mainNav.map(({ to, label, icon, highlight, offlineOk }) => {
+          {mainNav.map(({ to, label, icon, highlight, offlineOk, end: endProp }) => {
             const locked = !isOnline && !offlineOk;
             if (locked) {
               return (
@@ -331,7 +334,7 @@ export default function AppLayout() {
             }
             return (
               <NavLink key={to} to={to}
-                end={to === '/sales' || to === '/dashboard' || to === '/settings' || to === '/invoices'}
+                end={endProp || to === '/sales' || to === '/dashboard' || to === '/settings' || to === '/invoices'}
                 title={displayCollapsed ? label : undefined}
                 onClick={() => { setMobileOpen(false); if (to !== '/sales/create') expandSidebar(); }}
                 className={({ isActive }) => navCls(isActive)}

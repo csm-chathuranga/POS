@@ -42,6 +42,10 @@ export const productsApi = api.injectEndpoints({
       keepUnusedDataFor: 7200,
       providesTags: ['Categories'],
     }),
+    intakeLookup: build.query({
+      query: barcode => ({ url: '/products/intake-lookup', params: { barcode } }),
+      keepUnusedDataFor: 0,
+    }),
     importProducts: build.mutation({
       query: body => ({ url: '/products/import', method: 'POST', body }),
       invalidatesTags: [{ type: 'Products', id: 'LIST' }],
@@ -68,4 +72,6 @@ export const {
   useGetCategoriesQuery,
   useImportProductsMutation,
   useTruncateProductsMutation,
+  useIntakeLookupQuery,
+  useLazyIntakeLookupQuery,
 } = productsApi;
