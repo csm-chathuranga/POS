@@ -8,6 +8,42 @@ router.get('/', auth, async (req, res) => {
   res.json(rows);
 });
 
+router.post('/import', auth, role('admin', 'manager'), async (req, res) => {
+  const { Category } = req.models;
+  const rows = Array.isArray(req.body) ? req.body : (req.body.categories || []);
+  let created = 0;
+  let skipped = 0;
+
+  for (const row of rows) {
+    const name = String(row.name || '').trim();
+    if (!name) { skipped++; continue; }
+    try {
+      await Category.create({ name });
+      created++;
+    } catch {
+      skipped++;
+    }
+  }
+
+  res.json({ created, skipped });
+});
+
+// POST /api/categories/truncate — remove all categories (admin only)
+router.post('/truncate', auth, role('admin'), async (req, res) => {
+  const confirmed = req.body?.confirm === 'TRUNCATE_CATEGORIES';
+  if (!confirmed) {
+    return res.status(400).json({ error: 'Confirmation token required (TRUNCATE_CATEGORIES).' });
+  }
+
+  try {
+    const { Category } = req.models;
+    const deletedCategories = await Category.destroy({ where: {} });
+    res.json({ deletedCategories });
+  } catch (error) {
+    res.status(422).json({ error: error.message || 'Unable to truncate categories table.' });
+  }
+});
+
 router.post('/', auth, role('admin', 'manager'), async (req, res) => {
   try {
     const name = String(req.body.name || '').trim();

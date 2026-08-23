@@ -21,13 +21,13 @@ module.exports = {
     password: 'Pos@2026Strong',
   },
   localhost: {
-   database: 'ckd',
+   database: 'newAnura_pos',
     username: 'root',
     password: 'root',
     host: '127.0.0.1',
   },
   '127.0.0.1': {
-    database: 'ckd',
+    database: 'newAnura_pos',
     username: 'root',
     password: 'root',
     host: '127.0.0.1',

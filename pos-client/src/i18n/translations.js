@@ -66,7 +66,7 @@ export const translations = {
     'th.total':        'මුළු',
     'th.paid':         'ගෙවූ',
     'th.balance':      'ශේෂය',
-    'th.qty':          'ප්‍රමාණය',
+    'th.qty':          'Qty',
     'th.price':        'මිල',
     'th.status':       'තත්ත්වය',
     'th.invoice':      'ඉන්වොයිස්',
@@ -135,7 +135,7 @@ export const translations = {
     'lbl.today':           'අද',
     'lbl.this_week':       'මෙම සතිය',
     'lbl.this_month':      'මෙම මාසය',
-    'lbl.original_price':  'මුල් මිල',
+    'lbl.original_price':  'වෙළඳ මිල',
     'lbl.our_price':       'අපේ මිල',
     'lbl.earned_profit':   'ඔබ ලද ලාභය',
 
@@ -520,8 +520,8 @@ export const translations = {
     'lbl.today':           'Today',
     'lbl.this_week':       'This Week',
     'lbl.this_month':      'This Month',
-    'lbl.original_price':  'Original',
-    'lbl.our_price':       'Our',
+    'lbl.original_price':  'Original Price',
+    'lbl.our_price':       'Our Price',
     'lbl.earned_profit':   'Your Profit',
 
     'page.dashboard':    'Dashboard',

@@ -347,7 +347,6 @@ function Receipt({ sale, settings, user, onClose }) {
   <div class="col-header"><span class="col-head-prices"><span>${rl('th.qty')}</span><span>${rl('lbl.original_price')}</span><span>${rl('lbl.our_price')}</span><span>${rl('th.total')}</span></span></div>
   ${itemsHtml}
   <hr class="divider">
-  <div class="row"><span>${rl('lbl.subtotal')}</span><span>${f(sale.subtotal)}</span></div>
   ${parseFloat(sale.discount) > 0 ? `<div class="disc-box"><span>${rl('lbl.earned_profit')}</span><span>- ${f(sale.discount)}</span></div>` : ''}
   <div class="total-row"><span>${rl('lbl.grand_total')}</span><span>${currency} ${f(sale.total)}</span></div>
   ${paidCash > 0  ? `<div class="paid-row"><span>${rl('lbl.cash_paid')} (${rl('lbl.cash')})</span><span>${f(paidCard === 0 && paidCredit === 0 ? parseFloat(sale.paid || 0) : paidCash)}</span></div>` : ''}
@@ -397,24 +396,24 @@ function Receipt({ sale, settings, user, onClose }) {
                 {(settings?.shop_name || 'L')[0]}
               </div>
             )}
-            <p className="font-black text-slate-900 text-xl tracking-wide uppercase">{settings?.shop_name || 'LMUC POS'}</p>
-            {settings?.address && <p className="text-slate-500 text-sm font-medium mt-0.5">{settings.address}</p>}
-            {settings?.phone && <p className="text-slate-500 text-sm font-medium">{settings.phone}</p>}
+            <p className="font-black text-black text-xl tracking-wide uppercase">{settings?.shop_name || 'LMUC POS'}</p>
+            {settings?.address && <p className="text-black text-sm font-medium mt-0.5">{settings.address}</p>}
+            {settings?.phone && <p className="text-black text-sm font-medium">{settings.phone}</p>}
           </div>
 
           <hr className="border-slate-200 mb-4" />
 
           <div className="space-y-1.5">
-            <div className="flex justify-between text-sm"><span className="text-slate-500 font-semibold">{t('th.invoice')}</span><span className="font-bold text-slate-800 font-mono">{sale.invoice_no}</span></div>
-            <div className="flex justify-between text-sm"><span className="text-slate-500 font-semibold">{t('th.date')}</span><span className="font-bold text-slate-800">{fmtDate(sale.created_at || Date.now())} {fmtTime(sale.created_at || Date.now())}</span></div>
-            <div className="flex justify-between text-sm"><span className="text-slate-500 font-semibold">{t('lbl.cashier')}</span><span className="font-bold text-slate-800">{user?.name || '—'}</span></div>
-            {sale.customer_name && <div className="flex justify-between text-sm"><span className="text-slate-500 font-semibold">{t('lbl.customer')}</span><span className="font-bold text-slate-800">{sale.customer_name}</span></div>}
+            <div className="flex justify-between text-sm"><span className="text-black font-semibold">{t('th.invoice')}</span><span className="font-bold text-black font-mono">{sale.invoice_no}</span></div>
+            <div className="flex justify-between text-sm"><span className="text-black font-semibold">{t('th.date')}</span><span className="font-bold text-black">{fmtDate(sale.created_at || Date.now())} {fmtTime(sale.created_at || Date.now())}</span></div>
+            <div className="flex justify-between text-sm"><span className="text-black font-semibold">{t('lbl.cashier')}</span><span className="font-bold text-black">{user?.name || '—'}</span></div>
+            {sale.customer_name && <div className="flex justify-between text-sm"><span className="text-black font-semibold">{t('lbl.customer')}</span><span className="font-bold text-black">{sale.customer_name}</span></div>}
           </div>
 
           <hr className="border-slate-200 my-4" />
 
           <div className="mb-3">
-            <div className="flex justify-end text-sm font-black text-slate-700 border-b-2 border-slate-200 pb-2 mb-3">
+            <div className="flex justify-end text-sm font-black text-black border-b-2 border-slate-200 pb-2 mb-3">
               <div className="grid grid-cols-[30px_repeat(3,minmax(0,1fr))] gap-2 min-w-[220px] text-right">
                 <span>{t('th.qty')}</span>
                 <span>{t('lbl.original_price')}</span>
@@ -431,11 +430,11 @@ function Receipt({ sale, settings, user, onClose }) {
               const ourUnit = qty > 0 ? Math.max(0, reducedLineTotal / qty) : unit;
               return (
               <div key={idx} className="mb-3">
-                <div className="text-sm font-bold text-slate-900">{idx + 1} {item.name}</div>
-                <div className="grid grid-cols-[30px_repeat(3,minmax(0,1fr))] gap-2 text-sm text-slate-700 font-semibold pl-1 mt-0.5">
+                <div className="text-sm font-bold text-black">{idx + 1} {item.name}</div>
+                <div className="grid grid-cols-[30px_repeat(3,minmax(0,1fr))] gap-2 text-sm text-black font-semibold pl-1 mt-0.5">
                   <span className="text-left">{qty}</span>
                   <span className="text-right">{f(unit)}</span>
-                  <span className="text-right text-red-500">{f(ourUnit)}</span>
+                  <span className="text-right text-black">{f(ourUnit)}</span>
                   <span className="text-right">{f(reducedLineTotal)}</span>
                 </div>
               </div>
@@ -446,39 +445,35 @@ function Receipt({ sale, settings, user, onClose }) {
           <hr className="border-slate-200 mb-4" />
 
           <div className="space-y-2">
-            <div className="flex justify-between text-sm">
-              <span className="text-slate-500 font-semibold">{t('lbl.subtotal')}</span>
-              <span className="font-bold text-slate-700">{f(sale.subtotal)}</span>
-            </div>
             {parseFloat(sale.discount) > 0 && (
-              <div className="flex justify-between items-center border-2 border-blue-300 rounded-lg px-3 py-1.5 bg-blue-50">
-                <span className="text-blue-700 font-bold text-sm">{t('lbl.earned_profit')}</span>
-                <span className="text-red-500 font-extrabold text-sm">- {f(sale.discount)}</span>
+              <div className="flex justify-between items-center border-2 border-slate-300 rounded-lg px-3 py-1.5 bg-slate-50">
+                <span className="text-black font-bold text-sm">{t('lbl.earned_profit')}</span>
+                <span className="text-black font-extrabold text-sm">- {f(sale.discount)}</span>
               </div>
             )}
             <div className="flex justify-between items-baseline pt-1 border-t border-slate-100">
-              <span className="text-base font-black text-slate-900">{t('lbl.grand_total')}</span>
-              <span className="text-xl font-black text-blue-600">{currency} {f(sale.total)}</span>
+              <span className="text-base font-black text-black">{t('lbl.grand_total')}</span>
+              <span className="text-xl font-black text-black">{currency} {f(sale.total)}</span>
             </div>
             {paidCash > 0 && (
-              <div className="flex justify-between text-sm"><span className="text-slate-500 font-semibold">{t('lbl.cash_paid')} ({t('lbl.cash')})</span><span className="font-bold text-slate-700">{f(paidCash)}</span></div>
+              <div className="flex justify-between text-sm"><span className="text-black font-semibold">{t('lbl.cash_paid')} ({t('lbl.cash')})</span><span className="font-bold text-black">{f(paidCash)}</span></div>
             )}
             {paidCard > 0 && (
-              <div className="flex justify-between text-sm"><span className="text-slate-500 font-semibold">{t('lbl.cash_paid')} ({t('lbl.card')})</span><span className="font-bold text-slate-700">{f(paidCard)}</span></div>
+              <div className="flex justify-between text-sm"><span className="text-black font-semibold">{t('lbl.cash_paid')} ({t('lbl.card')})</span><span className="font-bold text-black">{f(paidCard)}</span></div>
             )}
             {paidCredit > 0 && (
-              <div className="flex justify-between text-sm"><span className="text-slate-500 font-semibold">{t('lbl.credit')}</span><span className="font-bold text-red-500">{f(paidCredit)}</span></div>
+              <div className="flex justify-between text-sm"><span className="text-black font-semibold">{t('lbl.credit')}</span><span className="font-bold text-black">{f(paidCredit)}</span></div>
             )}
             {change > 0 && (
-              <div className="flex justify-between text-sm font-bold text-green-600"><span>{t('lbl.change')}</span><span>{f(change)}</span></div>
+              <div className="flex justify-between text-sm font-bold text-black"><span>{t('lbl.change')}</span><span>{f(change)}</span></div>
             )}
           </div>
 
           <hr className="border-slate-200 my-5" />
 
           <div className="text-center leading-relaxed">
-            <p className="text-sm font-semibold text-slate-500">{settings?.receipt_footer || 'Thank you for shopping with us!'}</p>
-            {settings?.shop_name && <p className="text-blue-500 font-bold text-sm mt-1">{settings.shop_name.toLowerCase().replace(/\s+/g, '') + '.lk'}</p>}
+            <p className="text-sm font-semibold text-black">{settings?.receipt_footer || 'Thank you for shopping with us!'}</p>
+            {settings?.shop_name && <p className="text-black font-bold text-sm mt-1">{settings.shop_name.toLowerCase().replace(/\s+/g, '') + '.lk'}</p>}
           </div>
         </div>
 

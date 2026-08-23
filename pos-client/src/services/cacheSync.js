@@ -143,8 +143,6 @@ export async function getLocalPurchases() {
 
 function resolveEndpoint(item) {
   switch (item.type) {
-    case 'product_edit':    return { method: 'PUT',  url: `${API}/api/products/${item.payload.id}` };
-    case 'product_create':  return { method: 'POST', url: `${API}/api/products` };
     case 'category_edit':   return { method: 'PUT',  url: `${API}/api/categories/${item.payload.id}` };
     case 'category_create': return { method: 'POST', url: `${API}/api/categories` };
     case 'customer_edit':   return { method: 'PUT',  url: `${API}/api/customers/${item.payload.id}` };
@@ -195,10 +193,6 @@ export async function syncOfflineQueue() {
       const data = await res.json();
       await markSynced(item.id, data.id);
       // Replace temp offline entries with real server records
-      if (item.type === 'product_create' && item.payload.client_id) {
-        await db.products.delete(item.payload.client_id);
-        if (data.id) await db.products.put({ ...data });
-      }
       if (item.type === 'category_create' && item.payload.client_id) {
         await db.categories.delete(item.payload.client_id);
         if (data.id) await db.categories.put({ ...data });

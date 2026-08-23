@@ -49,6 +49,13 @@ export const productsApi = api.injectEndpoints({
         try { await queryFulfilled; refreshProductCache(); } catch {}
       },
     }),
+    truncateProducts: build.mutation({
+      query: () => ({ url: '/products/truncate', method: 'POST', body: { confirm: 'TRUNCATE_PRODUCTS' } }),
+      invalidatesTags: [{ type: 'Products', id: 'LIST' }],
+      onQueryStarted: async (_, { queryFulfilled }) => {
+        try { await queryFulfilled; refreshProductCache(); } catch {}
+      },
+    }),
   }),
 });
 
@@ -60,4 +67,5 @@ export const {
   useDeleteProductMutation,
   useGetCategoriesQuery,
   useImportProductsMutation,
+  useTruncateProductsMutation,
 } = productsApi;

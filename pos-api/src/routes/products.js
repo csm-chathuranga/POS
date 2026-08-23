@@ -173,6 +173,24 @@ router.post('/import', auth, role('admin', 'manager'), async (req, res) => {
   res.json({ created, skipped });
 });
 
+// POST /api/products/truncate — remove all products (admin only)
+router.post('/truncate', auth, role('admin'), async (req, res) => {
+  const confirmed = req.body?.confirm === 'TRUNCATE_PRODUCTS';
+  if (!confirmed) {
+    return res.status(400).json({ error: 'Confirmation token required (TRUNCATE_PRODUCTS).' });
+  }
+
+  try {
+    const { Product, ProductVariant } = req.models;
+    const deletedVariants = await ProductVariant.destroy({ where: {} });
+    const deletedProducts = await Product.destroy({ where: {} });
+    cache.del(`${req.tenant}_products_all`);
+    res.json({ deletedProducts, deletedVariants });
+  } catch (error) {
+    res.status(422).json({ error: error.message || 'Unable to truncate products table.' });
+  }
+});
+
 // POST /api/products
 router.post('/', auth, role('admin', 'manager'), async (req, res) => {
   const { Product, ProductVariant } = req.models;

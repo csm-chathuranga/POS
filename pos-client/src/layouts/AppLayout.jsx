@@ -37,6 +37,7 @@ const Icons = {
   categories: <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 0 1 0 2.828l-5 5a2 2 0 0 1-2.828 0l-7-7A2 2 0 0 1 3 10V5a2 2 0 0 1 2-2z"/></svg>,
   users:     <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 1 1 0 5.292M15 21H3v-1a6 6 0 0 1 12 0v1zm0 0h6v-1a6 6 0 0 0-9-5.197"/></svg>,
   settings:  <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 0 0 2.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 0 0 1.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 0 0-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 0 0-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 0 0-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 0 0-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 0 0 1.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><circle cx="12" cy="12" r="3" strokeWidth={2}/></svg>,
+  upload:    <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16v2a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2v-2M12 3v12m0 0l-3-3m3 3l3-3"/></svg>,
   credit:    <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2" strokeWidth={2}/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2 10h20M6 15h4"/></svg>,
   reports:   <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2zm0 0V9a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v10m-6 0a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2m0 0V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v14a2 2 0 0 0-2 2h-2a2 2 0 0 1-2-2z"/></svg>,
   logout:    <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3V7a3 3 0 0 1 3-3h4a3 3 0 0 1 3 3v1"/></svg>,
@@ -61,6 +62,7 @@ const PAGE_TITLE_KEYS = {
   '/categories':       'page.categories',
   '/users':            'page.users',
   '/settings':         'page.settings',
+  '/admin/data-import': 'Data Import',
   '/reports':          'page.reports',
 };
 
@@ -213,22 +215,23 @@ export default function AppLayout() {
   // have no offline fallback — they get greyed out / non-clickable while
   // offline instead of navigating to a broken/empty page.
   const mainNav = [
-    { to: '/dashboard',    label: t('nav.dashboard'),   icon: Icons.dashboard, offlineOk: true,  feature: 'dashboard' },
+    { to: '/dashboard',    label: t('nav.dashboard'),   icon: Icons.dashboard, offlineOk: false, feature: 'dashboard' },
     { to: '/sales/create', label: t('nav.new_sale'),    icon: Icons.pos,       highlight: true, offlineOk: true,  feature: 'new_sale' },
     { to: '/sales',        label: t('nav.sales'),       icon: Icons.sales,     offlineOk: true,  feature: 'sales' },
-    { to: '/products',     label: t('nav.products'),    icon: Icons.products,  offlineOk: true,  feature: 'products' },
-    { to: '/purchases',    label: t('nav.purchases'),   icon: Icons.purchases, offlineOk: true,  feature: 'purchases' },
-    { to: '/customers',    label: t('nav.customers'),   icon: Icons.customers, offlineOk: true,  feature: 'customers' },
+    { to: '/products',     label: t('nav.products'),    icon: Icons.products,  offlineOk: false, feature: 'products' },
+    { to: '/purchases',    label: t('nav.purchases'),   icon: Icons.purchases, offlineOk: false, feature: 'purchases' },
+    { to: '/customers',    label: t('nav.customers'),   icon: Icons.customers, offlineOk: false, feature: 'customers' },
     { to: '/invoices',     label: 'Day End',            icon: Icons.sales,     offlineOk: false, feature: 'invoices' },
     { to: '/credit',       label: t('nav.credit_book'), icon: Icons.credit,    offlineOk: false, feature: 'credit' },
-    { to: '/suppliers',    label: t('nav.suppliers'),   icon: Icons.suppliers, offlineOk: true,  feature: 'suppliers' },
-    { to: '/categories',   label: t('nav.categories'),  icon: Icons.categories,offlineOk: true,  feature: 'categories' },
+    { to: '/suppliers',    label: t('nav.suppliers'),   icon: Icons.suppliers, offlineOk: false, feature: 'suppliers' },
+    { to: '/categories',   label: t('nav.categories'),  icon: Icons.categories,offlineOk: false, feature: 'categories' },
   ].filter(n => canSee(n.feature));
 
   const mgmtNav = [
     { to: '/reports',       label: t('nav.reports'),   icon: Icons.reports,  offlineOk: false, feature: 'reports' },
     { to: '/users',         label: t('nav.users'),     icon: Icons.users,    offlineOk: false, feature: 'users' },
     { to: '/settings',      label: t('nav.settings'),  icon: Icons.settings, offlineOk: false, feature: 'settings' },
+    { to: '/admin/data-import', label: 'Data Import', icon: Icons.upload, offlineOk: false, feature: 'settings', adminOnly: true },
     { to: '/settings/roles',label: 'Role Permissions', icon: Icons.users,    offlineOk: false, feature: 'settings', adminOnly: true },
   ].filter(n => canSee(n.feature) && (!n.adminOnly || role === 'admin'));
 

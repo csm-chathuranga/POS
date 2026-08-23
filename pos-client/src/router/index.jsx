@@ -23,6 +23,7 @@ import Reports         from '../pages/reports/Index';
 import UsersIndex     from '../pages/users/Index';
 import SuppliersIndex   from '../pages/suppliers/Index';
 import CategoriesIndex  from '../pages/categories/Index';
+import ImportDataPage   from '../pages/admin/ImportData';
 import Settings         from '../pages/Settings';
 import RolesPage        from '../pages/settings/Roles';
 import InvoicesIndex    from '../pages/invoices/Index';
@@ -47,6 +48,11 @@ function RoleLayout() {
 function AdminRoute() {
   const role = useSelector(selectRole);
   return (role === 'admin' || role === 'manager') ? <Outlet /> : <Navigate to="/dashboard" replace />;
+}
+
+function AdminOnlyRoute() {
+  const role = useSelector(selectRole);
+  return role === 'admin' ? <Outlet /> : <Navigate to="/dashboard" replace />;
 }
 
 // Electron's packaged renderer loads index.html via the `file://` protocol,
@@ -95,6 +101,12 @@ export const router = createAppRouter([
             { path: 'invoices', element: <InvoicesIndex /> },
             { path: 'invoices/create', element: <InvoiceCreate /> },
             { path: 'invoices/:id', element: <InvoiceShow /> },
+            {
+              element: <AdminOnlyRoute />,
+              children: [
+                { path: 'admin/data-import', element: <ImportDataPage /> },
+              ],
+            },
           ],
         },
       ],

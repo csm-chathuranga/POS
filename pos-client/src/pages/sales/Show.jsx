@@ -97,7 +97,7 @@ export default function SaleShow() {
       </div>
       <div class="item-data">
         <span class="qty-col">${qty}</span>
-        <span class="orig-col">${fmt(unit)}</span>
+        <span class="orig-col orig-light">${fmt(unit)}</span>
         <span class="our-col">${fmt(ourUnit)}</span>
         <span class="line-col">${fmt(reducedLineTotal)}</span>
       </div>
@@ -138,13 +138,14 @@ export default function SaleShow() {
     .row { display:flex; justify-content:space-between; gap:6px; padding:3px 0; font-size:${is80 ? '12px' : '14px'}; color:#000; }
     .row .label { color:#000; font-weight:900; flex-shrink:0; }
     .row .value { font-weight:900; color:#000; text-align:right; min-width:0; word-break:break-word; }
-    .col-header { display:flex; justify-content:flex-end; font-weight:900; padding:4px 0 3px; border-top:2px solid #000; border-bottom:2px solid #000; margin:6px 0; font-size:${is80 ? '12px' : '14px'}; color:#000; }
-    .col-head-prices { display:grid; grid-template-columns: 30px repeat(3, 1fr); gap:8px; min-width:${is80 ? '168px' : '240px'}; text-align:right; }
+    .col-header { display:grid; grid-template-columns: 30px repeat(3, 1fr); gap:8px; font-weight:900; padding:4px 0 3px; border-top:2px solid #000; border-bottom:2px solid #000; margin:6px 0; font-size:${is80 ? '12px' : '14px'}; color:#000; text-align:right; }
+    .col-header span { white-space:nowrap; }
     .item-row { display:flex; justify-content:space-between; align-items:flex-start; gap:6px; font-weight:900; padding-top:5px; font-size:${is80 ? '13px' : '15px'}; color:#000; }
     .item-name { flex:1; min-width:0; word-break:break-word; overflow-wrap:break-word; }
     .item-data { display:grid; grid-template-columns: 30px repeat(3, 1fr); gap:8px; text-align:right; padding:2px 0 5px; font-size:${is80 ? '12px' : '13px'}; font-weight:900; color:#000; }
     .qty-col { text-align:left; }
-    .orig-col, .our-col, .line-col { text-align:right; }
+    .orig-col, .our-col, .line-col { text-align:right; white-space:nowrap; }
+    .orig-light { font-weight: 600; }
     .disc-box { border:2px solid #000; border-radius:4px; padding:3px 8px; display:flex; justify-content:space-between; gap:6px; margin:5px 0; }
     .disc-label { color:#000; font-weight:900; flex-shrink:0; }
     .disc-val { color:#000; font-weight:900; }
@@ -172,10 +173,9 @@ export default function SaleShow() {
   <div class="row"><span class="label">${rl('th.date')}</span><span class="value">${fmtDate(sale.created_at)} ${fmtTime(sale.created_at)}</span></div>
   <div class="row"><span class="label">${rl('lbl.cashier')}</span><span class="value">${sale.user?.name || '—'}</span></div>
   ${sale.customer?.name ? `<div class="row"><span class="label">${rl('lbl.customer')}</span><span class="value">${sale.customer.name}</span></div>` : ''}
-  <div class="col-header"><span class="col-head-prices"><span>${rl('th.qty')}</span><span>${rl('lbl.original_price')}</span><span>${rl('lbl.our_price')}</span><span>${rl('th.total')}</span></span></div>
+  <div class="col-header"><span class="qty-col">${rl('th.qty')}</span><span>${rl('lbl.original_price')}</span><span>${rl('lbl.our_price')}</span><span>${rl('th.total')}</span></div>
   ${itemsHtml}
   <hr class="divider">
-  <div class="row"><span class="label">${rl('lbl.subtotal')}</span><span>${fmt(sale.subtotal)}</span></div>
   ${parseFloat(sale.discount) > 0 ? `<div class="disc-box"><span class="disc-label">${rl('lbl.earned_profit')}</span><span class="disc-val">- ${fmt(sale.discount)}</span></div>` : ''}
   ${parseFloat(sale.tax) > 0 ? `<div class="row"><span class="label">${rl('lbl.tax')}</span><span>${fmt(sale.tax)}</span></div>` : ''}
   <div class="total-row"><span class="total-label">${rl('lbl.grand_total')}</span><span class="total-val">${currency} ${fmt(sale.total)}</span></div>
@@ -227,6 +227,8 @@ export default function SaleShow() {
   const change     = Math.max(0, parseFloat(sale?.paid || 0) - parseFloat(sale?.total || 0));
   const cashGiven  = paidCash + change;
   const currency   = shopInfo.currency || 'Rs.';
+  const receiptLang = shopInfo.receipt_language || 'en';
+  const rl = key => (translations[receiptLang] || translations.en)[key] ?? translations.en[key];
 
   if (isLoading) return (
     <div className="h-screen flex items-center justify-center text-slate-400 text-sm">{t('lbl.loading')}</div>
@@ -324,11 +326,11 @@ export default function SaleShow() {
                 {(shopInfo.shop_name || 'L')[0]}
               </div>
             )}
-            <p className="font-black text-slate-900 text-xl tracking-wide uppercase">
+            <p className="font-black text-black text-xl tracking-wide uppercase">
               {shopInfo.shop_name || 'LMUC POS'}
             </p>
-            {shopInfo.address && <p className="text-slate-500 text-sm font-medium mt-0.5">{shopInfo.address}</p>}
-            {shopInfo.phone   && <p className="text-slate-500 text-sm font-medium">{shopInfo.phone}</p>}
+            {shopInfo.address && <p className="text-black text-sm font-medium mt-0.5">{shopInfo.address}</p>}
+            {shopInfo.phone   && <p className="text-black text-sm font-medium">{shopInfo.phone}</p>}
           </div>
 
           <hr className="border-slate-200 mb-4" />
@@ -344,12 +346,12 @@ export default function SaleShow() {
           <hr className="border-slate-200 my-4" />
 
           {/* Items */}
-          <div className="mb-3">
-            <div className="grid grid-cols-[30px_repeat(3,minmax(0,1fr))] gap-2 pl-1 text-sm font-black text-slate-700 border-b-2 border-slate-200 pb-2 mb-3 text-right">
-              <span className="text-left">{t('th.qty')}</span>
-              <span>{t('lbl.original_price')}</span>
-              <span>{t('lbl.our_price')}</span>
-              <span>{t('th.total')}</span>
+          <div className="mb-3 min-w-0">
+            <div className="grid grid-cols-[40px_1fr_1fr_1fr] gap-2 pl-1 text-sm font-black text-black border-b-2 border-slate-200 pb-2 mb-3 text-right min-w-0">
+              <span className="text-left">{rl('th.qty')}</span>
+              <span className="text-right whitespace-nowrap">{rl('lbl.original_price')}</span>
+              <span className="text-right whitespace-nowrap">{rl('lbl.our_price')}</span>
+              <span className="text-right whitespace-nowrap">{rl('th.total')}</span>
             </div>
             {(sale.items || []).map((item, idx) => {
               const qty = Number(item.qty || 0);
@@ -359,13 +361,13 @@ export default function SaleShow() {
               const reducedLineTotal = Math.max(0, originalLineTotal - lineDiscount);
               const ourUnit = qty > 0 ? Math.max(0, reducedLineTotal / qty) : unit;
               return (
-              <div key={item.id} className="mb-3">
-                <div className="text-sm font-bold text-slate-900">{item.product_name}</div>
-                <div className="grid grid-cols-[30px_repeat(3,minmax(0,1fr))] gap-2 text-sm text-slate-700 font-semibold pl-1 mt-0.5">
+              <div key={item.id} className="mb-3 min-w-0">
+                <div className="text-sm font-bold text-black break-words" style={{ overflowWrap: 'anywhere' }}>{item.product_name}</div>
+                <div className="grid grid-cols-[40px_1fr_1fr_1fr] gap-2 text-sm text-black font-semibold pl-1 mt-0.5 min-w-0 items-center">
                   <span className="text-left">{qty}</span>
-                  <span className="text-right">{fmt(unit)}</span>
-                  <span className="text-right text-red-500">{fmt(ourUnit)}</span>
-                  <span className="text-right">{fmt(reducedLineTotal)}</span>
+                  <span className="text-right min-w-0 break-words">{fmt(unit)}</span>
+                  <span className="text-right text-black min-w-0 break-words">{fmt(ourUnit)}</span>
+                  <span className="text-right min-w-0 break-words">{fmt(reducedLineTotal)}</span>
                 </div>
               </div>
             );
@@ -376,50 +378,45 @@ export default function SaleShow() {
 
           {/* Totals */}
           <div className="space-y-2">
-            <div className="flex justify-between text-sm">
-              <span className="text-slate-500 font-semibold">{t('lbl.subtotal')}</span>
-              <span className="font-bold text-slate-700">{fmt(sale.subtotal)}</span>
-            </div>
-
             {parseFloat(sale.discount) > 0 && (
-              <div className="flex justify-between items-center border-2 border-blue-300 rounded-lg px-3 py-1.5 bg-blue-50">
-                <span className="text-blue-700 font-bold text-sm">{t('lbl.earned_profit')}</span>
-                <span className="text-red-500 font-extrabold text-sm">- {fmt(sale.discount)}</span>
+              <div className="flex justify-between items-center border-2 border-slate-300 rounded-lg px-3 py-1.5 bg-slate-50">
+                <span className="text-black font-bold text-[11px]">{t('lbl.earned_profit')}</span>
+                <span className="text-black font-extrabold text-[11px]">- {fmt(sale.discount)}</span>
               </div>
             )}
 
             {parseFloat(sale.tax) > 0 && (
               <div className="flex justify-between text-sm">
-                <span className="text-slate-500 font-semibold">{t('lbl.tax')}</span>
-                <span className="font-bold text-slate-700">{fmt(sale.tax)}</span>
+                <span className="text-black font-semibold">{t('lbl.tax')}</span>
+                <span className="font-bold text-black">{fmt(sale.tax)}</span>
               </div>
             )}
 
             <div className="flex justify-between items-baseline pt-1 border-t border-slate-100">
-              <span className="text-base font-black text-slate-900">{t('lbl.grand_total')}</span>
-              <span className="text-xl font-black text-blue-600">{currency} {fmt(sale.total)}</span>
+              <span className="text-base font-black text-black">{t('lbl.grand_total')}</span>
+              <span className="text-xl font-black text-black">{currency} {fmt(sale.total)}</span>
             </div>
 
             {paidCash   > 0 && (
               <div className="flex justify-between text-sm">
-                <span className="text-slate-500 font-semibold">{t('lbl.cash_paid')} ({t('lbl.cash')})</span>
-                <span className="font-bold text-slate-700">{fmt(cashGiven)}</span>
+                <span className="text-black font-semibold">{t('lbl.cash_paid')} ({t('lbl.cash')})</span>
+                <span className="font-bold text-black">{fmt(cashGiven)}</span>
               </div>
             )}
             {paidCard   > 0 && (
               <div className="flex justify-between text-sm">
-                <span className="text-slate-500 font-semibold">{t('lbl.cash_paid')} ({t('lbl.card')})</span>
-                <span className="font-bold text-slate-700">{fmt(paidCard)}</span>
+                <span className="text-black font-semibold">{t('lbl.cash_paid')} ({t('lbl.card')})</span>
+                <span className="font-bold text-black">{fmt(paidCard)}</span>
               </div>
             )}
             {paidCredit > 0 && (
               <div className="flex justify-between text-sm">
-                <span className="text-slate-500 font-semibold">{t('lbl.credit')}</span>
-                <span className="font-bold text-red-500">{fmt(paidCredit)}</span>
+                <span className="text-black font-semibold">{t('lbl.credit')}</span>
+                <span className="font-bold text-black">{fmt(paidCredit)}</span>
               </div>
             )}
             {change > 0 && (
-              <div className="flex justify-between text-sm font-bold text-green-600">
+              <div className="flex justify-between text-sm font-bold text-black">
                 <span>{t('lbl.change')}</span>
                 <span>{fmt(change)}</span>
               </div>
@@ -430,11 +427,11 @@ export default function SaleShow() {
 
           {/* Footer */}
           <div className="text-center leading-relaxed">
-            <p className="text-sm font-semibold text-slate-500">
+            <p className="text-[11px] font-semibold text-black">
               {shopInfo.receipt_footer || 'Thank you for shopping with us!'}
             </p>
             {shopInfo.shop_name && (
-              <p className="text-blue-500 font-bold text-sm mt-1">
+              <p className="text-black font-bold text-[11px] mt-1">
                 {shopInfo.shop_name.toLowerCase().replace(/\s+/g, '') + '.lk'}
               </p>
             )}
@@ -511,9 +508,14 @@ export default function SaleShow() {
 
 function MetaRow({ label, value, mono }) {
   return (
-    <div className="flex justify-between text-sm">
-      <span className="text-slate-500 font-semibold">{label}</span>
-      <span className={`font-bold text-slate-800 ${mono ? 'font-mono' : ''}`}>{value}</span>
+    <div className="flex items-center justify-between gap-3 text-sm leading-snug min-w-0">
+      <span className="text-black font-semibold pr-2 shrink-0">{label}</span>
+      <span
+        className={`ml-auto text-right font-bold text-black min-w-0 break-words ${mono ? 'font-mono' : ''}`}
+        style={{ overflowWrap: 'anywhere' }}
+      >
+        {value}
+      </span>
     </div>
   );
 }

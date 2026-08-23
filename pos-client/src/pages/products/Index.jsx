@@ -12,7 +12,6 @@ import { getApiUrl } from '../../config/runtimeConfig';
 import { useLocale } from '../../contexts/LocaleContext';
 import { useConnectivity } from '../../contexts/ConnectivityContext';
 import { getLocalProducts, getLocalCategories } from '../../services/cacheSync';
-import { getPendingQueueByTypes } from '../../services/offlineQueue';
 
 const SAMPLE_CSV_HEADERS = 'name,barcode,selling_price,cost_price,wholesale_price,stock_qty,alert_qty,unit';
 const SAMPLE_CSV_ROW     = 'Sample Product,123456,100.00,70.00,80.00,50,5,pcs';
@@ -73,15 +72,6 @@ function downloadSampleCSV() {
   a.click(); URL.revokeObjectURL(url);
 }
 
-function parseCSV(text) {
-  const lines  = text.trim().split('\n');
-  const header = lines[0].split(',').map(h => h.trim().toLowerCase());
-  return lines.slice(1).map(line => {
-    const vals = line.split(',').map(v => v.trim());
-    return Object.fromEntries(header.map((h, i) => [h, vals[i] ?? '']));
-  }).filter(r => r.name);
-}
-
 const fmtPrice = n =>
   'Rs. ' + Number(n || 0).toLocaleString('en-LK', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
@@ -124,14 +114,12 @@ export default function ProductsIndex() {
 
   const [offlineProducts,   setOfflineProducts]   = useState([]);
   const [offlineCategories, setOfflineCategories] = useState([]);
-  const [pendingProducts,   setPendingProducts]   = useState([]);
 
   useEffect(() => {
     if (!isOnline) {
       getLocalProducts().then(setOfflineProducts);
       getLocalCategories().then(setOfflineCategories);
     }
-    getPendingQueueByTypes(['product_create', 'product_edit']).then(setPendingProducts);
   }, [isOnline]);
 
   const { data, isLoading } = useGetProductsQuery(
@@ -178,7 +166,7 @@ export default function ProductsIndex() {
     if (applied.promo)       result = result.filter(p => p.promo_price);
     return result;
   }, [viewAll, isOnline, serverRows, applied]);
-  const rows = [...pendingProducts, ...baseRows.filter(r => !pendingProducts.some(p => p.id === r.id))];
+  const rows = baseRows;
 
   const [printModal,   setPrintModal]   = useState(null);  // { product }
   const [printQty,     setPrintQty]     = useState(1);
@@ -327,7 +315,7 @@ export default function ProductsIndex() {
         <div className="flex items-center gap-2 ml-auto">
           {!isOnline && (
             <span className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 border border-amber-200 rounded-lg text-amber-700 text-xs font-medium">
-              <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" /> Offline – changes sync when online
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" /> Offline – add/edit disabled
             </span>
           )}
           <button
@@ -349,12 +337,14 @@ export default function ProductsIndex() {
             </svg>
             {exporting ? 'Exporting…' : 'Export CSV'}
           </button>
-          <Link
-            to="/products/create"
-            className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition-colors shadow-sm"
-          >
-            <span className="text-lg leading-none">+</span> {t('btn.new_product')}
-          </Link>
+          {isOnline && (
+            <Link
+              to="/products/create"
+              className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition-colors shadow-sm"
+            >
+              <span className="text-lg leading-none">+</span> {t('btn.new_product')}
+            </Link>
+          )}
         </div>
       </div>
 
@@ -394,7 +384,6 @@ export default function ProductsIndex() {
                     <div className="min-w-0">
                       <p className="font-semibold text-slate-800 truncate">{p.name}</p>
                       {p.name_si && <p className="text-xs text-slate-400 truncate">{p.name_si}</p>}
-                      {p._pending && <span className="inline-block text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 mt-0.5">{p._queueType === 'product_edit' ? 'Edit Pending' : 'Pending Sync'}</span>}
                     </div>
                     <span className={`shrink-0 text-xs px-2 py-0.5 rounded-full font-semibold ${p.active ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500'}`}>
                       {p.active ? t('lbl.active') : t('lbl.inactive')}
@@ -430,10 +419,12 @@ export default function ProductsIndex() {
                   }
                   {t('btn.print')}
                 </button>
-                <Link to={`/products/${p.id}/edit`}
-                  className="flex-1 py-1.5 text-xs font-semibold text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors text-center">
-                  {t('btn.edit')}
-                </Link>
+                {isOnline && (
+                  <Link to={`/products/${p.id}/edit`}
+                    className="flex-1 py-1.5 text-xs font-semibold text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors text-center">
+                    {t('btn.edit')}
+                  </Link>
+                )}
                 {isOnline && (
                   <button onClick={() => handleDelete(p.id, p.name)}
                     className="flex-1 py-1.5 text-xs font-semibold text-red-500 bg-red-50 hover:bg-red-100 rounded-lg transition-colors">
@@ -502,7 +493,6 @@ export default function ProductsIndex() {
                       <td className="px-4 py-3">
                         <p className="font-semibold text-slate-800">{p.name}</p>
                         {p.name_si && <p className="text-xs text-slate-400">{p.name_si}</p>}
-                        {p._pending && <span className="inline-block text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 mt-0.5">{p._queueType === 'product_edit' ? 'Edit Pending' : 'Pending Sync'}</span>}
                       </td>
                       <td className="px-4 py-3 font-mono text-xs text-slate-500">{p.barcode || '—'}</td>
                       <td className="px-4 py-3 text-slate-500 text-xs">{p.category?.name || '—'}</td>
@@ -536,10 +526,12 @@ export default function ProductsIndex() {
                             }
                             {t('btn.print')}
                           </button>
-                          <Link to={`/products/${p.id}/edit`}
-                            className="inline-flex items-center px-2.5 py-1 rounded-md border border-blue-200 bg-blue-50 text-xs font-medium text-blue-600 hover:bg-blue-100 transition-colors">
-                            {t('btn.edit')}
-                          </Link>
+                          {isOnline && (
+                            <Link to={`/products/${p.id}/edit`}
+                              className="inline-flex items-center px-2.5 py-1 rounded-md border border-blue-200 bg-blue-50 text-xs font-medium text-blue-600 hover:bg-blue-100 transition-colors">
+                              {t('btn.edit')}
+                            </Link>
+                          )}
                           {isOnline && (
                             <button onClick={() => handleDelete(p.id, p.name)}
                               className="inline-flex items-center px-2.5 py-1 rounded-md border border-red-200 bg-red-50 text-xs font-medium text-red-500 hover:bg-red-100 transition-colors">

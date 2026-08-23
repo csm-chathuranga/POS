@@ -69,37 +69,6 @@ export async function markFailed(localId, error) {
   await db.offlineQueue.update(localId, { status: 'failed', error });
 }
 
-/**
- * Queue a new product for sync when back online.
- * Inserts a temporary entry into local Dexie so it appears in the offline list immediately.
- */
-export async function enqueueProductCreate(data) {
-  const client_id = generateClientId();
-  await db.offlineQueue.add({
-    client_id,
-    type:       'product_create',
-    status:     'pending',
-    created_at: new Date().toISOString(),
-    payload:    { ...data, client_id },
-  });
-  return client_id;
-}
-
-/**
- * Queue a product edit for sync when back online.
- * Also patches the local Dexie products table immediately so offline reads stay fresh.
- */
-export async function enqueueProductEdit(id, data) {
-  await db.offlineQueue.add({
-    client_id:  generateClientId(),
-    type:       'product_edit',
-    status:     'pending',
-    created_at: new Date().toISOString(),
-    payload:    { id, ...data },
-  });
-  try { await db.products.update(id, data); } catch (e) { /* local cache best-effort */ }
-}
-
 export async function enqueueCategoryCreate(data) {
   const client_id = generateClientId();
   await db.offlineQueue.add({
@@ -175,7 +144,7 @@ export async function enqueueSupplierEdit(id, data) {
  * For creates: id = client_id (no server record yet).
  * For edits:   id = payload.id (server record ID, enables dedup with base list).
  */
-const EDIT_TYPES = new Set(['product_edit', 'category_edit', 'customer_edit', 'supplier_edit']);
+const EDIT_TYPES = new Set(['category_edit', 'customer_edit', 'supplier_edit']);
 
 export async function getPendingQueueByTypes(types) {
   const items = await db.offlineQueue.where('status').equals('pending').toArray();
