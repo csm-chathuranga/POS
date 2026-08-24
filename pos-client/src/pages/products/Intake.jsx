@@ -19,7 +19,7 @@ export default function ProductIntake() {
   const [looking,    setLooking]    = useState(false);
   const [savedCount, setSavedCount] = useState(0);
   const [lastSaved,  setLastSaved]  = useState('');
-  const [form, setForm] = useState({ stock_qty: '', cost_price: '', selling_price: '', expiry_date: '' });
+  const [form, setForm] = useState({ stock_qty: '', cost_price: '', selling_price: '', expiry_date: '', name_si: '' });
 
   const [browseOpen,  setBrowseOpen]  = useState(false);
   const [browseSearch, setBrowseSearch] = useState('');
@@ -70,6 +70,7 @@ export default function ProductIntake() {
       cost_price:    String(data.cost_price   ?? ''),
       selling_price: String(data.selling_price ?? ''),
       expiry_date:   data.expiry_date ?? '',
+      name_si:       data.name_si ?? '',
     });
     setBrowseOpen(false);
     setBrowseSearch('');
@@ -88,6 +89,7 @@ export default function ProductIntake() {
       cost_price:    form.cost_price,
       selling_price: form.selling_price,
       expiry_date:   form.expiry_date || null,
+      name_si:       form.name_si || null,
       active:        true,
     }).unwrap();
     setSavedCount(c => c + 1);
@@ -99,7 +101,7 @@ export default function ProductIntake() {
     setProduct(null);
     setBarcode('');
     setNotFound(false);
-    setForm({ stock_qty: '', cost_price: '', selling_price: '', expiry_date: '' });
+    setForm({ stock_qty: '', cost_price: '', selling_price: '', expiry_date: '', name_si: '' });
     setTimeout(() => barcodeRef.current?.focus(), 50);
   }
 
@@ -214,6 +216,15 @@ export default function ProductIntake() {
                 onFocus={e => e.target.select()}
                 className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500" />
             </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-slate-500 mb-1.5">සිංහල නම <span className="font-normal text-slate-400">(optional)</span></label>
+            <input type="text" value={form.name_si}
+              onChange={e => setForm(f => ({ ...f, name_si: e.target.value }))}
+              placeholder="සිංහල නම ඇතුල් කරන්න"
+              className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500"
+              style={{ fontFamily: "'Noto Sans Sinhala', sans-serif" }} />
           </div>
 
           <div className="flex gap-2 pt-1">
