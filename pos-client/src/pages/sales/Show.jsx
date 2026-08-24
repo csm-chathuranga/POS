@@ -84,20 +84,23 @@ export default function SaleShow() {
     const rl = key => (translations[receiptLang] || translations.en)[key] ?? translations.en[key];
     const minDelay = new Promise(r => setTimeout(r, 2200));
 
+    let totalSaved = 0;
     const itemsHtml = (sale.items || []).map((item, idx) => {
       const qty = Number(item.qty || 0);
       const unit = parseFloat(item.unit_price || 0);
+      const origPrice = parseFloat(item.original_price || 0) || unit;
       const lineDiscount = parseFloat(item.discount || 0);
       const originalLineTotal = qty * unit;
       const reducedLineTotal = Math.max(0, originalLineTotal - lineDiscount);
       const ourUnit = qty > 0 ? Math.max(0, reducedLineTotal / qty) : unit;
+      if (origPrice > unit) totalSaved += (origPrice - unit) * qty;
       return `
       <div class="item-row">
         <div class="item-name">${item.product_name}</div>
       </div>
       <div class="item-data">
         <span class="qty-col">${qty}</span>
-        <span class="orig-col orig-light">${fmt(unit)}</span>
+        <span class="orig-col orig-light">${fmt(origPrice)}</span>
         <span class="our-col">${fmt(ourUnit)}</span>
         <span class="line-col">${fmt(reducedLineTotal)}</span>
       </div>
@@ -176,6 +179,7 @@ export default function SaleShow() {
   <div class="col-header"><span class="qty-col">${rl('th.qty')}</span><span>${rl('lbl.original_price')}</span><span>${rl('lbl.our_price')}</span><span>${rl('th.total')}</span></div>
   ${itemsHtml}
   <hr class="divider">
+  ${totalSaved > 0 ? `<div class="disc-box"><span class="disc-label">${rl('lbl.you_saved')}</span><span class="disc-val">- ${fmt(totalSaved)}</span></div>` : ''}
   ${parseFloat(sale.discount) > 0 ? `<div class="disc-box"><span class="disc-label">${rl('lbl.earned_profit')}</span><span class="disc-val">- ${fmt(sale.discount)}</span></div>` : ''}
   ${parseFloat(sale.tax) > 0 ? `<div class="row"><span class="label">${rl('lbl.tax')}</span><span>${fmt(sale.tax)}</span></div>` : ''}
   <div class="total-row"><span class="total-label">${rl('lbl.grand_total')}</span><span class="total-val">${currency} ${fmt(sale.total)}</span></div>
@@ -356,6 +360,7 @@ export default function SaleShow() {
             {(sale.items || []).map((item, idx) => {
               const qty = Number(item.qty || 0);
               const unit = parseFloat(item.unit_price || 0);
+              const origPrice = parseFloat(item.original_price || 0) || unit;
               const lineDiscount = parseFloat(item.discount || 0);
               const originalLineTotal = qty * unit;
               const reducedLineTotal = Math.max(0, originalLineTotal - lineDiscount);
@@ -365,7 +370,7 @@ export default function SaleShow() {
                 <div className="text-sm font-bold text-black break-words" style={{ overflowWrap: 'anywhere' }}>{item.product_name}</div>
                 <div className="grid grid-cols-[40px_1fr_1fr_1fr] gap-2 text-sm text-black font-semibold pl-1 mt-0.5 min-w-0 items-center">
                   <span className="text-left">{qty}</span>
-                  <span className="text-right min-w-0 break-words">{fmt(unit)}</span>
+                  <span className="text-right min-w-0 break-words">{fmt(origPrice)}</span>
                   <span className="text-right text-black min-w-0 break-words">{fmt(ourUnit)}</span>
                   <span className="text-right min-w-0 break-words">{fmt(reducedLineTotal)}</span>
                 </div>
@@ -378,6 +383,20 @@ export default function SaleShow() {
 
           {/* Totals */}
           <div className="space-y-2">
+            {(() => {
+              const saved = (sale.items || []).reduce((acc, item) => {
+                const orig = parseFloat(item.original_price || 0);
+                const unit = parseFloat(item.unit_price || 0);
+                const qty  = parseFloat(item.qty || 0);
+                return orig > unit ? acc + (orig - unit) * qty : acc;
+              }, 0);
+              return saved > 0 ? (
+                <div className="flex justify-between items-center border-2 border-black rounded-lg px-3 py-2">
+                  <span className="text-black font-black text-base">{t('lbl.you_saved')}</span>
+                  <span className="text-black font-black text-xl">{fmt(saved)}</span>
+                </div>
+              ) : null;
+            })()}
             {parseFloat(sale.discount) > 0 && (
               <div className="flex justify-between items-center border-2 border-slate-300 rounded-lg px-3 py-1.5 bg-slate-50">
                 <span className="text-black font-bold text-[11px]">{t('lbl.earned_profit')}</span>

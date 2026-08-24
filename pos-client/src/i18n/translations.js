@@ -138,6 +138,7 @@ export const translations = {
     'lbl.this_month':      'මෙම මාසය',
     'lbl.original_price':  'වෙළඳ මිල',
     'lbl.our_price':       'අපේ මිල',
+    'lbl.you_saved':       'ඔබ ලද ලාභය',
     'lbl.earned_profit':   'ඔබ ලද ලාභය',
 
     'page.dashboard':    'මුල් පිටුව',
@@ -524,6 +525,7 @@ export const translations = {
     'lbl.this_month':      'This Month',
     'lbl.original_price':  'Original Price',
     'lbl.our_price':       'Our Price',
+    'lbl.you_saved':       'You Saved',
     'lbl.earned_profit':   'Your Profit',
 
     'page.dashboard':    'Dashboard',
@@ -910,6 +912,7 @@ export const translations = {
     'lbl.this_month':      'இந்த மாதம்',
     'lbl.original_price':  'மூல விலை',
     'lbl.our_price':       'எங்கள் விலை',
+    'lbl.you_saved':       'நீங்கள் சேமித்தது',
     'lbl.earned_profit':   'உங்கள் லாபம்',
 
     'page.dashboard':    'முகப்பு',

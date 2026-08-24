@@ -24,6 +24,7 @@ function productToItem(p) {
     stock_qty:       parseFloat(p.stock_qty),
     unit:            p.unit ?? 'pcs',
     promo_price:     promoActive ? parseFloat(p.promo_price) : null,
+    our_price:       p.our_price ? parseFloat(p.our_price) : null,
     is_fast_moving: !!p.is_fast_moving,
     sizes: (p.variants || []).map(v => ({
       id:                v.id,

@@ -253,7 +253,7 @@ export default function SalesCreate2() {
         const newQ = Math.min(item.qty + 1, item.stock_qty > 0 ? item.stock_qty : Infinity);
         return prev.map((it, j) => j === idx ? recalc({ ...it, qty: newQ }) : it);
       }
-      const promo = product.promo_price ? parseFloat(product.promo_price) : null;
+      const promo = (product.our_price ? parseFloat(product.our_price) : null) ?? (product.promo_price ? parseFloat(product.promo_price) : null);
       const price = promo ?? (parseFloat(product.selling_price) || 0);
       return [...prev, recalc({
         product_id: product.id, variant_id: variantId,
@@ -606,7 +606,7 @@ export default function SalesCreate2() {
             ) : (
               <div ref={gridRef} className="grid grid-cols-5 gap-2">
                 {displayedProducts.map((p, idx) => {
-                  const price      = parseFloat(p.promo_price ?? p.selling_price) || 0;
+                  const price      = parseFloat(p.our_price ?? p.promo_price ?? p.selling_price) || 0;
                   const outOfStock = (p.stock_qty ?? 0) <= 0;
                   const isSelected = idx === selectedIdx;
                   return (

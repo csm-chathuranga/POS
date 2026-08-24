@@ -33,6 +33,7 @@ function getModels(sequelize) {
     promo_price:    { type: DataTypes.DECIMAL(10, 2), allowNull: true },
     promo_start_date:{ type: DataTypes.DATEONLY, allowNull: true },
     promo_end_date: { type: DataTypes.DATEONLY, allowNull: true },
+    our_price:      { type: DataTypes.DECIMAL(10, 2), allowNull: true },
     expiry_date:    { type: DataTypes.DATEONLY, allowNull: true },
     stock_qty:      { type: DataTypes.DECIMAL(10, 3), defaultValue: 0 },
     alert_qty:      { type: DataTypes.DECIMAL(10, 3), defaultValue: 5 },

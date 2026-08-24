@@ -39,9 +39,9 @@ function printBarcode(product, qty = 1) {
   </head><body>
     <svg id="bc"></svg>
     <p class="name">${product.name.replace(/</g,'&lt;')}</p>
-    ${product.promo_price
+    ${product.our_price
       ? `<p class="orig">Rs. ${Number(product.selling_price||0).toFixed(2)}</p>
-         <p class="price">Rs. ${Number(product.promo_price).toFixed(2)}</p>`
+         <p class="price">Rs. ${Number(product.our_price).toFixed(2)}</p>`
       : `<p class="price">Rs. ${Number(product.selling_price||0).toFixed(2)}</p>`
     }
     <script>
@@ -468,6 +468,7 @@ export default function ProductsIndex() {
                   <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">{t('prod.barcode')}</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">{t('prod.category')}</th>
                   <th className="px-4 py-3 text-right text-xs font-semibold text-slate-600 uppercase tracking-wider">{t('prod.sell_price')}</th>
+                  <th className="px-4 py-3 text-right text-xs font-semibold text-slate-600 uppercase tracking-wider">{t('lbl.our_price')}</th>
                   <th className="px-4 py-3 text-right text-xs font-semibold text-slate-600 uppercase tracking-wider">{t('prod.stock')}</th>
                   <th className="px-4 py-3 text-center text-xs font-semibold text-slate-600 uppercase tracking-wider">{t('th.status')}</th>
                   <th className="px-4 py-3 text-right text-xs font-semibold text-slate-600 uppercase tracking-wider">{t('th.actions')}</th>
@@ -498,14 +499,12 @@ export default function ProductsIndex() {
                       <td className="px-4 py-3 font-mono text-xs text-slate-500">{p.barcode || '—'}</td>
                       <td className="px-4 py-3 text-slate-500 text-xs">{p.category?.name || '—'}</td>
                       <td className="px-4 py-3 text-right">
-                        {p.promo_price ? (
-                          <div className="flex flex-col items-end gap-0.5">
-                            <span className="font-bold text-orange-500">{fmtPrice(p.promo_price)}</span>
-                            <span className="text-xs text-slate-400 line-through">{fmtPrice(p.selling_price)}</span>
-                          </div>
-                        ) : (
-                          <span className="font-semibold text-green-600">{fmtPrice(p.selling_price)}</span>
-                        )}
+                        <span className="font-semibold text-slate-700">{fmtPrice(p.selling_price)}</span>
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        {p.our_price
+                          ? <span className="font-bold text-orange-500">{fmtPrice(p.our_price)}</span>
+                          : <span className="text-slate-300">—</span>}
                       </td>
                       <td className="px-4 py-3 text-right">
                         <span className={`font-medium ${isLow ? 'text-red-600' : 'text-slate-700'}`}>

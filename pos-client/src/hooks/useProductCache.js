@@ -135,3 +135,9 @@ export function refreshProductCache() {
     allApi.endpoints.getProductVersion.initiate(undefined, { forceRefetch: true })
   );
 }
+
+/** Call after intake/edit to wipe both cache keys so next hook mount fetches fresh. */
+export function clearProductCache() {
+  localStorage.removeItem(LS_VER);
+  localStorage.removeItem(LS_KEY);
+}

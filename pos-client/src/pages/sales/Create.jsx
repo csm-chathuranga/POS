@@ -68,9 +68,10 @@ function ProductDropdown({ items, activeIdx, onSelect }) {
             <div>
               <p className="font-semibold text-slate-800 text-sm">{p.name}</p>
               {p.name_si && <p className="text-xs text-slate-400">{p.name_si}</p>}
+              {p.barcode && <p className="text-xs text-slate-300 font-mono">{p.barcode}</p>}
             </div>
             <div className="text-right ml-4 shrink-0">
-              <p className="text-sm font-bold text-blue-700">Rs.{fmt(p.promo_price ?? p.selling_price)}</p>
+              <p className="text-sm font-bold text-blue-700">Rs.{fmt(p.our_price ?? p.promo_price ?? p.selling_price)}</p>
               <p className={`text-xs ${p.stock_qty <= 0 ? 'text-red-500' : 'text-slate-400'}`}>Stock: {fmt(p.stock_qty)}</p>
             </div>
           </div>
@@ -233,7 +234,7 @@ function CartRow({ item, onChange, onRemove, onZoom, onEnter, onArrow, highlight
         onKeyDown={navKey}
         placeholder="0"
         className="cart-cell-input text-right rounded-lg border border-slate-200 px-1.5 py-1 text-sm outline-none focus:ring-1 focus:ring-blue-500 w-full" />
-      <p className="text-right font-bold text-slate-800">{fmt(item.total)}</p>
+      <p className="text-right font-bold text-slate-800 text-base">{Number(item.total||0).toLocaleString('en-LK',{minimumFractionDigits:2})}</p>
       <button onClick={onRemove} className="text-red-400 hover:text-red-600 transition-colors flex items-center justify-center w-6 h-6">
         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
       </button>
@@ -267,20 +268,23 @@ function Receipt({ sale, settings, user, onClose }) {
     const rl = key => (translations[receiptLang] || translations.en)[key] ?? translations.en[key];
     const minDelay = new Promise(r => setTimeout(r, 1200));
 
+    let totalSaved = 0;
     const itemsHtml = (sale.items || []).map((item, idx) => {
       const qty = Number(item.qty || 0);
       const unit = parseFloat(item.unit_price || 0);
+      const origPrice = parseFloat(item.original_price || 0) || unit;
       const lineDiscount = parseFloat(item.discount || 0);
       const originalLineTotal = qty * unit;
       const reducedLineTotal = Math.max(0, originalLineTotal - lineDiscount);
       const ourUnit = qty > 0 ? Math.max(0, reducedLineTotal / qty) : unit;
+      if (origPrice > unit) totalSaved += (origPrice - unit) * qty;
       return `
       <div class="item-row">
         <div class="item-name">${idx + 1} ${isSinhala && item.name_si ? item.name_si : item.name}</div>
       </div>
       <div class="item-data">
         <span class="qty-col">${qty}</span>
-        <span class="orig-col">${f(unit)}</span>
+        <span class="orig-col">${f(origPrice)}</span>
         <span class="our-col">${f(ourUnit)}</span>
         <span class="line-col">${f(reducedLineTotal)}</span>
       </div>
@@ -347,6 +351,7 @@ function Receipt({ sale, settings, user, onClose }) {
   <div class="col-header"><span class="col-head-prices"><span>${rl('th.qty')}</span><span>${rl('lbl.original_price')}</span><span>${rl('lbl.our_price')}</span><span>${rl('th.total')}</span></span></div>
   ${itemsHtml}
   <hr class="divider">
+  ${totalSaved > 0 ? `<div class="disc-box"><span>${rl('lbl.you_saved')}</span><span>- ${f(totalSaved)}</span></div>` : ''}
   ${parseFloat(sale.discount) > 0 ? `<div class="disc-box"><span>${rl('lbl.earned_profit')}</span><span>- ${f(sale.discount)}</span></div>` : ''}
   <div class="total-row"><span>${rl('lbl.grand_total')}</span><span>${currency} ${f(sale.total)}</span></div>
   ${paidCash > 0  ? `<div class="paid-row"><span>${rl('lbl.cash_paid')} (${rl('lbl.cash')})</span><span>${f(paidCard === 0 && paidCredit === 0 ? parseFloat(sale.paid || 0) : paidCash)}</span></div>` : ''}
@@ -556,6 +561,8 @@ export default function SalesCreate() {
   const [zoomedItem, setZoomed]     = useState(null);
   const [err, setErr]           = useState('');
   const [custErr, setCustErr]   = useState('');
+  const [scanNotFound, setScanNotFound] = useState('');
+  const [outOfStock, setOutOfStock]     = useState('');
 
   // Payment (inline)
   const [payMethod, setPayMethod] = useState('cash');
@@ -600,8 +607,10 @@ export default function SalesCreate() {
   const [returnDone, setReturnDone] = useState(null);
   const [doReturn] = useReturnSaleMutation();
 
+  const returnInFlight = useRef(false);
   async function loadReturnSale() {
-    if (!returnInvoiceNo.trim()) return;
+    if (!returnInvoiceNo.trim() || returnInFlight.current) return;
+    returnInFlight.current = true;
     setReturnLoading(true); setReturnErr(''); setReturnSaleData(null); setReturnItemQtys({});
     try {
       // Step 1: find sale ID by invoice_no
@@ -618,8 +627,8 @@ export default function SalesCreate() {
       if (!detailRes.ok) { setReturnErr('Failed to load invoice details'); return; }
       const detail = await detailRes.json();
       setReturnSaleData(detail); setReturnSaleId(found.id);
-    } catch { setReturnErr('Network error'); }
-    finally { setReturnLoading(false); }
+    } catch (e) { setReturnErr(e?.message || 'Network error'); }
+    finally { setReturnLoading(false); returnInFlight.current = false; }
   }
 
   // Mobile tab: 'cart' | 'pay'
@@ -639,7 +648,7 @@ export default function SalesCreate() {
     return base.filter(p =>
       p.name.toLowerCase().includes(q) ||
       (p.name_si && p.name_si.includes(q)) ||
-      (p.barcode && p.barcode.includes(q))
+      (p.barcode && p.barcode.toLowerCase().includes(q))
     ).slice(0, 20);
   }, [query, products, selectedCategory]);
 
@@ -780,7 +789,7 @@ export default function SalesCreate() {
 
           const hit = products.find(p => p.barcode === buf);
           if (hit) addToCartRef.current?.(hit, null, false);
-          else setErr(`Barcode "${buf}" not found`);
+          else setScanNotFound(buf);
           searchRef.current?.focus();
         }
       }
@@ -791,6 +800,17 @@ export default function SalesCreate() {
   }, [products]);
 
   // ─── Auto-add product when navigated here with a scanned barcode ─────────
+  useEffect(() => {
+    if (!scanNotFound) return;
+    const t = setTimeout(() => setScanNotFound(''), 5000);
+    return () => clearTimeout(t);
+  }, [scanNotFound]);
+  useEffect(() => {
+    if (!outOfStock) return;
+    const t = setTimeout(() => setOutOfStock(''), 3000);
+    return () => clearTimeout(t);
+  }, [outOfStock]);
+
   const autoBarcodeDone = useRef(false);
   useEffect(() => {
     const bc = location.state?.barcode;
@@ -798,7 +818,7 @@ export default function SalesCreate() {
     autoBarcodeDone.current = true;
     const hit = products.find(p => p.barcode === bc);
     if (hit) addToCart(hit, null, false);
-    else setErr(`Barcode "${bc}" not found`);
+    else setScanNotFound(bc);
     navigate(location.pathname, { replace: true, state: {} });
   }, [ready, location.state?.barcode]);
 
@@ -811,7 +831,7 @@ export default function SalesCreate() {
   function addToCart(product, qty = null, focusQty = true) {
     setErr('');
     if (product.sizes?.length > 0) { setSizePicker({ product }); setQuery(''); return; }
-    if ((product.stock_qty ?? 0) <= 0) { setErr(`"${product.name}" is out of stock`); refocus(); return; }
+    if ((product.stock_qty ?? 0) <= 0) { setOutOfStock(product.name_si || product.name); refocus(); return; }
     const variantId = product.variant_id || null;
     const key       = itemKey({ product_id: product.id, variant_id: variantId });
     setCart(prev => {
@@ -823,7 +843,7 @@ export default function SalesCreate() {
         return prev.map((i, j) => j === idx ? recalc({ ...i, qty: newQ }) : i);
       }
       const ws    = parseFloat(product.wholesale_price) || 0;
-      const promo = product.promo_price ? parseFloat(product.promo_price) : null;
+      const promo = (product.our_price ? parseFloat(product.our_price) : null) ?? (product.promo_price ? parseFloat(product.promo_price) : null);
       const base  = promo ?? (parseFloat(product.selling_price) || 0);
       const price = priceMode === 'wholesale' && ws > 0 ? ws : base;
       flash(key);
@@ -874,6 +894,7 @@ export default function SalesCreate() {
         isScan.current = false; keyIntervals.current = []; lastKeyTime.current = 0;
         const hit = products.find(p => p.barcode === bc);
         if (hit) addToCart(hit, qtyMultiplier, false);
+        else setScanNotFound(bc);
         setQtyMultiplier(1); setQuery(''); setShowDrop(false); refocus(); return;
       }
       const items = dropdownItems;
@@ -1025,6 +1046,62 @@ export default function SalesCreate() {
   // ─── Render ───────────────────────────────────────────────────────────────
   return (
     <div className="flex-1 flex flex-col bg-slate-100 min-h-0 overflow-hidden">
+
+      {/* Out of stock full-screen flash */}
+      {outOfStock && (
+        <div className="fixed inset-0 z-[999] flex items-center justify-center bg-black/80 select-none"
+          onClick={() => setOutOfStock('')}>
+          <div className="bg-white rounded-3xl shadow-2xl p-8 w-80 flex flex-col items-center text-center">
+            <div className="text-9xl mb-3">📦</div>
+            <p className="text-orange-500 text-2xl font-black mb-1">තොගය අවසන්</p>
+            <p className="text-slate-700 text-base font-semibold mb-1">{outOfStock}</p>
+            <p className="text-slate-400 text-xs mb-6">Out of Stock</p>
+            <button onClick={() => setOutOfStock('')}
+              className="w-full py-3 rounded-2xl bg-slate-800 text-white text-sm font-bold hover:bg-slate-700 transition-colors">
+              හරි
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Barcode not found full-screen flash */}
+      {scanNotFound && (
+        <div className="fixed inset-0 z-[999] flex items-center justify-center bg-black/80 select-none">
+          <div className="bg-white rounded-3xl shadow-2xl p-8 w-80 flex flex-col items-center text-center">
+            <div className="text-9xl mb-3">⚠️</div>
+            <p className="text-yellow-500 text-2xl font-black mb-1">හාණ්ඩය හමු නොවීය</p>
+            <p className="text-slate-500 text-sm font-mono mb-6">{scanNotFound}</p>
+            <div className="flex flex-col gap-2 w-full">
+              {cart.length > 0 && (
+                <button
+                  onClick={() => {
+                    const updated = [...heldBills, { id: Date.now(), note: `බාකෝඩ්: ${scanNotFound}`, cart, customer, createdAt: new Date().toISOString() }];
+                    localStorage.setItem('pos_held', JSON.stringify(updated));
+                    setHeld(updated); setCart([]); setCustomer(null); setCustQuery(''); setBillDisc('');
+                    setScanNotFound('');
+                    navigate('/products/intake', { state: { barcode: scanNotFound } });
+                  }}
+                  className="w-full py-3 rounded-2xl bg-yellow-400 text-black text-sm font-black shadow hover:bg-yellow-300 transition-colors">
+                  ⏸ බිල් රඳවා හාණ්ඩය සාදන්න
+                </button>
+              )}
+              <button
+                onClick={() => {
+                  const bc = scanNotFound;
+                  setScanNotFound('');
+                  navigate('/products/intake', { state: { barcode: bc } });
+                }}
+                className="w-full py-3 rounded-2xl bg-slate-800 text-white text-sm font-bold hover:bg-slate-700 transition-colors">
+                + හාණ්ඩය සාදන්න
+              </button>
+              <button onClick={() => setScanNotFound('')}
+                className="w-full py-2 rounded-2xl text-slate-400 text-sm font-semibold hover:text-slate-600 transition-colors">
+                නැවත යන්න
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Top header bar ── */}
       <div className="bg-white border-b border-slate-200 px-3 h-12 flex items-center justify-between shrink-0 gap-2">
@@ -1252,7 +1329,7 @@ export default function SalesCreate() {
                       )}
                     </div>
                     <p className="text-xs font-semibold text-slate-700 truncate leading-tight">{p.name}</p>
-                    <p className="text-xs font-bold text-blue-600 mt-0.5">Rs. {fmt(p.promo_price ?? p.selling_price)}</p>
+                    <p className="text-xs font-bold text-blue-600 mt-0.5">Rs. {fmt(p.our_price ?? p.promo_price ?? p.selling_price)}</p>
                   </button>
                 ))}
               </div>
@@ -1281,12 +1358,6 @@ export default function SalesCreate() {
                   {pct === 0 ? '0' : `${pct}%`}
                 </button>
               ))}
-            </div>
-
-            {/* Grand Total */}
-            <div className="flex items-center justify-between bg-blue-100 rounded-xl px-4 py-3">
-              <span className="text-base font-bold text-blue-700">{t('lbl.grand_total')}</span>
-              <span className="text-2xl font-extrabold text-blue-800">{fmtAmt(total)}</span>
             </div>
 
             {totalDisc > 0 && (
@@ -1327,11 +1398,11 @@ export default function SalesCreate() {
           <div className="px-4 py-3 border-b border-slate-300">
             <Step n="3" label={payMethod === 'cash' ? t('pos.cash_paid_label').toUpperCase() : payMethod === 'card' ? 'CARD DETAILS' : payMethod === 'credit' ? t('lbl.credit').toUpperCase() : 'SPLIT PAYMENT'} />
 
-            {/* Customer + Cash paid inline */}
+            {/* Customer + Cash paid */}
             {payMethod === 'cash' ? (
-              <div className="flex gap-3 mb-2">
+              <div className="space-y-2 mb-2">
                 {/* Customer */}
-                <div className="flex-1 min-w-0">
+                <div>
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">{t('lbl.customer')}</span>
                     <button onClick={() => setQcForm({ name: '', phone: '' })}
@@ -1365,19 +1436,25 @@ export default function SalesCreate() {
                   {custErr && <p className="text-xs text-red-500 mt-1 font-medium">{custErr}</p>}
                 </div>
 
-                {/* Cash paid */}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">{t('pos.cash_paid_label')}</span>
+                {/* Grand total + Cash paid inline */}
+                <div className="flex items-start gap-3">
+                  <div className="flex-1">
+                    <span className="text-sm font-black text-slate-700 uppercase tracking-wide block mb-1">{t('lbl.grand_total')} (Rs.)</span>
+                    <div className="flex items-center justify-end bg-black rounded-xl px-3 py-3.5">
+                      <span className="text-3xl font-extrabold text-white">{Number(total||0).toLocaleString('en-LK',{minimumFractionDigits:2})}</span>
+                    </div>
                   </div>
-                  <input ref={cashInputRef} type="number" min="0" step="0.01" value={cashPaid}
-                    onChange={e => { setCashPaid(e.target.value); setShakeInput(false); }}
-                    onFocus={e => e.target.select()}
-                    onKeyDown={e => { if (e.key === 'Enter') handleCompleteSale(false, true); }}
-                    placeholder="0.00"
-                    className={`w-full rounded-lg border-2 px-3 py-2 text-base font-bold text-right outline-none transition-colors ${shakeInput ? 'shake border-red-500' : 'border-green-300 focus:border-green-500'}`} />
-                  {change > 0 && <p className="text-xs font-bold text-green-600 text-right mt-1">{t('lbl.change')}: Rs.{fmt(change)}</p>}
-                  {change < 0 && cashNum > 0 && <p className="text-xs font-bold text-red-500 text-right mt-1">අඩු: Rs.{fmt(Math.abs(change))}</p>}
+                  <div className="flex-1">
+                    <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide block mb-1">{t('pos.cash_paid_label')}</span>
+                    <input ref={cashInputRef} type="number" min="0" step="0.01" value={cashPaid}
+                      onChange={e => { setCashPaid(e.target.value); setShakeInput(false); }}
+                      onFocus={e => e.target.select()}
+                      onKeyDown={e => { if (e.key === 'Enter') handleCompleteSale(false, true); }}
+                      placeholder="0.00"
+                      className={`w-full rounded-xl border-2 px-3 py-3.5 text-3xl font-bold text-right outline-none transition-colors ${shakeInput ? 'shake border-red-500 bg-red-50' : 'border-green-500 bg-green-50 focus:border-green-600'}`} />
+                    {change > 0 && <p className="text-xs font-bold text-green-600 text-right mt-1">{t('lbl.change')}: Rs.{fmt(change)}</p>}
+                    {change < 0 && cashNum > 0 && <p className="text-base font-black text-red-500 text-right mt-1">අඩු: Rs.{Number(Math.abs(change)).toLocaleString('en-LK',{minimumFractionDigits:2})}</p>}
+                  </div>
                 </div>
               </div>
             ) : (
