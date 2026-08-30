@@ -355,7 +355,7 @@ export default function AppLayout() {
             );
           })}
 
-          {isManager && (
+          {mgmtNav.length > 0 && (
             <>
               <div className={`pt-4 pb-1.5 ${displayCollapsed ? 'flex justify-center' : 'px-3'}`}>
                 {displayCollapsed
