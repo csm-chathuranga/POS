@@ -48,7 +48,7 @@ function RoleLayout() {
 
 function AdminRoute() {
   const role = useSelector(selectRole);
-  return (role === 'admin' || role === 'manager') ? <Outlet /> : <Navigate to="/dashboard" replace />;
+  return (role === 'admin' || role === 'manager' || role === 'custom') ? <Outlet /> : <Navigate to="/dashboard" replace />;
 }
 
 function AdminOnlyRoute() {
