@@ -37,7 +37,7 @@ if (!tenant) {
 const log  = m => console.log(`\x1b[32m✔\x1b[0m  ${m}`);
 const warn = m => console.log(`\x1b[33m⚠\x1b[0m  ${m}`);
 
-const DEFAULT_ROLES = ['admin', 'manager', 'cashier'];
+const DEFAULT_ROLES = ['admin', 'manager', 'cashier', 'custom'];
 const DEFAULT_SETTINGS = [
   { key: 'shop_name',        value: '' },
   { key: 'address',          value: '' },
@@ -114,6 +114,7 @@ async function main() {
   const ROLE_DEFAULTS = {
     manager: ['dashboard','new_sale','sales','products','stock_intake','purchases','customers','credit','suppliers','categories','reports'],
     cashier:  ['dashboard','new_sale','sales','customers','credit'],
+    custom:   ['dashboard','new_sale','sales'],
   };
 
   if (seed) {
