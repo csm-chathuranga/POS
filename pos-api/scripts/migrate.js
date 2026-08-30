@@ -143,8 +143,9 @@ async function main() {
     const featMap = {};
     for (const f of DEFAULT_FEATURES) {
       const [row, created] = await Feature.findOrCreate({ where: { key: f.key }, defaults: f });
+      if (!created) await row.update({ label: f.label, path: f.path, group: f.group, sort_order: f.sort_order });
       featMap[f.key] = row;
-      created ? log(`Created: ${f.key}`) : warn(`Exists:  ${f.key}`);
+      created ? log(`Created: ${f.key}`) : log(`Updated: ${f.key}`);
     }
     // Assign default features to manager and cashier (admin bypasses feature check)
     for (const [roleName, keys] of Object.entries(ROLE_DEFAULTS)) {
