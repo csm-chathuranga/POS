@@ -98,7 +98,7 @@ async function main() {
     { key: 'dashboard',     label: 'Dashboard',    path: '/dashboard',          group: 'main', sort_order: 1 },
     { key: 'new_sale',      label: 'New Sale',     path: '/sales/create',       group: 'main', sort_order: 2 },
     { key: 'sales',         label: 'Sales',        path: '/sales',              group: 'main', sort_order: 3 },
-    { key: 'invoices',      label: 'Invoices',     path: '/invoices',           group: 'main', sort_order: 4 },
+    { key: 'invoices',      label: 'Day End',      path: '/invoices',           group: 'main', sort_order: 4 },
     { key: 'products',      label: 'Products',     path: '/products',           group: 'main', sort_order: 5 },
     { key: 'stock_intake',  label: 'Stock Intake', path: '/products/intake',    group: 'main', sort_order: 6 },
     { key: 'purchases',     label: 'Purchases',    path: '/purchases',          group: 'main', sort_order: 7 },
@@ -109,6 +109,8 @@ async function main() {
     { key: 'reports',       label: 'Reports',      path: '/reports',            group: 'mgmt', sort_order: 12 },
     { key: 'users',         label: 'Users',        path: '/users',              group: 'mgmt', sort_order: 13 },
     { key: 'settings',      label: 'Settings',     path: '/settings',           group: 'mgmt', sort_order: 14 },
+    { key: 'data_import',   label: 'Data Import',  path: '/admin/data-import',  group: 'mgmt', sort_order: 15 },
+    { key: 'role_permissions', label: 'Role Permissions', path: '/settings/roles', group: 'mgmt', sort_order: 16 },
   ];
 
   const ROLE_DEFAULTS = {

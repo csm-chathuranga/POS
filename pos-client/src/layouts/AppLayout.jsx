@@ -234,8 +234,8 @@ export default function AppLayout() {
     { to: '/reports',       label: t('nav.reports'),   icon: Icons.reports,  offlineOk: false, feature: 'reports' },
     { to: '/users',         label: t('nav.users'),     icon: Icons.users,    offlineOk: false, feature: 'users' },
     { to: '/settings',      label: t('nav.settings'),  icon: Icons.settings, offlineOk: false, feature: 'settings' },
-    { to: '/admin/data-import', label: 'Data Import', icon: Icons.upload, offlineOk: false, feature: 'settings', adminOnly: true },
-    { to: '/settings/roles',label: 'Role Permissions', icon: Icons.users,    offlineOk: false, feature: 'settings', adminOnly: true },
+    { to: '/admin/data-import', label: 'Data Import',     icon: Icons.upload, offlineOk: false, feature: 'data_import',      adminOnly: true },
+    { to: '/settings/roles',   label: 'Role Permissions', icon: Icons.users,  offlineOk: false, feature: 'role_permissions', adminOnly: true },
   ].filter(n => canSee(n.feature) && (!n.adminOnly || role === 'admin'));
 
   function toggleCollapse() {
