@@ -16,11 +16,15 @@ async function getEffectiveFeatures(models, userId, roleObj, roleName) {
   if (roleName === 'admin') return null;
 
   const { User, Role, Feature } = models;
-  const userWithFeatures = await User.findByPk(userId, {
-    include: [{ model: Feature, as: 'DirectFeatures', through: { attributes: [] } }],
-  });
-  if ((userWithFeatures?.DirectFeatures?.length ?? 0) > 0) {
-    return userWithFeatures.DirectFeatures.map(f => f.key);
+  try {
+    const userWithFeatures = await User.findByPk(userId, {
+      include: [{ model: Feature, as: 'DirectFeatures', through: { attributes: [] } }],
+    });
+    if ((userWithFeatures?.DirectFeatures?.length ?? 0) > 0) {
+      return userWithFeatures.DirectFeatures.map(f => f.key);
+    }
+  } catch (_) {
+    // user_features table not yet migrated — fall through to role features
   }
 
   return await getRoleFeatures(Role, Feature, roleObj?.id);
