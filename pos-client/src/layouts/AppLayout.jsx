@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { Outlet, NavLink, useNavigate, useLocation, useNavigation } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import { logout, selectCurrentUser, selectRole, selectToken, selectFeatures } from '../features/auth/authSlice';
+import { logout, setCredentials, selectCurrentUser, selectRole, selectToken, selectFeatures } from '../features/auth/authSlice';
+import { useMeQuery } from '../features/auth/authApi';
 import { useLocale } from '../contexts/LocaleContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { useConnectivity } from '../contexts/ConnectivityContext';
@@ -81,6 +82,12 @@ export default function AppLayout() {
   const canSee    = key => features === null || features.includes(key);
   const { t }     = useLocale();
   const token     = useSelector(selectToken);
+
+  // Refresh user features from server on every app load
+  const { data: meData } = useMeQuery(undefined, { skip: !token });
+  useEffect(() => {
+    if (meData) dispatch(setCredentials({ token, ...meData }));
+  }, [meData]);
 
   const { isOnline, wasOffline } = useConnectivity();
   const { theme, setTheme } = useTheme();
