@@ -35,6 +35,7 @@ app.use('/api/sales',     require('./routes/sales'));
 app.use('/api/purchases', require('./routes/purchases'));
 app.use('/api/settings',  require('./routes/settings'));
 app.use('/api/users',     require('./routes/users'));
+app.use('/api/features',  require('./routes/features'));
 app.use('/api/roles',     require('./routes/roles'));
 app.use('/api/reports',   require('./routes/reports'));
 app.use('/api/imagekit',       require('./routes/imagekit'));

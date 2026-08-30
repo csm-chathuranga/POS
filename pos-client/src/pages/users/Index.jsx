@@ -2,20 +2,139 @@ import { useState } from 'react';
 import {
   useGetUsersQuery, useCreateUserMutation,
   useUpdateUserMutation, useDeleteUserMutation,
+  useGetAllFeaturesQuery, useGetUserFeaturesQuery, useSetUserFeaturesMutation,
 } from '../../features/users/usersApi';
 import { useSelector } from 'react-redux';
-import { selectCurrentUser } from '../../features/auth/authSlice';
+import { selectCurrentUser, selectRole } from '../../features/auth/authSlice';
 import { useLocale } from '../../contexts/LocaleContext';
 
 const ROLES = ['admin', 'manager', 'cashier'];
 const empty = { name: '', email: '', password: '', role: 'cashier' };
 
+// ── Feature assignment modal ────────────────────────────────────────────────
+function FeatureModal({ user, onClose }) {
+  const { data: allFeatures = [] } = useGetAllFeaturesQuery();
+  const { data: userFeats, isLoading } = useGetUserFeaturesQuery(user.id);
+  const [setFeatures, { isLoading: saving }] = useSetUserFeaturesMutation();
+  const [selected, setSelected] = useState(null); // null until loaded
+  const [saved, setSaved] = useState(false);
+
+  // Initialise selected from server once loaded
+  if (userFeats && selected === null) {
+    setSelected(new Set(userFeats.features));
+  }
+
+  const toggle = key => setSelected(prev => {
+    const next = new Set(prev);
+    next.has(key) ? next.delete(key) : next.add(key);
+    return next;
+  });
+
+  const selectAll  = () => setSelected(new Set(allFeatures.map(f => f.key)));
+  const clearAll   = () => setSelected(new Set());
+  const resetRole  = async () => {
+    await setFeatures({ id: user.id, features: [] });
+    setSaved(true); setTimeout(() => { setSaved(false); onClose(); }, 800);
+  };
+
+  async function handleSave() {
+    await setFeatures({ id: user.id, features: [...(selected || [])] });
+    setSaved(true); setTimeout(() => { setSaved(false); onClose(); }, 800);
+  }
+
+  // Group features
+  const groups = {};
+  allFeatures.forEach(f => {
+    const g = f.group || 'other';
+    if (!groups[g]) groups[g] = [];
+    groups[g].push(f);
+  });
+
+  const isOverride = userFeats?.hasOverride;
+  const checkedCount = selected?.size ?? 0;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col">
+        {/* Header */}
+        <div className="px-6 pt-5 pb-4 border-b border-slate-100 shrink-0">
+          <div className="flex items-start justify-between">
+            <div>
+              <h2 className="font-bold text-slate-800 text-base">Feature Access — {user.name}</h2>
+              <p className="text-xs text-slate-400 mt-0.5">
+                {isOverride
+                  ? <span className="text-blue-600 font-semibold">Custom override active</span>
+                  : <span className="text-slate-400">Using role defaults ({user.role})</span>
+                }
+              </p>
+            </div>
+            <button onClick={onClose} className="text-slate-400 hover:text-slate-600 text-xl leading-none">&times;</button>
+          </div>
+
+          {/* Controls */}
+          <div className="flex items-center gap-2 mt-3 flex-wrap">
+            <button onClick={selectAll} className="text-xs px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 font-semibold">All</button>
+            <button onClick={clearAll}  className="text-xs px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 font-semibold">None</button>
+            <button onClick={resetRole} className="text-xs px-2.5 py-1 rounded-lg border border-amber-300 text-amber-600 hover:bg-amber-50 font-semibold">
+              Reset to role defaults
+            </button>
+            <span className="ml-auto text-xs text-slate-400">{checkedCount} selected</span>
+          </div>
+        </div>
+
+        {/* Feature list */}
+        <div className="flex-1 overflow-y-auto px-6 py-4">
+          {isLoading || selected === null ? (
+            <p className="text-sm text-slate-400 text-center py-8">Loading…</p>
+          ) : (
+            <div className="space-y-5">
+              {Object.entries(groups).map(([group, features]) => (
+                <div key={group}>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">{group}</p>
+                  <div className="space-y-1">
+                    {features.map(f => (
+                      <label key={f.key}
+                        className={`flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer transition-colors ${selected.has(f.key) ? 'bg-blue-50 border border-blue-200' : 'border border-transparent hover:bg-slate-50'}`}>
+                        <input type="checkbox" className="w-4 h-4 accent-blue-600 shrink-0"
+                          checked={selected.has(f.key)}
+                          onChange={() => toggle(f.key)} />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold text-slate-700">{f.label}</p>
+                          {f.path && <p className="text-[10px] text-slate-400 font-mono">{f.path}</p>}
+                        </div>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="px-6 py-4 border-t border-slate-100 shrink-0 flex gap-2">
+          <button onClick={onClose} className="flex-1 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-600 hover:bg-slate-50">Cancel</button>
+          <button onClick={handleSave} disabled={saving || selected === null}
+            className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition-colors ${saved ? 'bg-green-500 text-white' : 'bg-blue-600 hover:bg-blue-700 text-white'} disabled:opacity-50`}>
+            {saved ? '✓ Saved' : saving ? 'Saving…' : 'Save Features'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Main page ───────────────────────────────────────────────────────────────
 export default function UsersIndex() {
   const { t } = useLocale();
-  const me = useSelector(selectCurrentUser);
-  const [modal, setModal] = useState(null);
-  const [form, setForm]   = useState(empty);
-  const [err, setErr]     = useState('');
+  const me   = useSelector(selectCurrentUser);
+  const myRole = useSelector(selectRole);
+  const isAdmin = myRole === 'admin';
+
+  const [modal, setModal]           = useState(null);
+  const [form, setForm]             = useState(empty);
+  const [err, setErr]               = useState('');
+  const [featureUser, setFeatureUser] = useState(null);
 
   const { data: users = [], isLoading } = useGetUsersQuery();
   const [create, { isLoading: creating }] = useCreateUserMutation();
@@ -79,6 +198,12 @@ export default function UsersIndex() {
                 className="flex-1 py-1.5 text-xs font-semibold text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors">
                 {t('btn.edit')}
               </button>
+              {isAdmin && u.role !== 'admin' && (
+                <button onClick={() => setFeatureUser(u)}
+                  className="flex-1 py-1.5 text-xs font-semibold text-violet-600 bg-violet-50 hover:bg-violet-100 rounded-lg transition-colors">
+                  Features
+                </button>
+              )}
               {u.id !== me?.id && (
                 <button onClick={() => handleDelete(u)}
                   className="flex-1 py-1.5 text-xs font-semibold text-red-500 bg-red-50 hover:bg-red-100 rounded-lg transition-colors">
@@ -112,6 +237,9 @@ export default function UsersIndex() {
                   <td className="px-4 py-3 text-center">{roleBadge(u.role)}</td>
                   <td className="px-4 py-3 text-right whitespace-nowrap space-x-3">
                     <button onClick={() => openEdit(u)} className="text-blue-600 hover:text-blue-800 font-medium">{t('btn.edit')}</button>
+                    {isAdmin && u.role !== 'admin' && (
+                      <button onClick={() => setFeatureUser(u)} className="text-violet-600 hover:text-violet-800 font-medium">Features</button>
+                    )}
                     {u.id !== me?.id && (
                       <button onClick={() => handleDelete(u)} className="text-red-500 hover:text-red-700 font-medium">{t('btn.delete')}</button>
                     )}
@@ -126,6 +254,7 @@ export default function UsersIndex() {
         )}
       </div>
 
+      {/* Create / Edit modal */}
       {modal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-md mx-4 p-6">
@@ -165,6 +294,11 @@ export default function UsersIndex() {
             </form>
           </div>
         </div>
+      )}
+
+      {/* Feature assignment modal */}
+      {featureUser && (
+        <FeatureModal user={featureUser} onClose={() => setFeatureUser(null)} />
       )}
     </div>
   );

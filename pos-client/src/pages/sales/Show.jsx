@@ -160,7 +160,7 @@ export default function SaleShow() {
     @media print {
       html, body { overflow: visible !important; height: auto !important; }
       @page { margin: 0; size: ${is80 ? '80mm auto' : 'A4'}; }
-      body { padding: ${is80 ? '3mm' : '10mm'}; width: ${is80 ? '80mm' : '210mm'} !important; }
+      body { padding: ${is80 ? '3mm 4mm' : '10mm'}; width: ${is80 ? '80mm' : '210mm'} !important; }
     }
   </style>
 </head>
@@ -190,7 +190,7 @@ export default function SaleShow() {
   <hr class="divider">
   <div class="footer">
     ${shopInfo.receipt_footer || 'Thank you for shopping with us!'}
-    ${shopInfo.shop_name ? `<br>${(shopInfo.shop_name || '').toLowerCase().replace(/\s+/g, '') + '.lk'}` : ''}
+    <br>lumac.lk
   </div>
 </body>
 </html>`;
@@ -449,9 +449,9 @@ export default function SaleShow() {
             <p className="text-[11px] font-semibold text-black">
               {shopInfo.receipt_footer || 'Thank you for shopping with us!'}
             </p>
-            {shopInfo.shop_name && (
+            {true && (
               <p className="text-black font-bold text-[11px] mt-1">
-                {shopInfo.shop_name.toLowerCase().replace(/\s+/g, '') + '.lk'}
+                lumac.lk
               </p>
             )}
           </div>

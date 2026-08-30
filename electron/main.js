@@ -411,8 +411,8 @@ ipcMain.handle('printers:print-receipt-html', async (event, html, options = {}) 
   const entry   = config.pos || {};
   const is80    = options.paperSize !== 'A4';
   const pageSize = is80
-    ? { width: entry.width  || 80000,  height: entry.height || 297000 }
-    : { width: 210000, height: 297000 };
+    ? 'A4'
+    : 'A4';
   const configuredName = entry.name || '';
   const wc = mainWindow && !mainWindow.isDestroyed() ? mainWindow.webContents : event.sender;
   const deviceName = await resolvePrinterName(wc, configuredName);

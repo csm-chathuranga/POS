@@ -11,6 +11,21 @@ async function getRoleFeatures(Role, Feature, roleId) {
   return r?.Features?.map(f => f.key) ?? null;
 }
 
+// User-level features override role features when rows exist in user_features
+async function getEffectiveFeatures(models, userId, roleObj, roleName) {
+  if (roleName === 'admin') return null;
+
+  const { User, Role, Feature } = models;
+  const userWithFeatures = await User.findByPk(userId, {
+    include: [{ model: Feature, as: 'DirectFeatures', through: { attributes: [] } }],
+  });
+  if ((userWithFeatures?.DirectFeatures?.length ?? 0) > 0) {
+    return userWithFeatures.DirectFeatures.map(f => f.key);
+  }
+
+  return await getRoleFeatures(Role, Feature, roleObj?.id);
+}
+
 // POST /api/auth/login
 router.post('/login', async (req, res) => {
   const { email, password } = req.body;
@@ -26,9 +41,9 @@ router.post('/login', async (req, res) => {
     return res.status(401).json({ error: 'Invalid credentials' });
   }
 
-  const roleObj = user.Roles?.[0];
+  const roleObj  = user.Roles?.[0];
   const roleName = roleObj?.name ?? 'cashier';
-  const features = roleName === 'admin' ? null : await getRoleFeatures(Role, Feature, roleObj?.id);
+  const features = await getEffectiveFeatures(req.models, user.id, roleObj, roleName);
 
   const token = jwt.sign(
     { userId: user.id, email: user.email, role: roleName, tenant: req.tenant },
@@ -38,21 +53,12 @@ router.post('/login', async (req, res) => {
 
   res.json({
     token,
-    user: {
-      id:       user.id,
-      name:     user.name,
-      email:    user.email,
-      role:     roleName,
-      features, // null means all access (admin)
-    },
+    user: { id: user.id, name: user.name, email: user.email, role: roleName, features },
   });
 });
 
 // POST /api/auth/logout
-router.post('/logout', auth, (req, res) => {
-  // JWT is stateless — client discards the token
-  res.json({ message: 'Logged out' });
-});
+router.post('/logout', auth, (req, res) => res.json({ message: 'Logged out' }));
 
 // GET /api/me
 router.get('/me', auth, async (req, res) => {
@@ -64,16 +70,10 @@ router.get('/me', auth, async (req, res) => {
   const appSettings = Object.fromEntries(settings.map(s => [s.key, s.value]));
   const roleObj  = userWithRole?.Roles?.[0];
   const roleName = roleObj?.name ?? req.user.role;
-  const features = roleName === 'admin' ? null : await getRoleFeatures(Role, Feature, roleObj?.id);
+  const features = await getEffectiveFeatures(req.models, req.user.id, roleObj, roleName);
 
   res.json({
-    user: {
-      id:       req.user.id,
-      name:     req.user.name,
-      email:    req.user.email,
-      role:     roleName,
-      features,
-    },
+    user: { id: req.user.id, name: req.user.name, email: req.user.email, role: roleName, features },
     appSettings,
   });
 });

@@ -21,6 +21,19 @@ export const usersApi = api.injectEndpoints({
       query: id => ({ url: `/users/${id}`, method: 'DELETE' }),
       invalidatesTags: [{ type: 'Users', id: 'LIST' }],
     }),
+    // Feature management
+    getAllFeatures: build.query({
+      query: () => '/features',
+      keepUnusedDataFor: 3600,
+    }),
+    getUserFeatures: build.query({
+      query: id => `/users/${id}/features`,
+      providesTags: (r, e, id) => [{ type: 'UserFeatures', id }],
+    }),
+    setUserFeatures: build.mutation({
+      query: ({ id, features }) => ({ url: `/users/${id}/features`, method: 'PUT', body: { features } }),
+      invalidatesTags: (r, e, { id }) => [{ type: 'UserFeatures', id }],
+    }),
   }),
 });
 
@@ -29,4 +42,7 @@ export const {
   useCreateUserMutation,
   useUpdateUserMutation,
   useDeleteUserMutation,
+  useGetAllFeaturesQuery,
+  useGetUserFeaturesQuery,
+  useSetUserFeaturesMutation,
 } = usersApi;

@@ -332,7 +332,7 @@ function Receipt({ sale, settings, user, onClose }) {
     @media print {
       html, body { overflow: visible !important; height: auto !important; }
       @page { margin: 0; size: 80mm auto; }
-      body { padding: 3mm 5mm 3mm 3mm; width: 80mm !important; }
+      body { padding: 3mm 4mm; width: 80mm !important; }
     }
   </style>
 </head>
@@ -361,7 +361,7 @@ function Receipt({ sale, settings, user, onClose }) {
   <hr class="divider">
   <div class="footer">
     ${settings?.receipt_footer || 'Thank you for shopping with us!'}
-    ${settings?.shop_name ? `<br>${(settings.shop_name || '').toLowerCase().replace(/\s+/g, '') + '.lk'}` : ''}
+    <br>lumac.lk
   </div>
 </body>
 </html>`;
@@ -478,7 +478,7 @@ function Receipt({ sale, settings, user, onClose }) {
 
           <div className="text-center leading-relaxed">
             <p className="text-sm font-semibold text-black">{settings?.receipt_footer || 'Thank you for shopping with us!'}</p>
-            {settings?.shop_name && <p className="text-black font-bold text-sm mt-1">{settings.shop_name.toLowerCase().replace(/\s+/g, '') + '.lk'}</p>}
+            <p className="text-black font-bold text-sm mt-1">lumac.lk</p>
           </div>
         </div>
 
@@ -1104,61 +1104,61 @@ export default function SalesCreate() {
       )}
 
       {/* ── Top header bar ── */}
-      <div className="bg-white border-b border-slate-200 px-3 h-12 flex items-center justify-between shrink-0 gap-2">
+      <div className="bg-slate-900 border-b border-slate-700 px-3 h-12 flex items-center justify-between shrink-0 gap-2">
         <div className="flex items-center gap-2 shrink-0">
-          <button onClick={() => navigate('/sales')} className="text-slate-500 hover:text-slate-700 transition-colors">{Icon.back}</button>
-          <button onClick={() => navigate('/dashboard')} title="Home" className="text-slate-500 hover:text-slate-700 transition-colors">{Icon.home}</button>
-          <h1 className="font-bold text-slate-800 text-sm hidden sm:block">{t('page.new_sale')}</h1>
+          <button onClick={() => navigate('/sales')} className="text-slate-400 hover:text-white transition-colors">{Icon.back}</button>
+          <button onClick={() => navigate('/dashboard')} title="Home" className="text-slate-400 hover:text-white transition-colors">{Icon.home}</button>
+          <h1 className="font-bold text-white text-sm hidden sm:block">{t('page.new_sale')}</h1>
         </div>
 
         {/* Shortcut pills — desktop only */}
         <div className="hidden lg:flex items-center gap-1.5 text-xs">
           {[['F1', t('btn.search')],['F2', t('lbl.cash')],['F3', t('lbl.card')],['F4', t('lbl.credit')],['F5','Split'],['F10', t('btn.complete')]].map(([k,l]) => (
-            <span key={k} className="bg-slate-100 text-slate-600 rounded px-1.5 py-0.5 font-medium">
-              <span className="text-slate-400">{k} </span>{l}
+            <span key={k} className="bg-slate-800 text-slate-300 rounded px-1.5 py-0.5 font-medium">
+              <span className="text-slate-500">{k} </span>{l}
             </span>
           ))}
         </div>
 
         {/* Mobile tab switcher */}
-        <div className="flex lg:hidden rounded-lg border border-slate-300 overflow-hidden text-xs font-bold">
+        <div className="flex lg:hidden rounded-lg border border-slate-700 overflow-hidden text-xs font-bold">
           <button onClick={() => setMobileTab('cart')}
-            className={`px-4 py-1.5 transition-colors ${mobileTab === 'cart' ? 'bg-slate-800 text-white' : 'bg-white text-slate-600'}`}>
+            className={`px-4 py-1.5 transition-colors ${mobileTab === 'cart' ? 'bg-slate-600 text-white' : 'bg-slate-800 text-slate-300'}`}>
             {t('pos.add_products')}
           </button>
           <button onClick={() => setMobileTab('pay')}
-            className={`px-4 py-1.5 transition-colors border-l border-slate-300 ${mobileTab === 'pay' ? 'bg-blue-600 text-white' : 'bg-white text-slate-600'}`}>
+            className={`px-4 py-1.5 transition-colors border-l border-slate-700 ${mobileTab === 'pay' ? 'bg-blue-600 text-white' : 'bg-slate-800 text-slate-300'}`}>
             {t('pos.payment_method_label')}
           </button>
         </div>
 
         <div className="flex items-center gap-1.5 shrink-0">
           {/* Day End */}
-          <button className="hidden sm:flex items-center gap-1.5 bg-blue-600 text-white text-xs font-bold px-2.5 py-1.5 rounded-lg hover:bg-blue-700 transition-colors">
+          <button className="hidden sm:flex items-center gap-1.5 bg-blue-500 text-white text-xs font-bold px-2.5 py-1.5 rounded-lg hover:bg-blue-400 transition-colors">
             {Icon.sun} <span className="hidden md:inline">{t('rep.day_end')}</span>
           </button>
 
           {/* Return */}
           <button onClick={() => { setShowReturn(true); setReturnInvoiceNo(''); setReturnSaleId(null); setReturnSaleData(null); setReturnErr(''); setReturnDone(null); }}
-            className="hidden sm:flex items-center gap-1 text-xs font-bold px-2.5 py-1.5 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 transition-colors">
+            className="hidden sm:flex items-center gap-1 text-xs font-bold px-2.5 py-1.5 rounded-lg border border-red-500/40 text-red-400 hover:bg-red-500/20 transition-colors">
             ↩ Return
           </button>
 
           {/* Held bills badge */}
           {heldBills.length > 0 && (
-            <button onClick={() => setShowHeld(true)} className="relative bg-orange-100 text-orange-700 text-xs font-bold px-2.5 py-1.5 rounded-lg hover:bg-orange-200 transition-colors">
+            <button onClick={() => setShowHeld(true)} className="relative bg-orange-500/20 text-orange-300 text-xs font-bold px-2.5 py-1.5 rounded-lg hover:bg-orange-500/30 transition-colors">
               Held ({heldBills.length})
             </button>
           )}
 
-          <button onClick={invalidate} className="text-slate-500 hover:text-slate-700 p-1.5 hover:bg-slate-100 rounded-lg transition-colors" title="Refresh products">{Icon.refresh}</button>
+          <button onClick={invalidate} className="text-slate-400 hover:text-white p-1.5 hover:bg-slate-700 rounded-lg transition-colors" title="Refresh products">{Icon.refresh}</button>
 
           {/* User avatar */}
-          <div className="flex items-center gap-1.5 pl-1.5 border-l border-slate-200">
+          <div className="flex items-center gap-1.5 pl-1.5 border-l border-slate-700">
             <div className="w-7 h-7 rounded-full bg-green-500 text-white text-xs font-bold flex items-center justify-center shrink-0">
               {user?.name?.[0]?.toUpperCase() || 'U'}
             </div>
-            <button onClick={handleLogout} className="text-slate-400 hover:text-slate-600 p-1 hover:bg-slate-100 rounded-lg transition-colors">{Icon.logout}</button>
+            <button onClick={handleLogout} className="text-slate-400 hover:text-white p-1 hover:bg-slate-700 rounded-lg transition-colors">{Icon.logout}</button>
           </div>
         </div>
       </div>
@@ -1338,7 +1338,7 @@ export default function SalesCreate() {
         </div>
 
         {/* ═══ RIGHT PANEL (Payment) ═══════════════════════════════════════════ */}
-        <div className={`bg-white border-l border-slate-300 flex-col shrink-0 overflow-y-auto
+        <div className={`bg-slate-50 border-l border-slate-200 flex-col shrink-0 overflow-y-auto
           w-full lg:w-[40%]
           ${mobileTab === 'cart' ? 'hidden lg:flex' : 'flex'}`}>
 
@@ -1578,7 +1578,7 @@ export default function SalesCreate() {
               <button
                 disabled={cart.length === 0 || submitting}
                 onClick={() => handleCompleteSale(false, true)}
-                className="flex-1 flex items-center justify-center gap-2 py-4 bg-blue-500 hover:bg-blue-600 disabled:bg-slate-300 text-white rounded-xl font-bold text-sm transition-colors shadow-md"
+                className="flex-1 flex items-center justify-center gap-2 py-4 bg-blue-500 hover:bg-blue-600 disabled:bg-slate-300 text-white rounded-xl font-bold text-sm transition-colors shadow-lg ring-1 ring-blue-300/60"
               >
                 {Icon.print}
                 <span>{t('pos.complete_sale')}</span>
@@ -1589,7 +1589,7 @@ export default function SalesCreate() {
               <button
                 disabled={cart.length === 0 || submitting}
                 onClick={() => handleCompleteSale(true)}
-                className="flex flex-col items-center justify-center gap-0.5 px-3 py-2 border-2 border-slate-200 hover:border-slate-300 disabled:opacity-40 text-slate-600 rounded-xl text-xs font-semibold transition-colors"
+                className="flex flex-col items-center justify-center gap-0.5 px-3 py-2 border-2 border-slate-300 hover:border-slate-400 disabled:opacity-40 text-slate-600 rounded-xl text-xs font-semibold transition-colors shadow-md"
               >
                 {Icon.save}
                 <span>{t('btn.save')}</span>
@@ -1601,7 +1601,7 @@ export default function SalesCreate() {
             <button
               disabled={cart.length === 0}
               onClick={() => setHoldModal(true)}
-              className="w-full flex items-center justify-center gap-2 py-3 bg-amber-400 hover:bg-amber-500 disabled:bg-amber-100 disabled:text-amber-400 disabled:cursor-not-allowed text-amber-900 rounded-xl font-bold text-sm transition-colors"
+              className="w-full flex items-center justify-center gap-2 py-3 bg-amber-400 hover:bg-amber-500 disabled:bg-amber-100 disabled:text-amber-400 disabled:cursor-not-allowed text-amber-900 rounded-xl font-bold text-sm transition-colors shadow-lg ring-1 ring-amber-300/60"
             >
               {Icon.pause} {t('pos.hold_btn')}
             </button>

@@ -408,7 +408,7 @@ export default function AppLayout() {
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
 
         {/* Route loading bar */}
-        <div className={`h-0.5 w-full shrink-0 transition-opacity duration-200 print:hidden ${routing ? 'opacity-100' : 'opacity-0'}`}>
+        <div className={`h-0.5 w-full shrink-0 transition-opacity duration-200 print:hidden ${isPOS ? 'hidden' : routing ? 'opacity-100' : 'opacity-0'}`}>
           <div className={`h-full bg-orange-400 transition-all duration-300 ease-out ${routing ? 'w-3/4' : 'w-full'}`} />
         </div>
 
