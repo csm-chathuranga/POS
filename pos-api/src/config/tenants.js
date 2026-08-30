@@ -20,6 +20,11 @@ module.exports = {
     username: 'pos_user',
     password: 'Pos@2026Strong',
   },
+  'autoMart-pos.lumac.cc': {
+    database: 'autoMart_pos',
+    username: 'pos_user',
+    password: 'Pos@2026Strong',
+  },
   localhost: {
    database: 'hardware_pos',
     username: 'root',
