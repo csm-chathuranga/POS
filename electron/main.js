@@ -322,7 +322,7 @@ ipcMain.handle('printers:print-receipt', async (event, printerTypeOrName, option
     printBackground: options.printBackground !== false,
     deviceName: deviceName || undefined,
     margins: { marginType: 'none' },
-    pageSize: { width: 80000, height: 297000 },
+    pageSize: { width: 72000, height: 297000 },
     scaleFactor: 105,
   };
 
@@ -331,7 +331,7 @@ ipcMain.handle('printers:print-receipt', async (event, printerTypeOrName, option
       if (!document.getElementById('__thermal-page')) {
         const s = document.createElement('style');
         s.id = '__thermal-page';
-        s.textContent = '@page{size:80mm 297mm;margin:0 8mm 0 0}';
+        s.textContent = '@page{size:72mm 297mm;margin:0}';
         document.head.appendChild(s);
       }
       const breaks = ['page-break-before','page-break-after','page-break-inside','break-before','break-after','break-inside'];
