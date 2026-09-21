@@ -11,6 +11,7 @@ import { syncAll, syncOfflineQueue } from '../services/cacheSync';
 import { refreshProductCache } from '../hooks/useProductCache';
 import { getPendingCount, OFFLINE_LIMIT } from '../services/offlineQueue';
 import { electronAPI } from '../services/electronBridge';
+import InstallPWA from '../components/InstallPWA';
 import NotificationDrawer, { useNotifBadge } from '../components/NotificationDrawer';
 import OfflineInvoicesDrawer from '../components/OfflineInvoicesDrawer';
 import SyncBlocker from '../components/SyncBlocker';
@@ -596,6 +597,7 @@ export default function AppLayout() {
             </div>
 
             <div className="flex items-center gap-1.5 md:gap-3">
+              <InstallPWA />
               {/* Manual sync button */}
               {isOnline && (
                 <button
