@@ -323,7 +323,7 @@ ipcMain.handle('printers:print-receipt', async (event, printerTypeOrName, option
     deviceName: deviceName || undefined,
     margins: { marginType: 'none' },
     pageSize: { width: 72000, height: 297000 },
-    scaleFactor: 105,
+    scaleFactor: 95,
   };
 
   await wc.executeJavaScript(`
