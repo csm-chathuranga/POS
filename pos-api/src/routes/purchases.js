@@ -67,7 +67,7 @@ router.get('/:id', auth, async (req, res) => {
   res.json(purchase);
 });
 
-router.delete('/:id', auth, role('admin'), async (req, res) => {
+router.delete('/:id', auth, role('admin', 'manager'), async (req, res) => {
   const { Purchase, PurchaseItem, Product, StockMovement } = req.models;
   const p = await Purchase.findByPk(req.params.id, {
     include: [{ model: PurchaseItem, as: 'items' }],

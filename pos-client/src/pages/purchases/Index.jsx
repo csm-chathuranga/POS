@@ -73,7 +73,7 @@ export default function PurchasesIndex() {
                 <p className="text-xs text-slate-400">{t('th.paid')}: {fmt(p.paid)}</p>
               </div>
             </div>
-            {role === 'admin' && isOnline && (
+            {(role === 'admin' || role === 'manager') && isOnline && (
               <div className="pt-2 border-t border-slate-50 flex justify-end">
                 <button onClick={e => { e.preventDefault(); e.stopPropagation(); handleDelete(p); }}
                   className="text-xs text-red-400 hover:text-red-600 font-medium px-2 py-0.5 hover:bg-red-50 rounded transition-colors">
@@ -108,7 +108,7 @@ export default function PurchasesIndex() {
                 <th className="px-4 py-3 text-right font-semibold">{t('th.total')}</th>
                 <th className="px-4 py-3 text-right font-semibold">{t('th.paid')}</th>
                 <th className="px-4 py-3 text-center font-semibold">{t('th.status')}</th>
-                {role === 'admin' && <th className="px-4 py-3 text-right font-semibold">{t('th.actions')}</th>}
+                {(role === 'admin' || role === 'manager') && <th className="px-4 py-3 text-right font-semibold">{t('th.actions')}</th>}
               </tr>
             </thead>
             <tbody>
@@ -123,7 +123,7 @@ export default function PurchasesIndex() {
                   <td className="px-4 py-3 text-right font-semibold text-slate-800">{fmt(p.total)}</td>
                   <td className="px-4 py-3 text-right text-slate-600">{fmt(p.paid)}</td>
                   <td className="px-4 py-3 text-center">{statusBadge(p.status)}</td>
-                  {role === 'admin' && isOnline && (
+                  {(role === 'admin' || role === 'manager') && isOnline && (
                     <td className="px-4 py-3 text-right">
                       <button onClick={() => handleDelete(p)} className="inline-flex items-center px-2.5 py-1 rounded-md border border-red-200 bg-red-50 text-xs font-medium text-red-500 hover:bg-red-100 transition-colors">{t('btn.delete')}</button>
                     </td>
@@ -131,7 +131,7 @@ export default function PurchasesIndex() {
                 </tr>
               ))}
               {!rows.length && (
-                <tr><td colSpan={role === 'admin' && isOnline ? 8 : 7} className="px-4 py-8 text-center text-slate-400">{t('pur.no_purchases')}</td></tr>
+                <tr><td colSpan={(role === 'admin' || role === 'manager') && isOnline ? 8 : 7} className="px-4 py-8 text-center text-slate-400">{t('pur.no_purchases')}</td></tr>
               )}
             </tbody>
           </table></div>
