@@ -68,9 +68,30 @@ router.get('/:id', auth, async (req, res) => {
 });
 
 router.delete('/:id', auth, role('admin'), async (req, res) => {
-  const { Purchase } = req.models;
-  const p = await Purchase.findByPk(req.params.id);
+  const { Purchase, PurchaseItem, Product, StockMovement } = req.models;
+  const p = await Purchase.findByPk(req.params.id, {
+    include: [{ model: PurchaseItem, as: 'items' }],
+  });
   if (!p) return res.status(404).json({ error: 'Not found' });
+
+  for (const item of p.items) {
+    const product = await Product.findByPk(item.product_id);
+    if (product) {
+      const before = parseFloat(product.stock_qty);
+      const after  = Math.max(0, before - parseFloat(item.qty));
+      await product.update({ stock_qty: after });
+      await StockMovement.create({
+        product_id:   product.id,
+        user_id:      req.user.id,
+        type:         'out',
+        qty:          item.qty,
+        stock_before: before,
+        stock_after:  after,
+        reference:    `DEL-${p.grn_no}`,
+      });
+    }
+  }
+
   await p.destroy();
   res.json({ message: 'Deleted' });
 });
