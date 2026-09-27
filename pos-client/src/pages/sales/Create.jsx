@@ -1568,7 +1568,7 @@ export default function SalesCreate() {
             {/* Card input */}
             {payMethod === 'card' && (
               <div>
-                <label className="block text-xs font-semibold text-slate-500 mb-1 uppercase">Card Reference No.</label>
+                <label className="block text-xs font-semibold text-slate-500 mb-1 uppercase">{isCoop ? (isSinhala ? 'මුද්දර යොමු අංකය' : 'Stamp Reference No.') : 'Card Reference No.'}</label>
                 <input autoFocus type="text" value={cardRef} onChange={e => setCardRef(e.target.value)} placeholder="Optional"
                   className="w-full rounded-lg border border-slate-400 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500" />
               </div>
@@ -1587,7 +1587,7 @@ export default function SalesCreate() {
               <div className="space-y-2">
                 {/* Mode toggle */}
                 <div className="flex gap-1 bg-slate-100 rounded-lg p-1">
-                  {[['card', 'Cash + Card'], ['credit', 'Cash + Credit']].map(([mode, label]) => (
+                  {[['card', isCoop ? (isSinhala ? 'මුදල් + මුද්දර' : 'Cash + Stamp') : 'Cash + Card'], ['credit', 'Cash + Credit']].map(([mode, label]) => (
                     <button key={mode} type="button" onClick={() => setSplitMode(mode)}
                       className={`flex-1 py-1.5 rounded-md text-xs font-semibold transition-all ${splitMode === mode ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
                       {label}
@@ -1603,10 +1603,10 @@ export default function SalesCreate() {
                 {splitMode === 'card' ? (
                   <>
                     <p className="text-sm text-slate-600">
-                      Card: <strong className="text-blue-700">{fmtAmt(Math.max(0, total - (parseFloat(splitCash) || 0)))}</strong>
+                      {isCoop ? (isSinhala ? 'මුද්දර' : 'Stamp') : 'Card'}: <strong className="text-blue-700">{fmtAmt(Math.max(0, total - (parseFloat(splitCash) || 0)))}</strong>
                     </p>
                     <div>
-                      <label className="block text-xs font-semibold text-slate-500 mb-1 uppercase">Card Reference</label>
+                      <label className="block text-xs font-semibold text-slate-500 mb-1 uppercase">{isCoop ? (isSinhala ? 'මුද්දර යොමුව' : 'Stamp Reference') : 'Card Reference'}</label>
                       <input type="text" value={splitCardRef} onChange={e => setSplitCardRef(e.target.value)}
                         className="w-full rounded-lg border border-slate-400 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500" />
                     </div>
