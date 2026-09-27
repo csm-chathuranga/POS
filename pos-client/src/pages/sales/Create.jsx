@@ -266,6 +266,9 @@ function Receipt({ sale, settings, user, onClose }) {
   const { t } = useLocale();
   const [printing, setPrinting] = useState(false);
   const printedRef = useRef(false);
+  const isCoop = window.location.hostname.includes('coop');
+  const receiptLangComp = settings?.receipt_language || 'en';
+  const cardLabel = isCoop ? (receiptLangComp === 'si' ? 'මුද්දර' : 'Stamp') : t('lbl.card');
 
   const f       = n => Number(n || 0).toLocaleString('en-LK', { minimumFractionDigits: 2 });
   const fmtDate = s => new Date(s).toLocaleDateString('en-LK', { day: '2-digit', month: 'short', year: 'numeric' });
@@ -374,7 +377,7 @@ function Receipt({ sale, settings, user, onClose }) {
   ${parseFloat(sale.discount) > 0 ? `<div class="disc-box"><span>${rl('lbl.earned_profit')}</span><span>- ${f(sale.discount)}</span></div>` : ''}
   <div class="total-row"><span>${rl('lbl.grand_total')}</span><span>${currency} ${f(sale.total)}</span></div>
   ${paidCash > 0  ? `<div class="paid-row"><span>${rl('lbl.cash_paid')} (${rl('lbl.cash')})</span><span>${f(paidCard === 0 && paidCredit === 0 ? parseFloat(sale.paid || 0) : paidCash)}</span></div>` : ''}
-  ${paidCard > 0  ? `<div class="paid-row"><span>${rl('lbl.cash_paid')} (${rl('lbl.card')})</span><span>${f(paidCard)}</span></div>` : ''}
+  ${paidCard > 0  ? `<div class="paid-row"><span>${rl('lbl.cash_paid')} (${isCoop ? (isSinhala ? 'මුද්දර' : 'Stamp') : rl('lbl.card')})</span><span>${f(paidCard)}</span></div>` : ''}
   ${paidCredit > 0 ? `<div class="paid-row"><span>${rl('lbl.credit')}</span><span>${f(paidCredit)}</span></div>` : ''}
   ${change > 0    ? `<div class="change-row"><span>${rl('lbl.change')}</span><span>${f(change)}</span></div>` : ''}
   <hr class="divider">
@@ -483,7 +486,7 @@ function Receipt({ sale, settings, user, onClose }) {
               <div className="flex justify-between text-sm"><span className="text-black font-semibold">{t('lbl.cash_paid')} ({t('lbl.cash')})</span><span className="font-bold text-black">{f(paidCash)}</span></div>
             )}
             {paidCard > 0 && (
-              <div className="flex justify-between text-sm"><span className="text-black font-semibold">{t('lbl.cash_paid')} ({t('lbl.card')})</span><span className="font-bold text-black">{f(paidCard)}</span></div>
+              <div className="flex justify-between text-sm"><span className="text-black font-semibold">{t('lbl.cash_paid')} ({cardLabel})</span><span className="font-bold text-black">{f(paidCard)}</span></div>
             )}
             {paidCredit > 0 && (
               <div className="flex justify-between text-sm"><span className="text-black font-semibold">{t('lbl.credit')}</span><span className="font-bold text-black">{f(paidCredit)}</span></div>
@@ -535,6 +538,7 @@ export default function SalesCreate() {
   const role     = useSelector(selectRole);
   const token    = useSelector(selectToken);
   const showCostPrice = window.location.hostname.includes('newanura');
+  const isCoop = window.location.hostname.includes('coop');
 
   const { t } = useLocale();
   const { products, ready, deductStock, invalidate } = useProductCache();
@@ -549,6 +553,7 @@ export default function SalesCreate() {
   }, [isOnline]);
   const { data: settings } = posApi.useGetPOSSettingsQuery();
   const isSinhala = (settings?.receipt_language || 'en') === 'si';
+  const cardLabel = isCoop ? (isSinhala ? 'මුද්දර' : 'Stamp') : t('lbl.card');
 
   // Search
   const searchRef   = useRef(null);
@@ -1162,7 +1167,7 @@ export default function SalesCreate() {
 
         {/* Shortcut pills — desktop only */}
         <div className="hidden lg:flex items-center gap-1.5 text-xs">
-          {[['F1', t('btn.search')],['F2', t('lbl.cash')],['F3', t('lbl.card')],['F4', t('lbl.credit')],['F5','Split'],['F10', t('btn.complete')]].map(([k,l]) => (
+          {[['F1', t('btn.search')],['F2', t('lbl.cash')],['F3', cardLabel],['F4', t('lbl.credit')],['F5','Split'],['F10', t('btn.complete')]].map(([k,l]) => (
             <span key={k} className="bg-slate-800 text-slate-300 rounded px-1.5 py-0.5 font-medium">
               <span className="text-slate-500">{k} </span>{l}
             </span>
@@ -1417,7 +1422,7 @@ export default function SalesCreate() {
             <div className="flex rounded-2xl border-2 border-slate-300 overflow-hidden bg-white">
               {[
                 { id: 'cash',   label: t('lbl.cash'),   shortcut: 'F2', icon: Icon.cash,   active: 'bg-green-500 text-white' },
-                { id: 'card',   label: t('lbl.card'),   shortcut: 'F3', icon: Icon.card,   active: 'bg-blue-500 text-white' },
+                { id: 'card',   label: cardLabel,        shortcut: 'F3', icon: Icon.card,   active: 'bg-blue-500 text-white' },
                 { id: 'credit', label: t('lbl.credit'), shortcut: 'F4', icon: Icon.credit, active: 'bg-orange-500 text-white' },
                 { id: 'split',  label: 'Split',          shortcut: null,  icon: Icon.split,  active: 'bg-violet-500 text-white' },
               ].map((m, i, arr) => (
@@ -1440,7 +1445,7 @@ export default function SalesCreate() {
 
           {/* Cash paid / customer */}
           <div className="px-4 py-3 border-b border-slate-300">
-            <Step n="3" label={payMethod === 'cash' ? t('pos.cash_paid_label').toUpperCase() : payMethod === 'card' ? 'CARD DETAILS' : payMethod === 'credit' ? t('lbl.credit').toUpperCase() : 'SPLIT PAYMENT'} />
+            <Step n="3" label={payMethod === 'cash' ? t('pos.cash_paid_label').toUpperCase() : payMethod === 'card' ? cardLabel.toUpperCase() : payMethod === 'credit' ? t('lbl.credit').toUpperCase() : 'SPLIT PAYMENT'} />
 
             {/* Customer + Cash paid */}
             {payMethod === 'cash' ? (
