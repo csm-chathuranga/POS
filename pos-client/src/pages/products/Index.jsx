@@ -122,7 +122,7 @@ export default function ProductsIndex() {
     }
   }, [isOnline]);
 
-  const { data, isLoading } = useGetProductsQuery(
+  const { data, isLoading, isFetching } = useGetProductsQuery(
     viewAll
       ? { page: 1, limit: 9999, active: '1' }
       : {
@@ -218,7 +218,7 @@ export default function ProductsIndex() {
     const timer = setTimeout(() => {
       setApplied(a => ({ ...a, search }));
       setPage(1);
-    }, 400);
+    }, 600);
     return () => clearTimeout(timer);
   }, [search]);
 
@@ -351,7 +351,7 @@ export default function ProductsIndex() {
 
       {/* Mobile cards */}
       <div className="md:hidden space-y-2">
-        {isLoading && (
+        {(isLoading || isFetching) && (
           <div className="flex flex-col items-center justify-center py-16 bg-white rounded-xl border border-slate-100 gap-3">
             <svg className="w-8 h-8 animate-spin text-blue-500" fill="none" viewBox="0 0 24 24">
               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
@@ -360,7 +360,7 @@ export default function ProductsIndex() {
             <span className="text-sm text-slate-400">{t('lbl.loading')}</span>
           </div>
         )}
-        {!isLoading && rows.length === 0 && (
+        {!isLoading && !isFetching && rows.length === 0 && (
           <div className="p-8 text-center text-slate-400 text-sm bg-white rounded-xl border border-slate-100">{isOnline ? t('prod.no_products') : 'No cached products'}</div>
         )}
         {rows.map(p => {
@@ -459,7 +459,7 @@ export default function ProductsIndex() {
 
       {/* Desktop table */}
       <div className="hidden md:block bg-white rounded-b-xl shadow-sm border border-slate-300 overflow-hidden">
-        {isLoading ? (
+        {(isLoading || isFetching) ? (
           <div className="flex flex-col items-center justify-center py-20 gap-3">
             <svg className="w-8 h-8 animate-spin text-blue-500" fill="none" viewBox="0 0 24 24">
               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
