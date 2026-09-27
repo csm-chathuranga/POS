@@ -13,6 +13,12 @@ import {
   useGetReportStockMovementsQuery,
 } from '../../features/reports/reportsApi';
 
+const isCoop = window.location.hostname.includes('coop');
+const methodLabel = (method, locale) => {
+  if (method === 'card' && isCoop) return locale === 'si' ? 'මුද්දර' : 'Stamp';
+  return method;
+};
+
 const fmt     = n => 'Rs. ' + Number(n || 0).toLocaleString('en-LK', { minimumFractionDigits: 2 });
 const fmtQty  = n => Number(n || 0).toLocaleString('en-LK', { maximumFractionDigits: 2 });
 const fmtDate = s => s ? new Date(s + (s.length === 10 ? 'T00:00:00' : '')).toLocaleDateString('en-LK', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
@@ -69,7 +75,7 @@ function Th({ children, right }) {
 
 // ─── Tab: Today's Sales ────────────────────────────────────────────────────────
 function SalesToday() {
-  const { t } = useLocale();
+  const { t, locale } = useLocale();
   const [date, setDate] = useState(todayStr());
   const { data, isLoading } = useGetReportDayEndQuery(date);
   const { summary = {}, byPayment = [], sales = [] } = data || {};
@@ -108,7 +114,7 @@ function SalesToday() {
               <tbody className="divide-y divide-slate-50">
                 {byPayment.map(r => (
                   <tr key={r.method} className="hover:bg-slate-50">
-                    <td className="px-4 py-2.5 capitalize font-medium text-slate-700">{r.method}</td>
+                    <td className="px-4 py-2.5 capitalize font-medium text-slate-700">{methodLabel(r.method, locale)}</td>
                     <td className="px-4 py-2.5 text-right text-slate-500">{r.count}</td>
                     <td className="px-4 py-2.5 text-right font-semibold text-slate-800">{fmt(r.total)}</td>
                   </tr>
@@ -145,7 +151,7 @@ function SalesToday() {
 
 // ─── Tab: Day End ──────────────────────────────────────────────────────────────
 function DayEnd() {
-  const { t } = useLocale();
+  const { t, locale } = useLocale();
   const [date, setDate] = useState(todayStr());
   const { data, isLoading } = useGetReportDayEndQuery(date);
   const { summary = {}, byPayment = [], sales = [] } = data || {};
@@ -171,7 +177,7 @@ function DayEnd() {
               <tbody className="divide-y divide-slate-50">
                 {byPayment.map(r => (
                   <tr key={r.method} className="hover:bg-slate-50">
-                    <td className="px-4 py-2.5 capitalize font-medium">{r.method}</td>
+                    <td className="px-4 py-2.5 capitalize font-medium">{methodLabel(r.method, locale)}</td>
                     <td className="px-4 py-2.5 text-right">{r.count}</td>
                     <td className="px-4 py-2.5 text-right font-semibold">{fmt(r.total)}</td>
                   </tr>
@@ -262,7 +268,7 @@ function Monthly() {
 
 // ─── Tab: Revenue ──────────────────────────────────────────────────────────────
 function Revenue() {
-  const { t } = useLocale();
+  const { t, locale } = useLocale();
   const [from, setFrom] = useState(monthStart());
   const [to, setTo]     = useState(todayStr());
   const { data, isLoading } = useGetReportRevenueQuery({ from, to });
@@ -293,7 +299,7 @@ function Revenue() {
                 <tbody className="divide-y divide-slate-50">
                   {byPayment.map(r => (
                     <tr key={r.method} className="hover:bg-slate-50">
-                      <td className="px-4 py-2.5 capitalize font-medium">{r.method}</td>
+                      <td className="px-4 py-2.5 capitalize font-medium">{methodLabel(r.method, locale)}</td>
                       <td className="px-4 py-2.5 text-right font-semibold">{fmt(r.total)}</td>
                     </tr>
                   ))}
