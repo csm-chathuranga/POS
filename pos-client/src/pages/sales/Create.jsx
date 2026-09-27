@@ -194,7 +194,7 @@ function CartItemZoomModal({ item, onChange, onRemove, onClose }) {
 }
 
 // ─── Cart Row ─────────────────────────────────────────────────────────────────
-function CartRow({ item, onChange, onRemove, onZoom, onEnter, onArrow, highlight, isSinhala }) {
+function CartRow({ item, onChange, onRemove, onZoom, onEnter, onArrow, highlight, isSinhala, showCostPrice }) {
   const qtyRef      = useRef(null);
   const sellRef     = useRef(null);
   const unitRef     = useRef(null);
@@ -220,7 +220,14 @@ function CartRow({ item, onChange, onRemove, onZoom, onEnter, onArrow, highlight
     <div className={`grid items-center gap-2 px-4 py-2.5 text-sm transition-all duration-700 border-b border-slate-200 ${highlight ? 'bg-green-100 ring-2 ring-green-400' : overStock ? 'bg-orange-50' : 'bg-slate-100 hover:bg-slate-200'}`}
       style={{ gridTemplateColumns: 'minmax(0,1fr) 60px 88px 88px 72px 92px 24px' }}>
       <button type="button" onClick={onZoom} className="min-w-0 text-left">
-        <p className="font-semibold text-slate-800 truncate leading-tight">{isSinhala && item.name_si ? item.name_si : item.name}</p>
+        <p className="font-semibold text-slate-800 truncate leading-tight flex items-center gap-1.5">
+          <span className="truncate">{isSinhala && item.name_si ? item.name_si : item.name}</span>
+          {showCostPrice && item.cost_price > 0 && (
+            <span className="shrink-0 px-1.5 py-0.5 rounded text-xs font-bold bg-yellow-300 text-yellow-900">
+              {Number(item.cost_price).toFixed(2)}
+            </span>
+          )}
+        </p>
         {overStock && <p className="text-xs text-orange-500 font-semibold leading-tight">⚠ Exceeds stock ({stockQty})</p>}
       </button>
       <input ref={qtyRef} type="number" min="0.001" step="0.001" value={qtyStr}
@@ -527,6 +534,7 @@ export default function SalesCreate() {
   const user     = useSelector(selectCurrentUser);
   const role     = useSelector(selectRole);
   const token    = useSelector(selectToken);
+  const showCostPrice = window.location.hostname.includes('newanura');
 
   const { t } = useLocale();
   const { products, ready, deductStock, invalidate } = useProductCache();
@@ -895,6 +903,7 @@ export default function SalesCreate() {
         wholesale_price: ws, discount: 0, total: 0,
         unit: product.unit || 'pcs', stock_qty: product.stock_qty || 0,
         image: product.image || null,
+        cost_price: parseFloat(product.cost_price || product.buying_price) || 0,
       })];
     });
     setQuery(''); setShowDrop(false); setActive(-1);
@@ -1345,6 +1354,7 @@ export default function SalesCreate() {
                     <CartRow key={itemKey(item)} item={item}
                       highlight={!!highlights[itemKey(item)]}
                       isSinhala={isSinhala}
+                      showCostPrice={showCostPrice}
                       onChange={changes => setCart(prev => prev.map((it, j) => j === i ? recalc({ ...it, ...changes }) : it))}
                       onRemove={() => setCart(prev => prev.filter((_, j) => j !== i))}
                       onZoom={() => setZoomed({ item, idx: i })}
