@@ -16,8 +16,11 @@ import { getLocalProducts, getLocalCategories } from '../../services/cacheSync';
 const SAMPLE_CSV_HEADERS = 'name,barcode,selling_price,cost_price,wholesale_price,stock_qty,alert_qty,unit';
 const SAMPLE_CSV_ROW     = 'Sample Product,123456,100.00,70.00,80.00,50,5,pcs';
 
-function printBarcode(product, qty = 1) {
+function printBarcode(product, qty = 1, shopName = '') {
   const code = product.barcode || String(product.id).padStart(6, '0');
+  const isEan13 = /^\d{13}$/.test(code);
+  const isEan8  = /^\d{8}$/.test(code);
+  const fmt = isEan13 ? 'EAN13' : isEan8 ? 'EAN8' : 'CODE128';
   const html = `<!DOCTYPE html><html><head>
     <title>Barcode</title>
     <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
@@ -27,16 +30,18 @@ function printBarcode(product, qty = 1) {
       body{
         width:30mm;height:20mm;overflow:hidden;
         font-family:Arial,sans-serif;text-align:center;
-        padding:1mm;
+        padding:1mm;padding-top:2mm;
         display:flex;flex-direction:column;align-items:center;justify-content:center;
       }
-      svg{display:block;width:17mm;height:auto}
-      p{font-size:4pt;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;width:17mm}
+      svg{display:block;width:22mm;height:auto}
+      p{font-size:4pt;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;width:26mm}
+      .shop{font-weight:bold;font-size:6pt;text-transform:uppercase;letter-spacing:0.03em}
       .name{font-weight:bold;font-size:7pt}
       .price{font-weight:bold;font-size:8pt;color:#000}
       .orig{font-size:6pt;text-decoration:line-through;text-decoration-thickness:0.5px;font-weight:normal;color:#000}
     </style>
   </head><body>
+    ${shopName ? `<p class="shop">${shopName.replace(/</g,'&lt;')}</p>` : ''}
     <svg id="bc"></svg>
     <p class="name">${product.name.replace(/</g,'&lt;')}</p>
     ${product.our_price
@@ -45,7 +50,7 @@ function printBarcode(product, qty = 1) {
       : `<p class="price">Rs. ${Number(product.selling_price||0).toFixed(2)}</p>`
     }
     <script>
-      JsBarcode("#bc","${code}",{format:"CODE128",width:0.8,height:17,displayValue:false,margin:0});
+      JsBarcode("#bc","${code}",{format:"${fmt}",width:1.0,height:16,displayValue:false,margin:0});
     </script>
   </body></html>`;
 
@@ -86,6 +91,11 @@ export default function ProductsIndex() {
   const token = useSelector(selectToken);
   const searchRef = useRef(null);
   const [exporting, setExporting] = useState(false);
+  const [shopName, setShopName] = useState('');
+
+  useEffect(() => {
+    fetch(`${getApiUrl()}/settings/public`).then(r => r.json()).then(d => setShopName(d.shop_name || '')).catch(() => {});
+  }, []);
 
   async function handleExport() {
     setExporting(true);
@@ -192,7 +202,7 @@ export default function ProductsIndex() {
 
     setPrintingIds(prev => new Set(prev).add(p.id));
     try {
-      await printBarcode(p, qty);
+      await printBarcode(p, qty, shopName);
     } finally {
       setPrintingIds(prev => { const s = new Set(prev); s.delete(p.id); return s; });
     }
@@ -422,22 +432,24 @@ export default function ProductsIndex() {
               </div>
               <div className="flex gap-2 pt-2 border-t border-slate-200">
                 <button onClick={() => openPrintModal(p)} disabled={printingIds.has(p.id)}
-                  className="flex-1 py-1.5 text-xs font-semibold text-slate-600 bg-slate-50 hover:bg-slate-100 rounded-lg transition-colors disabled:opacity-40 flex items-center justify-center gap-1">
+                  className="flex-1 py-1.5 text-xs font-semibold bg-slate-700 text-white hover:bg-slate-800 rounded-lg transition-colors disabled:opacity-40 flex items-center justify-center gap-1">
                   {printingIds.has(p.id)
-                    ? <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
-                    : <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 14h12v8H6v-8z"/></svg>
+                    ? <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+                    : <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 14h12v8H6v-8z"/></svg>
                   }
                   {t('btn.print')}
                 </button>
                 {isOnline && (
                   <Link to={`/products/${p.id}/edit`}
-                    className="flex-1 py-1.5 text-xs font-semibold text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors text-center">
+                    className="flex-1 py-1.5 text-xs font-semibold bg-amber-500 text-white hover:bg-amber-600 rounded-lg transition-colors flex items-center justify-center gap-1">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2v-5m-1.414-9.414a2 2 0 1 1 2.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
                     {t('btn.edit')}
                   </Link>
                 )}
                 {isOnline && (
                   <button onClick={() => handleDelete(p.id, p.name)}
-                    className="flex-1 py-1.5 text-xs font-semibold text-red-500 bg-red-50 hover:bg-red-100 rounded-lg transition-colors">
+                    className="flex-1 py-1.5 text-xs font-semibold bg-red-600 text-white hover:bg-red-700 rounded-lg transition-colors flex items-center justify-center gap-1">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0 1 16.138 21H7.862a2 2 0 0 1-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v3M4 7h16"/></svg>
                     {t('btn.delete')}
                   </button>
                 )}
@@ -528,22 +540,24 @@ export default function ProductsIndex() {
                       <td className="px-4 py-3 text-right">
                         <div className="flex items-center justify-end gap-1.5">
                           <button onClick={() => openPrintModal(p)} disabled={printingIds.has(p.id)}
-                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-slate-200 bg-white text-xs font-medium text-slate-600 hover:bg-slate-50 transition-colors disabled:opacity-40">
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-slate-700 text-white text-xs font-medium hover:bg-slate-800 transition-colors disabled:opacity-40">
                             {printingIds.has(p.id)
-                              ? <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/></svg>
-                              : <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 14h12v8H6v-8z"/></svg>
+                              ? <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/></svg>
+                              : <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 14h12v8H6v-8z"/></svg>
                             }
                             {t('btn.print')}
                           </button>
                           {isOnline && (
                             <Link to={`/products/${p.id}/edit`}
-                              className="inline-flex items-center px-2.5 py-1 rounded-md border border-blue-200 bg-blue-50 text-xs font-medium text-blue-600 hover:bg-blue-100 transition-colors">
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-amber-500 text-white text-xs font-medium hover:bg-amber-600 transition-colors">
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2v-5m-1.414-9.414a2 2 0 1 1 2.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
                               {t('btn.edit')}
                             </Link>
                           )}
                           {isOnline && (
                             <button onClick={() => handleDelete(p.id, p.name)}
-                              className="inline-flex items-center px-2.5 py-1 rounded-md border border-red-200 bg-red-50 text-xs font-medium text-red-500 hover:bg-red-100 transition-colors">
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-red-600 text-white text-xs font-medium hover:bg-red-700 transition-colors">
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0 1 16.138 21H7.862a2 2 0 0 1-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v3M4 7h16"/></svg>
                               {t('btn.delete')}
                             </button>
                           )}

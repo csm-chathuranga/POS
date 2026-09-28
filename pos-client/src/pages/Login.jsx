@@ -4,6 +4,7 @@ import { useDispatch } from 'react-redux';
 import { useLoginMutation } from '../features/auth/authApi';
 import { setCredentials } from '../features/auth/authSlice';
 import { getApiUrl } from '../config/runtimeConfig';
+import { useTheme } from '../contexts/ThemeContext';
 
 const API = getApiUrl();
 const OFFLINE_KEY = 'pos_offline_creds';
@@ -60,6 +61,9 @@ export default function Login() {
     const cached = loadOfflineCreds();
     return cached?.appInfo || { shop_name: 'LMUC POS', shop_logo: '' };
   });
+
+  const { theme } = useTheme();
+  const isDark = theme === 'dark';
 
   const passwordRef = useRef();
   const [login, { isLoading }] = useLoginMutation();
@@ -136,32 +140,49 @@ export default function Login() {
 
   return (
     <div>
-      {/* Logo + brand */}
-      <div className="flex flex-col items-center mb-5">
+      {/* Shop logo + name */}
+      <div className="flex items-center gap-4 mb-6">
         {appInfo.shop_logo ? (
-          <img
-            src={appInfo.shop_logo}
-            alt="logo"
-            className="w-20 h-20 rounded-full object-cover shadow-md border-4 border-white mb-3"
-          />
+          <img src={appInfo.shop_logo} alt="logo"
+            className="w-14 h-14 rounded-2xl object-cover shadow-lg border-2 border-white" />
         ) : (
-          <div className="w-20 h-20 rounded-full bg-white shadow-md border-4 border-white mb-3 flex items-center justify-center overflow-hidden">
-            <svg viewBox="0 0 80 80" className="w-full h-full" fill="none">
-              <circle cx="40" cy="40" r="40" fill="#1e4d8c" />
-              <circle cx="40" cy="28" r="12" fill="#fff" opacity=".9" />
-              <ellipse cx="40" cy="62" rx="20" ry="14" fill="#fff" opacity=".9" />
+          <div className="w-14 h-14 rounded-2xl bg-blue-700 flex items-center justify-center shadow-lg shrink-0">
+            <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 7H6a2 2 0 00-2 2v9a2 2 0 002 2h12a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1-4H9m0 0a2 2 0 000 4h6a2 2 0 000-4M9 3h6"/>
             </svg>
           </div>
         )}
-        <h1 className="text-xl font-bold text-slate-800 tracking-tight">
-          {appInfo.shop_name || 'LMUC POS'}
-        </h1>
+        <div>
+          <h1 className="text-xl font-extrabold leading-tight" style={{ color: isDark ? '#f1f5f9' : '#1e293b' }}>{appInfo.shop_name || 'LMUC POS'}</h1>
+          <p className="text-xs text-slate-500 mt-0.5">Point of Sale System</p>
+        </div>
       </div>
 
       {/* Card */}
-      <div className="bg-white rounded-2xl shadow-lg p-8">
+      <div className="rounded-2xl shadow-sm border p-7 transition-colors duration-300"
+        style={isDark ? { backgroundColor: '#1f2937', borderColor: '#374151' } : { backgroundColor: '#fff', borderColor: '#e2e8f0' }}>
+
+        {/* Header row */}
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h2 className="text-lg font-bold" style={{ color: isDark ? '#f1f5f9' : '#1e293b' }}>Welcome back</h2>
+            <p className="text-xs text-slate-400 mt-0.5">Sign in to your account</p>
+          </div>
+          {isOffline ? (
+            <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-50 border border-amber-200 text-amber-700 text-xs font-semibold">
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+              Offline
+            </span>
+          ) : (
+            <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-green-50 border border-green-200 text-green-700 text-xs font-semibold">
+              <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
+              Online
+            </span>
+          )}
+        </div>
+
         {serverError && (
-          <div className="mb-4 px-3 py-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700">
+          <div className="mb-5 px-3 py-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700">
             <div className="flex items-start gap-2.5 mb-2">
               <svg className="w-4 h-4 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
               <div>
@@ -177,20 +198,7 @@ export default function Login() {
             </div>
           </div>
         )}
-        <div className="flex items-center justify-between mb-5">
-          <h2 className="text-lg font-bold text-slate-800">Sign In</h2>
-          {isOffline ? (
-            <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-50 border border-amber-200 text-amber-700 text-xs font-semibold">
-              <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
-              Offline
-            </span>
-          ) : (
-            <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-green-50 border border-green-200 text-green-700 text-xs font-semibold">
-              <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
-              Online
-            </span>
-          )}
-        </div>
+
         {isOffline && loadOfflineCreds() && (
           <div className="mb-4 px-3 py-2.5 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-700">
             You're offline. Sign in with your saved credentials.
@@ -204,45 +212,55 @@ export default function Login() {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Email / Username</label>
+            <label className="block text-xs font-semibold mb-1.5 uppercase tracking-wide" style={{ color: isDark ? '#94a3b8' : '#475569' }}>Email / Username</label>
             <input
               type="text" required autoFocus autoComplete="username"
               value={form.email}
               onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
               onBlur={e => { if (e.target.value.trim()) passwordRef.current?.focus(); }}
-              className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+              className="w-full rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-blue-500 transition"
+              style={isDark ? { backgroundColor: '#111827', border: '1px solid #374151', color: '#f1f5f9' } : { backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', color: '#0f172a' }}
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Password</label>
+            <label className="block text-xs font-semibold mb-1.5 uppercase tracking-wide" style={{ color: isDark ? '#94a3b8' : '#475569' }}>Password</label>
             <input
               ref={passwordRef}
               type="password" required
               value={form.password}
               onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
-              className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+              className="w-full rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-blue-500 transition"
+              style={isDark ? { backgroundColor: '#111827', border: '1px solid #374151', color: '#f1f5f9' } : { backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', color: '#0f172a' }}
             />
           </div>
 
           {error && (
-            <p className="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">{error}</p>
+            <div className="flex items-center gap-2 text-sm text-red-600 bg-red-50 border border-red-100 rounded-xl px-3 py-2.5">
+              <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12"/></svg>
+              {error}
+            </div>
           )}
 
           <button
             type="submit" disabled={isLoading}
-            className="w-full py-2.5 rounded-lg bg-green-600 text-white font-semibold text-sm disabled:opacity-60 hover:bg-green-700 active:bg-green-800 transition-colors shadow-sm flex items-center justify-center gap-2"
+            className="w-full py-3 rounded-xl bg-blue-600 text-white font-bold text-sm disabled:opacity-60 hover:bg-blue-700 active:bg-blue-800 transition-colors shadow-md flex items-center justify-center gap-2 mt-2"
           >
-            {isLoading && (
+            {isLoading ? (
               <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+              </svg>
+            ) : (
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"/>
               </svg>
             )}
             {isLoading ? 'Signing in…' : isOffline ? 'Sign In Offline' : 'Sign In'}
           </button>
         </form>
-
       </div>
+
+      <p className="text-center text-xs text-slate-400 mt-4">LMUC POS · All rights reserved</p>
     </div>
   );
 }

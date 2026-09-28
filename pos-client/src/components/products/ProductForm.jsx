@@ -99,6 +99,7 @@ export default function ProductForm({ initial = {}, onSubmit, isSaving }) {
   const [pendingFile,  setPendingFile]  = useState(null);
   const [pendingPreview, setPendingPreview] = useState('');
   const [variants,     setVariants]     = useState(initial.variants || []);
+  const [showVariants, setShowVariants] = useState((initial.variants || []).length > 0);
   const [submitError,  setSubmitError]  = useState('');
 
   function handleImageFile(e) {
@@ -451,56 +452,69 @@ export default function ProductForm({ initial = {}, onSubmit, isSaving }) {
         </div>
       </div>
 
-      {/* ── Sizes / Variants ─────────────────────────────────────────────── */}
-      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 mb-5">
-        <div className="flex items-start justify-between mb-4">
-          <div>
-            <h2 className="text-sm font-bold text-slate-700">{t('prod.sizes')}</h2>
-            <p className="text-xs text-slate-400 mt-0.5">{t('prod.sizes_hint')}</p>
-          </div>
-          <button type="button" onClick={addVariant}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-lg border border-blue-400 text-blue-600 text-sm font-semibold hover:bg-blue-50 transition-colors">
-            + {t('prod.add_size')}
-          </button>
-        </div>
+      {/* ── Sizes / Variants (Advanced) ───────────────────────────────────── */}
+      <div className="mb-5">
+        <button type="button" onClick={() => setShowVariants(v => !v)}
+          className="flex items-center gap-2 px-4 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 text-sm font-semibold transition-colors w-full">
+          <svg className={`w-4 h-4 transition-transform ${showVariants ? 'rotate-90' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7"/></svg>
+          Advanced — {t('prod.sizes')}
+          {variants.length > 0 && <span className="ml-auto text-xs bg-blue-600 text-white px-2 py-0.5 rounded-full">{variants.length}</span>}
+        </button>
 
-        {variants.length === 0 ? (
-          <div className="rounded-xl border-2 border-dashed border-slate-200 py-8 text-center text-sm text-slate-400">
-            {t('prod.no_sizes')}
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {variants.map((v, i) => (
-              <div key={i} className="grid grid-cols-2 md:grid-cols-5 gap-3 p-3 rounded-xl bg-slate-50 border border-slate-100">
-                {[
-                  [t('prod.size_label') + ' *', 'label',             'text',   'e.g. 500ml'],
-                  [t('prod.barcode'),            'barcode',           'text',   ''],
-                  [t('prod.sell_price'),         'selling_price',     'number', '0.00'],
-                  [t('prod.wholesale_price'),    'wholesale_price',   'number', '0.00'],
-                  [t('prod.conv_factor'),        'conversion_factor', 'number', '1'],
-                ].map(([label, key, type, ph]) => (
-                  <div key={key}>
-                    <label className="text-xs font-semibold text-slate-500 mb-1 block">{label}</label>
-                    <input type={type} value={v[key]} placeholder={ph}
-                      onChange={e => setVariant(i, key, e.target.value)}
-                      onFocus={e => type === 'number' && e.target.select()}
-                      className="w-full rounded-lg border border-slate-200 px-2 py-2 text-sm outline-none focus:ring-1 focus:ring-blue-400 bg-white" />
+        {showVariants && (
+          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 mt-2">
+            <div className="flex items-start justify-between mb-4">
+              <p className="text-xs text-slate-400">{t('prod.sizes_hint')}</p>
+              <button type="button" onClick={addVariant}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 transition-colors">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4"/></svg>
+                {t('prod.add_size')}
+              </button>
+            </div>
+
+            {variants.length === 0 ? (
+              <div className="rounded-xl border-2 border-dashed border-slate-200 py-8 text-center text-sm text-slate-400">
+                {t('prod.no_sizes')}
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {variants.map((v, i) => (
+                  <div key={i} className="grid grid-cols-2 md:grid-cols-5 gap-3 p-3 rounded-xl bg-slate-50 border border-slate-100">
+                    {[
+                      [t('prod.size_label') + ' *', 'label',             'text',   'e.g. 500ml'],
+                      [t('prod.barcode'),            'barcode',           'text',   ''],
+                      [t('prod.sell_price'),         'selling_price',     'number', '0.00'],
+                      [t('prod.wholesale_price'),    'wholesale_price',   'number', '0.00'],
+                      [t('prod.conv_factor'),        'conversion_factor', 'number', '1'],
+                    ].map(([label, key, type, ph]) => (
+                      <div key={key}>
+                        <label className="text-xs font-semibold text-slate-500 mb-1 block">{label}</label>
+                        <input type={type} value={v[key]} placeholder={ph}
+                          onChange={e => setVariant(i, key, e.target.value)}
+                          onFocus={e => type === 'number' && e.target.select()}
+                          className="w-full rounded-lg border border-slate-200 px-2 py-2 text-sm outline-none focus:ring-1 focus:ring-blue-400 bg-white" />
+                      </div>
+                    ))}
+                    <div className="md:col-span-5 flex justify-end">
+                      <button type="button" onClick={() => removeVariant(i)}
+                        className="text-xs text-red-500 hover:text-red-700 font-medium">{t('prod.remove')}</button>
+                    </div>
                   </div>
                 ))}
-                <div className="md:col-span-5 flex justify-end">
-                  <button type="button" onClick={() => removeVariant(i)}
-                    className="text-xs text-red-500 hover:text-red-700 font-medium">{t('prod.remove')}</button>
-                </div>
               </div>
-            ))}
+            )}
           </div>
         )}
       </div>
 
       {/* ── Save / Cancel ─────────────────────────────────────────────────── */}
-      <div className="grid grid-cols-2 gap-4">
+      <div className="flex items-center gap-3">
+        <button type="button" onClick={() => history.back()}
+          className="flex-1 py-3 rounded-xl bg-slate-200 text-slate-700 text-base font-semibold hover:bg-slate-300 transition-colors">
+          {t('btn.cancel')}
+        </button>
         <button type="submit" disabled={uploading || saving || isSaving}
-          className="py-3 rounded-xl bg-blue-600 text-white text-sm font-bold hover:bg-blue-700 disabled:opacity-70 transition-colors shadow-md shadow-blue-600/20 flex items-center justify-center gap-2">
+          className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-blue-600 text-white text-base font-semibold hover:bg-blue-700 disabled:opacity-70 transition-colors shadow-sm">
           {(uploading || saving || isSaving) && (
             <svg className="w-4 h-4 animate-spin shrink-0" fill="none" viewBox="0 0 24 24">
               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
@@ -508,10 +522,6 @@ export default function ProductForm({ initial = {}, onSubmit, isSaving }) {
             </svg>
           )}
           {uploading ? 'Uploading…' : (saving || isSaving) ? 'Saving…' : t('btn.save')}
-        </button>
-        <button type="button" onClick={() => history.back()}
-          className="py-3 rounded-xl text-slate-500 text-sm font-medium hover:bg-slate-100 transition-colors">
-          {t('btn.cancel')}
         </button>
       </div>
     </form>

@@ -37,21 +37,22 @@ function timeStr(s) {
 function isoDate(d) { return d.toISOString().slice(0, 10); }
 
 // ─── Stat Card ────────────────────────────────────────────────────────────────
-function StatCard({ label, value, sub, icon, iconBg, valueColor = 'text-blue-600', isDark }) {
+function StatCard({ label, value, sub, icon, gradient, valueColor = 'text-white', trend, isDark }) {
   return (
-    <div className="h-full bg-white rounded-2xl p-5 border shadow-sm flex items-start gap-4"
-      style={isDark ? { backgroundColor: '#141414', borderColor: '#2a2a2a', boxShadow: '0 4px 24px rgba(0,0,0,0.5)' } : {}}>
-      <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ${iconBg}`}>
+    <div className={`h-full rounded-2xl p-3 sm:p-4 flex items-start gap-3 relative overflow-hidden shadow-lg ${gradient}`}>
+      <div className="absolute -bottom-3 -right-3 w-16 h-16 rounded-full bg-white/10" />
+      <div className="absolute -top-4 -left-4 w-14 h-14 rounded-full bg-white/10" />
+      <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-white/20 flex items-center justify-center shrink-0 z-10">
         {icon}
       </div>
-      <div className="min-w-0">
-        <p className="text-xs text-slate-500 dark:text-slate-400 font-semibold">{label}</p>
-        <p className={`text-3xl font-extrabold mt-0.5 leading-tight truncate ${valueColor}`}>
+      <div className="min-w-0 z-10 flex-1">
+        <p className="text-[10px] sm:text-xs text-white/70 font-semibold uppercase tracking-wide leading-tight">{label}</p>
+        <p className={`text-xl sm:text-2xl font-extrabold mt-0.5 leading-tight truncate ${valueColor}`}>
           {typeof value === 'string' && value.startsWith('Rs. ')
-            ? <><span className="text-sm font-semibold">Rs. </span>{value.slice(4)}</>
+            ? <><span className="text-xs sm:text-sm font-semibold">Rs. </span>{value.slice(4)}</>
             : value}
         </p>
-        {sub && <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{sub}</p>}
+        <p className="text-[10px] text-white/60 mt-0.5 truncate">{sub}</p>
       </div>
     </div>
   );
@@ -94,20 +95,22 @@ function HourlyChart({ hourlySales, dates, isDark }) {
   const gridStroke = isDark ? '#2a2a2a' : '#f1f5f9';
 
   return (
-    <div className="h-full bg-white rounded-2xl border shadow-sm p-5 flex flex-col"
-      style={isDark ? { backgroundColor: '#141414', borderColor: '#2a2a2a', boxShadow: '0 4px 24px rgba(0,0,0,0.5)' } : {}}>
-      <div className="flex items-start justify-between mb-3">
+    <div className="h-full bg-white rounded-2xl shadow-sm border border-slate-100 flex flex-col overflow-hidden">
+
+      {/* Thin accent top bar */}
+      <div className="h-1 bg-gradient-to-r from-violet-500 via-blue-500 to-emerald-500 rounded-t-2xl" />
+
+      {/* Header */}
+      <div className="flex items-center justify-between px-5 pt-3 pb-2">
         <div>
-          <p className="font-bold text-slate-800 dark:text-white text-sm">Sales — Last 3 Days</p>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Hourly breakdown (6am – 10pm)</p>
+          <p className="font-bold text-slate-800 text-sm">Sales — Last 3 Days</p>
+          <p className="text-[11px] text-slate-400 mt-0.5">Hourly breakdown (6am – 10pm)</p>
         </div>
-        <div className="flex gap-1">
+        <div className="flex gap-1 bg-slate-100 rounded-xl p-1">
           {dates.map((d, i) => (
             <button key={d} onClick={() => setActiveDay(i)}
-              className={`px-2.5 py-1 text-xs font-semibold rounded-lg transition-colors ${
-                i === activeDay
-                  ? 'bg-blue-600 text-white'
-                  : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700'
+              className={`px-3 py-1 text-xs font-semibold rounded-lg transition-all ${
+                i === activeDay ? 'bg-blue-600 text-white shadow' : 'text-slate-500 hover:text-slate-800'
               }`}>
               {dayLabel(d)}
             </button>
@@ -115,73 +118,72 @@ function HourlyChart({ hourlySales, dates, isDark }) {
         </div>
       </div>
 
-      <div className="flex gap-6 mb-3">
+      {/* Stat numbers row */}
+      <div className="flex gap-1 px-4 pb-2">
         {dates.map((d, i) => {
           const dData  = byDate[d] || {};
           const dTotal = Object.values(dData).reduce((a, b) => a + b, 0);
+          const bills  = (hourlySales || []).filter(r => r.date === d).reduce((a, r) => a + parseInt(r.bills), 0);
+          const active = i === activeDay;
           return (
-            <div key={d} className="text-xs">
-              <span className="text-slate-500 dark:text-slate-400">{dayLabel(d)} </span>
-              <span className={`font-bold ${i === activeDay ? 'text-blue-600' : 'text-slate-500 dark:text-slate-400'}`}>
+            <button key={d} onClick={() => setActiveDay(i)}
+              className={`flex-1 text-left px-3 py-2 rounded-xl border transition-all ${
+                active ? 'border-blue-200 bg-blue-50' : 'border-transparent hover:bg-slate-50'
+              }`}>
+              <p className={`text-base font-extrabold leading-none ${active ? 'text-blue-600' : 'text-slate-400'}`}>
                 {fmtShort(dTotal)}
-              </span>
-            </div>
+              </p>
+              <p className="text-[10px] text-slate-400 mt-0.5">{dayLabel(d)} · {bills} bills</p>
+            </button>
           );
         })}
       </div>
 
-      <div className="flex-1">
-        <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ height: 100 }}>
+      {/* Chart */}
+      <div className="flex-1 px-4 pb-1">
+        <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ height: 85 }}>
           <defs>
-            <linearGradient id="chartGrad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%"   stopColor="#3b82f6" stopOpacity="0.25" />
+            <linearGradient id="cgBlue" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%"   stopColor="#3b82f6" stopOpacity="0.2" />
               <stop offset="100%" stopColor="#3b82f6" stopOpacity="0" />
             </linearGradient>
           </defs>
-          {[0.25, 0.5, 0.75, 1].map(f => (
+          {[0.33, 0.66, 1].map(f => (
             <line key={f}
               x1={0} y1={PAD_Y + (1 - f) * (H - PAD_Y * 2)}
               x2={W} y2={PAD_Y + (1 - f) * (H - PAD_Y * 2)}
-              stroke={gridStroke} strokeWidth="1" />
+              stroke="#f1f5f9" strokeWidth="1" />
           ))}
-          <path d={areaPath} fill="url(#chartGrad)" />
-          <polyline points={pathPts} fill="none" stroke="#3b82f6" strokeWidth="2" strokeLinejoin="round" />
+          <path d={areaPath} fill="url(#cgBlue)" />
+          <polyline points={pathPts} fill="none" stroke="#3b82f6" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" />
           {visible.filter(p => p.v > 0).map(p => (
-            <circle key={p.h} cx={xPos(p.h)} cy={yPos(p.v)} r="3" fill="#3b82f6" />
+            <circle key={p.h} cx={xPos(p.h)} cy={yPos(p.v)} r="3.5" fill="#3b82f6" stroke="white" strokeWidth="2" />
           ))}
         </svg>
-        <div className="flex justify-between mt-1 px-0">
-          {HOURS.map(h => (
-            <span key={h} className="text-[10px] text-slate-500 dark:text-slate-400">{HOUR_LABELS[h]}</span>
-          ))}
-        </div>
       </div>
 
-      <div className="flex items-center gap-4 mt-2 pt-2 border-t"
-        style={{ borderColor: isDark ? '#2a2a2a' : '#f1f5f9' }}>
-        <div className="text-xs">
-          <span className="text-slate-500 dark:text-slate-400">Total: </span>
-          <span className="font-bold text-blue-600">{fmtShort(totalDay)}</span>
-        </div>
-        <div className="text-xs">
-          <span className="text-slate-500 dark:text-slate-400">Bills: </span>
-          <span className="font-bold text-slate-700 dark:text-slate-200">{billsToday}</span>
-        </div>
+      {/* Hour labels */}
+      <div className="flex justify-between px-4 pb-3">
+        {HOURS.map(h => (
+          <span key={h} className="text-[10px] text-slate-400">{HOUR_LABELS[h]}</span>
+        ))}
       </div>
     </div>
   );
 }
 
 // ─── Quick Action Button ──────────────────────────────────────────────────────
-function QuickBtn({ label, icon, color, onClick }) {
+function QuickBtn({ label, icon, color, iconBg, onClick }) {
   return (
     <button onClick={onClick}
-      className={`group relative flex flex-col items-center justify-center gap-3 py-5 px-4 rounded-2xl text-white shadow-md hover:shadow-xl hover:-translate-y-1 active:translate-y-0 transition-all duration-200 overflow-hidden ${color}`}>
-      <div className="absolute -bottom-4 -right-4 w-24 h-24 rounded-full bg-black/15 group-hover:bg-black/20 transition-colors" />
-      <div className="w-16 h-16 rounded-2xl bg-black/20 group-hover:bg-black/25 flex items-center justify-center transition-colors z-10">
+      className={`group flex items-center gap-3 px-4 py-3 rounded-xl border text-left hover:-translate-y-0.5 active:scale-95 transition-all duration-150 shadow-sm hover:shadow-md ${color}`}>
+      <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${iconBg}`}>
         {icon}
       </div>
-      <span className="font-bold text-base tracking-tight leading-tight z-10">{label}</span>
+      <span className="font-semibold text-sm leading-tight">{label}</span>
+      <svg className="w-4 h-4 ml-auto opacity-40 group-hover:opacity-80 group-hover:translate-x-0.5 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7"/>
+      </svg>
     </button>
   );
 }
@@ -276,6 +278,22 @@ function Heatmap({ heatmap, isDark }) {
   );
 }
 
+const METHOD_BADGE = {
+  cash:   'bg-emerald-100 text-emerald-700',
+  card:   'bg-blue-100 text-blue-700',
+  credit: 'bg-red-100 text-red-600',
+  split:  'bg-purple-100 text-purple-700',
+  qr:     'bg-indigo-100 text-indigo-700',
+};
+const METHOD_TOTAL = {
+  cash:   'text-emerald-600',
+  card:   'text-blue-600',
+  credit: 'text-red-500',
+  split:  'text-purple-600',
+  qr:     'text-indigo-600',
+};
+const todayStr = new Date().toDateString();
+
 // ─── Recent Sales ─────────────────────────────────────────────────────────────
 function RecentSales({ sales, onView, isDark }) {
   const { t } = useLocale();
@@ -283,29 +301,44 @@ function RecentSales({ sales, onView, isDark }) {
     <div className="min-h-[220px] bg-white rounded-2xl border p-5"
       style={isDark ? { backgroundColor: '#141414', borderColor: '#2a2a2a', boxShadow: '0 4px 24px rgba(0,0,0,0.5)' } : {}}>
       <div className="flex items-center justify-between mb-4">
-        <p className="font-bold text-slate-800 dark:text-white text-sm">{t('dash.recent_sales')}</p>
-        <button onClick={onView} className="text-xs font-semibold text-blue-600 hover:text-blue-500">{t('dash.view_all')}</button>
+        <p className="font-bold text-slate-800 text-sm">{t('dash.recent_sales')}</p>
+        <button onClick={onView} className="text-xs font-semibold text-blue-600 hover:text-blue-500 flex items-center gap-1">
+          {t('dash.view_all')}
+          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7"/></svg>
+        </button>
       </div>
       {!sales?.length ? (
-        <p className="text-sm text-slate-500 dark:text-slate-400 text-center py-6">{t('dash.no_sales')}</p>
+        <p className="text-sm text-slate-500 text-center py-6">{t('dash.no_sales')}</p>
       ) : (
-        <div className="space-y-2">
-          {sales.map(s => (
-            <div key={s.id} className="flex items-center gap-3 py-2 border-b last:border-0"
-              style={{ borderColor: isDark ? '#2a2a2a' : '#f1f5f9' }}>
-              <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold text-xs shrink-0">
-                {s.user_name?.[0]?.toUpperCase()}
+        <div className="space-y-1.5">
+          {(sales.slice(0, 5)).map(s => {
+            const isToday = new Date(s.created_at).toDateString() === todayStr;
+            const method  = s.payment_method || s.method || 'cash';
+            const totalCls = METHOD_TOTAL[method] || 'text-green-600';
+            const badgeCls = METHOD_BADGE[method] || 'bg-slate-100 text-slate-600';
+            return (
+              <div key={s.id}
+                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl border transition-colors ${isToday ? 'bg-blue-50 border-blue-100' : 'bg-slate-50 border-transparent hover:border-slate-200'}`}>
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-xs shrink-0 ${isToday ? 'bg-blue-600' : 'bg-slate-400'}`}>
+                  {s.user_name?.[0]?.toUpperCase()}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-semibold text-blue-600 truncate">{s.invoice_no}</p>
+                    {isToday && <span className="text-[10px] font-bold bg-blue-600 text-white px-1.5 py-0.5 rounded-full shrink-0">TODAY</span>}
+                  </div>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <p className="text-xs text-slate-500">{s.user_name}</p>
+                    <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full capitalize ${badgeCls}`}>{method}</span>
+                  </div>
+                </div>
+                <div className="text-right shrink-0">
+                  <p className={`text-sm font-bold ${totalCls}`}>{fmtRs(s.total)}</p>
+                  <p className="text-xs text-slate-400">{timeStr(s.created_at)}</p>
+                </div>
               </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-blue-600 truncate">{s.invoice_no}</p>
-                <p className="text-xs text-slate-500 dark:text-slate-400">{s.user_name}</p>
-              </div>
-              <div className="text-right shrink-0">
-                <p className="text-sm font-bold text-green-600">{fmtRs(s.total)}</p>
-                <p className="text-xs text-slate-500 dark:text-slate-400">{timeStr(s.created_at)}</p>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>
@@ -313,44 +346,68 @@ function RecentSales({ sales, onView, isDark }) {
 }
 
 // ─── Fast Moving ──────────────────────────────────────────────────────────────
+const BAR_COLORS = [
+  { bar: '#f97316', sold: 'text-orange-500', rank: 'bg-orange-500' },
+  { bar: '#3b82f6', sold: 'text-blue-500',   rank: 'bg-blue-500' },
+  { bar: '#8b5cf6', sold: 'text-violet-500', rank: 'bg-violet-500' },
+  { bar: '#10b981', sold: 'text-emerald-500',rank: 'bg-emerald-500' },
+  { bar: '#ec4899', sold: 'text-pink-500',   rank: 'bg-pink-500' },
+];
+const getColor = i => BAR_COLORS[i % BAR_COLORS.length];
+
 function FastMoving({ items, isDark }) {
   const { t } = useLocale();
   const max = Math.max(...(items || []).map(i => parseInt(i.total_qty)), 1);
   return (
-    <div className="min-h-[350px] bg-white rounded-2xl border p-5"
-      style={isDark ? { backgroundColor: '#141414', borderColor: '#2a2a2a', boxShadow: '0 4px 24px rgba(0,0,0,0.5)' } : {}}>
-      <div className="flex items-center justify-between mb-4">
-        <p className="font-bold text-slate-800 dark:text-white text-sm">🔥 {t('pos.fast_moving')}</p>
-        <span className="text-xs text-slate-500 dark:text-slate-400">{t('lbl.this_month')}</span>
+    <div className="min-h-[350px] bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+      {/* Header */}
+      <div className="flex items-center justify-between px-5 py-3.5 border-b border-slate-100">
+        <div className="flex items-center gap-2">
+          <div className="w-7 h-7 rounded-lg bg-orange-100 flex items-center justify-center text-base">🔥</div>
+          <p className="font-bold text-slate-800 text-sm">{t('pos.fast_moving')}</p>
+        </div>
+        <span className="text-[11px] font-semibold text-slate-400 bg-slate-100 px-2.5 py-1 rounded-full">{t('lbl.this_month')}</span>
       </div>
+
       {!items?.length ? (
-        <p className="text-sm text-slate-500 dark:text-slate-400 text-center py-6">{t('lbl.no_data')}</p>
+        <p className="text-sm text-slate-400 text-center py-10">{t('lbl.no_data')}</p>
       ) : (
-        <div className="space-y-3">
-          {items.map((item, i) => (
-            <div key={i} className="flex items-center gap-3">
-              <span className="text-xs font-bold text-slate-500 dark:text-slate-400 w-4 shrink-0">{i + 1}</span>
-              <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 overflow-hidden"
-                style={{ backgroundColor: isDark ? '#2a2a2a' : '#f1f5f9' }}>
-                {item.image
-                  ? <img src={item.image} alt="" className="w-full h-full object-cover" />
-                  : <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
-                }
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-slate-800 dark:text-white truncate">{item.product_name}</p>
-                <div className="flex items-center gap-2 mt-0.5">
-                  <p className="text-xs text-slate-500 dark:text-slate-400">{item.bill_count} bills</p>
-                  <div className="flex-1 h-1.5 rounded-full overflow-hidden"
-                    style={{ backgroundColor: isDark ? '#2a2a2a' : '#f1f5f9' }}>
-                    <div className="h-full bg-orange-400 rounded-full transition-all"
-                      style={{ width: `${(parseInt(item.total_qty) / max) * 100}%` }} />
-                  </div>
-                  <span className="text-xs font-bold text-orange-500 shrink-0">{item.total_qty} sold</span>
+        <div className="divide-y divide-slate-50">
+          {items.map((item, i) => {
+            const c = getColor(i);
+            const pct = Math.round((parseInt(item.total_qty) / max) * 100);
+            return (
+              <div key={i} className="flex items-center gap-3 px-5 py-2.5 hover:bg-slate-50 transition-colors">
+                {/* Rank badge */}
+                <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${i < 3 ? c.rank : 'bg-slate-200'}`}>
+                  <span className="text-[10px] font-black text-white">{i + 1}</span>
                 </div>
+
+                {/* Product image/icon */}
+                <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 overflow-hidden bg-slate-100">
+                  {item.image
+                    ? <img src={item.image} alt="" className="w-full h-full object-cover" />
+                    : <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+                  }
+                </div>
+
+                {/* Name + bar */}
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-bold text-slate-700 truncate leading-tight">{item.product_name}</p>
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="text-[10px] text-slate-400 shrink-0">{item.bill_count} bills</span>
+                    <div className="flex-1 h-1.5 rounded-full bg-slate-100 overflow-hidden">
+                      <div className="h-full rounded-full transition-all duration-500"
+                        style={{ width: `${pct}%`, backgroundColor: c.bar }} />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Sold count */}
+                <span className={`text-xs font-extrabold shrink-0 ${c.sold}`}>{item.total_qty}</span>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>
@@ -378,48 +435,52 @@ export default function Dashboard() {
   });
 
   const icons = {
-    dollar: <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>,
-    chart:  <svg className="w-5 h-5 text-blue-600"  fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>,
-    box:    <svg className="w-5 h-5 text-violet-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>,
-    alert:  <svg className="w-5 h-5 text-red-500"   fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>,
-    pos:      <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7H6a2 2 0 00-2 2v9a2 2 0 002 2h12a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1-4H9m0 0a2 2 0 000 4h6a2 2 0 000-4M9 3h6"/></svg>,
-    product:  <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>,
-    purchase: <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"/></svg>,
-    report:   <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>,
+    dollar: <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>,
+    chart:  <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>,
+    box:    <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>,
+    alert:  <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>,
+    pos:      <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7H6a2 2 0 00-2 2v9a2 2 0 002 2h12a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1-4H9m0 0a2 2 0 000 4h6a2 2 0 000-4M9 3h6"/></svg>,
+    product:  <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>,
+    purchase: <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"/></svg>,
+    report:   <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>,
   };
 
   return (
-    <div className="p-3 sm:p-6 space-y-4 sm:space-y-5 min-h-screen" style={{ backgroundColor: isDark ? '#1c1c1c' : '#F3F4F6' }}>
+    <div className="p-3 sm:p-6 space-y-4 sm:space-y-5 min-h-screen" style={{ backgroundColor: isDark ? '#1c1c1c' : '#e5e7eb' }}>
 
       {/* Row 1: Stats + Chart */}
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-5 items-stretch">
-        <div className="lg:col-span-2 grid grid-cols-2 gap-4 auto-rows-fr">
-          <StatCard label={t('dash.today_sales')} icon={icons.dollar} iconBg="bg-green-100 dark:bg-green-900/40"
-            value={fmtRs(data?.todaySales)} sub={`${data?.todayBills || 0} bills today`} valueColor="text-green-600" isDark={isDark} />
-          <StatCard label={t('dash.month_sales')} icon={icons.chart} iconBg="bg-blue-100 dark:bg-blue-900/40"
-            value={fmtRs(data?.monthSales)} sub={`${data?.monthBills || 0} bills this month`} valueColor="text-blue-600" isDark={isDark} />
-          <StatCard label={t('dash.total_products')} icon={icons.box} iconBg="bg-violet-100 dark:bg-violet-900/40"
-            value={data?.totalProducts ?? 0} sub="active products" valueColor="text-violet-600" isDark={isDark} />
-          <StatCard label={t('dash.low_stock')} icon={icons.alert} iconBg="bg-red-100 dark:bg-red-900/40"
-            value={data?.lowStockCount ?? 0} sub="needs attention" valueColor="text-red-500" isDark={isDark} />
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-3 sm:gap-4 items-stretch">
+        <div className="md:col-span-2 grid grid-cols-2 gap-2 sm:gap-3 auto-rows-fr">
+          <StatCard label={t('dash.today_sales')} icon={icons.dollar}
+            gradient="bg-gradient-to-br from-emerald-500 to-green-700"
+            value={fmtRs(data?.todaySales)} sub={`${data?.todayBills || 0} bills today`} isDark={isDark} />
+          <StatCard label={t('dash.month_sales')} icon={icons.chart}
+            gradient="bg-gradient-to-br from-blue-500 to-blue-700"
+            value={fmtRs(data?.monthSales)} sub={`${data?.monthBills || 0} bills this month`} isDark={isDark} />
+          <StatCard label={t('dash.total_products')} icon={icons.box}
+            gradient="bg-gradient-to-br from-violet-500 to-purple-700"
+            value={data?.totalProducts ?? 0} sub="active products" isDark={isDark} />
+          <StatCard label={t('dash.low_stock')} icon={icons.alert}
+            gradient="bg-gradient-to-br from-rose-500 to-red-700"
+            value={data?.lowStockCount ?? 0} sub="needs attention" isDark={isDark} />
         </div>
-        <div className="lg:col-span-3 h-full">
+        <div className="md:col-span-3 h-full">
           <HourlyChart hourlySales={data?.hourlySales || []} dates={dates} isDark={isDark} />
         </div>
       </div>
 
       {/* Recent Sales + Quick Actions (left) | Fast Moving (right) */}
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-5 items-start">
-        <div className="lg:col-span-3 flex flex-col gap-4">
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <QuickBtn label={t('btn.new_sale')}     icon={icons.pos}      color="bg-[#1E40AF] hover:bg-blue-900"    onClick={() => navigate('/sales/create')} />
-            <QuickBtn label={t('btn.new_product')}  icon={icons.product}  color="bg-purple-700 hover:bg-purple-800" onClick={() => navigate('/products/create')} />
-            <QuickBtn label={t('btn.new_purchase')} icon={icons.purchase} color="bg-[#15803D] hover:bg-green-900"   onClick={() => navigate('/purchases/create')} />
-            <QuickBtn label={t('btn.report')}       icon={icons.report}   color="bg-orange-600 hover:bg-orange-700" onClick={() => navigate('/reports')} />
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-3 sm:gap-4 items-start">
+        <div className="md:col-span-3 flex flex-col gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-2 lg:grid-cols-4 gap-2">
+            <QuickBtn label={t('btn.new_sale')}     icon={icons.pos}      color="bg-white border-blue-100 text-blue-700 hover:bg-blue-50"      iconBg="bg-blue-600"    onClick={() => navigate('/sales/create')} />
+            <QuickBtn label={t('btn.new_product')}  icon={icons.product}  color="bg-white border-purple-100 text-purple-700 hover:bg-purple-50" iconBg="bg-purple-600"  onClick={() => navigate('/products/create')} />
+            <QuickBtn label={t('btn.new_purchase')} icon={icons.purchase} color="bg-white border-emerald-100 text-emerald-700 hover:bg-emerald-50" iconBg="bg-emerald-600" onClick={() => navigate('/purchases/create')} />
+            <QuickBtn label={t('btn.report')}       icon={icons.report}   color="bg-white border-orange-100 text-orange-700 hover:bg-orange-50" iconBg="bg-orange-500"  onClick={() => navigate('/reports')} />
           </div>
           <RecentSales sales={data?.recentSales} onView={() => navigate('/sales')} isDark={isDark} />
         </div>
-        <div className="lg:col-span-2">
+        <div className="md:col-span-2">
           <FastMoving items={data?.fastMoving} isDark={isDark} />
         </div>
       </div>

@@ -40,8 +40,9 @@ export default function PurchasesIndex() {
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-bold text-slate-800">{t('page.purchases')}</h1>
         {isOnline ? (
-          <Link to="/purchases/create" className="px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition-colors">
-            + {t('btn.new_purchase')}
+          <Link to="/purchases/create" className="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition-colors">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4"/></svg>
+            {t('btn.new_purchase')}
           </Link>
         ) : (
           <span className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 border border-amber-200 rounded-lg text-amber-700 text-xs font-medium">
@@ -125,7 +126,10 @@ export default function PurchasesIndex() {
                   <td className="px-4 py-3 text-center">{statusBadge(p.status)}</td>
                   {(role === 'admin' || role === 'manager') && isOnline && (
                     <td className="px-4 py-3 text-right">
-                      <button onClick={() => handleDelete(p)} className="inline-flex items-center px-2.5 py-1 rounded-md border border-red-200 bg-red-50 text-xs font-medium text-red-500 hover:bg-red-100 transition-colors">{t('btn.delete')}</button>
+                      <button onClick={() => handleDelete(p)} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-red-600 text-white text-xs font-medium hover:bg-red-700 transition-colors">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0 1 16.138 21H7.862a2 2 0 0 1-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v3M4 7h16"/></svg>
+                        {t('btn.delete')}
+                      </button>
                     </td>
                   )}
                 </tr>
