@@ -44,7 +44,7 @@ function ProtectedRoute() {
 }
 
 function POSRoute() {
-  const iface = localStorage.getItem('pos_interface') || '1';
+  const iface = localStorage.getItem('pos_interface') || '2';
   return iface === '3' ? <SalesCreate3 /> : iface === '2' ? <SalesCreate2 /> : <SalesCreate />;
 }
 
