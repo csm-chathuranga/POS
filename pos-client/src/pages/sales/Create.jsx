@@ -8,6 +8,7 @@ import { useConnectivity } from '../../contexts/ConnectivityContext';
 import { enqueueOfflineSale, getPendingCount, OFFLINE_LIMIT } from '../../services/offlineQueue';
 import { getLocalCustomers } from '../../services/cacheSync';
 import { useLocale } from '../../contexts/LocaleContext';
+import { useTheme } from '../../contexts/ThemeContext';
 import { translations } from '../../i18n/translations';
 import { api } from '../../app/baseApi';
 
@@ -541,6 +542,8 @@ export default function SalesCreate() {
   const isCoop = window.location.hostname.includes('coop');
 
   const { t } = useLocale();
+  const { theme } = useTheme();
+  const isDark = theme === 'dark';
   const { products, ready, deductStock, invalidate } = useProductCache();
   const [createSale, { isLoading: submitting }] = useCreateSaleMutation();
   const [quickAdd] = posApi.useQuickAddCustomerMutation();
@@ -1158,30 +1161,44 @@ export default function SalesCreate() {
       )}
 
       {/* ── Top header bar ── */}
-      <div className="bg-slate-900 border-b border-slate-700 px-3 h-12 flex items-center justify-between shrink-0 gap-2">
+      <div className="px-3 h-12 flex items-center justify-between shrink-0 gap-2"
+        style={isDark
+          ? { backgroundColor: '#0f172a', borderBottom: '1px solid #1e293b' }
+          : { backgroundColor: '#ffffff', borderBottom: '1px solid #e2e8f0' }}>
         <div className="flex items-center gap-2 shrink-0">
-          <button onClick={() => navigate('/sales')} className="text-slate-400 hover:text-white transition-colors">{Icon.back}</button>
-          <button onClick={() => navigate('/dashboard')} title="Home" className="text-slate-400 hover:text-white transition-colors">{Icon.home}</button>
-          <h1 className="font-bold text-white text-sm hidden sm:block">{t('page.new_sale')}</h1>
+          <button onClick={() => navigate('/sales')} className="transition-colors" style={{ color: isDark ? '#94a3b8' : '#64748b' }}>{Icon.back}</button>
+          <button onClick={() => navigate('/dashboard')} title="Home" className="transition-colors" style={{ color: isDark ? '#94a3b8' : '#64748b' }}>{Icon.home}</button>
+          <h1 className="font-bold text-sm hidden sm:block" style={{ color: isDark ? '#f1f5f9' : '#1e293b' }}>{t('page.new_sale')}</h1>
         </div>
 
         {/* Shortcut pills — desktop only */}
         <div className="hidden lg:flex items-center gap-1.5 text-xs">
           {[['F1', t('btn.search')],['F2', t('lbl.cash')],['F3', cardLabel],['F4', t('lbl.credit')],['F5','Split'],['F10', t('btn.complete')]].map(([k,l]) => (
-            <span key={k} className="bg-slate-800 text-slate-300 rounded px-1.5 py-0.5 font-medium">
-              <span className="text-slate-500">{k} </span>{l}
+            <span key={k} className="rounded px-1.5 py-0.5 font-medium"
+              style={isDark
+                ? { backgroundColor: '#1e293b', color: '#cbd5e1', border: '1px solid #334155' }
+                : { backgroundColor: '#f1f5f9', color: '#475569', border: '1px solid #e2e8f0' }}>
+              <span style={{ color: isDark ? '#64748b' : '#94a3b8' }}>{k} </span>{l}
             </span>
           ))}
         </div>
 
         {/* Mobile tab switcher */}
-        <div className="flex lg:hidden rounded-lg border border-slate-700 overflow-hidden text-xs font-bold">
+        <div className="flex lg:hidden rounded-lg overflow-hidden text-xs font-bold"
+          style={{ border: `1px solid ${isDark ? '#334155' : '#e2e8f0'}` }}>
           <button onClick={() => setMobileTab('cart')}
-            className={`px-4 py-1.5 transition-colors ${mobileTab === 'cart' ? 'bg-slate-600 text-white' : 'bg-slate-800 text-slate-300'}`}>
+            className="px-4 py-1.5 transition-colors"
+            style={mobileTab === 'cart'
+              ? { backgroundColor: '#475569', color: '#fff' }
+              : { backgroundColor: isDark ? '#1e293b' : '#f8fafc', color: isDark ? '#94a3b8' : '#64748b' }}>
             {t('pos.add_products')}
           </button>
           <button onClick={() => setMobileTab('pay')}
-            className={`px-4 py-1.5 transition-colors border-l border-slate-700 ${mobileTab === 'pay' ? 'bg-blue-600 text-white' : 'bg-slate-800 text-slate-300'}`}>
+            className="px-4 py-1.5 transition-colors"
+            style={{ borderLeft: `1px solid ${isDark ? '#334155' : '#e2e8f0'}`,
+              ...(mobileTab === 'pay'
+                ? { backgroundColor: '#2563eb', color: '#fff' }
+                : { backgroundColor: isDark ? '#1e293b' : '#f8fafc', color: isDark ? '#94a3b8' : '#64748b' }) }}>
             {t('pos.payment_method_label')}
           </button>
         </div>
