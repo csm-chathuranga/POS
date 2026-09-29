@@ -10,6 +10,8 @@ import { useConnectivity } from '../../contexts/ConnectivityContext';
 import { enqueueOfflineSale, getPendingCount, OFFLINE_LIMIT } from '../../services/offlineQueue';
 import { getLocalCustomers } from '../../services/cacheSync';
 import { useLocale } from '../../contexts/LocaleContext';
+import { getApiUrl } from '../../config/runtimeConfig';
+const API = getApiUrl();
 import { translations } from '../../i18n/translations';
 import { api } from '../../app/baseApi';
 
@@ -636,14 +638,14 @@ export default function SalesCreate() {
     setReturnLoading(true); setReturnErr(''); setReturnSaleData(null); setReturnItemQtys({});
     try {
       // Step 1: find sale ID by invoice_no
-      const listRes = await fetch(`/api/sales?search=${encodeURIComponent(returnInvoiceNo.trim())}&limit=5`, {
+      const listRes = await fetch(`${API}/api/sales?search=${encodeURIComponent(returnInvoiceNo.trim())}&limit=5`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const listData = await listRes.json();
       const found = (listData.data || []).find(s => s.invoice_no === returnInvoiceNo.trim());
       if (!found) { setReturnErr('Invoice not found'); return; }
       // Step 2: fetch with items
-      const detailRes = await fetch(`/api/sales/${found.id}/return`, {
+      const detailRes = await fetch(`${API}/api/sales/${found.id}/return`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!detailRes.ok) { setReturnErr('Failed to load invoice details'); return; }

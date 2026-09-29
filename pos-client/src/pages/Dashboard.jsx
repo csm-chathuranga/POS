@@ -95,7 +95,7 @@ function HourlyChart({ hourlySales, dates, isDark }) {
   const gridStroke = isDark ? '#2a2a2a' : '#f1f5f9';
 
   return (
-    <div className="h-full bg-white rounded-2xl shadow-sm border border-slate-100 flex flex-col overflow-hidden">
+    <div className="h-full bg-white rounded-2xl border border-slate-200 flex flex-col overflow-hidden" style={{ boxShadow: '0 2px 12px rgba(0,0,0,0.10), 0 1px 3px rgba(0,0,0,0.08)' }}>
 
       {/* Thin accent top bar */}
       <div className="h-1 bg-gradient-to-r from-violet-500 via-blue-500 to-emerald-500 rounded-t-2xl" />
@@ -176,7 +176,8 @@ function HourlyChart({ hourlySales, dates, isDark }) {
 function QuickBtn({ label, icon, color, iconBg, onClick }) {
   return (
     <button onClick={onClick}
-      className={`group flex items-center gap-3 px-4 py-3 rounded-xl border text-left hover:-translate-y-0.5 active:scale-95 transition-all duration-150 shadow-sm hover:shadow-md ${color}`}>
+      className={`group flex items-center gap-3 px-4 py-3 rounded-xl border text-left hover:-translate-y-0.5 active:scale-95 transition-all duration-150 hover:shadow-md ${color}`}
+      style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.09), 0 1px 3px rgba(0,0,0,0.07)' }}>
       <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${iconBg}`}>
         {icon}
       </div>
@@ -231,8 +232,8 @@ function Heatmap({ heatmap, isDark }) {
   const weekLabels = weeks.map(w => new Date(w[0]).getDate());
 
   return (
-    <div className="bg-white rounded-2xl border p-5"
-      style={isDark ? { backgroundColor: '#141414', borderColor: '#2a2a2a', boxShadow: '0 4px 24px rgba(0,0,0,0.5)' } : {}}>
+    <div className="bg-white rounded-2xl border border-slate-200 p-5"
+      style={isDark ? { backgroundColor: '#141414', borderColor: '#2a2a2a', boxShadow: '0 4px 24px rgba(0,0,0,0.5)' } : { boxShadow: '0 2px 12px rgba(0,0,0,0.10), 0 1px 3px rgba(0,0,0,0.08)' }}>
       <p className="font-bold text-slate-800 dark:text-white text-sm">Peak Days</p>
       <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 mb-4">Sales heatmap — last 10 weeks</p>
 
@@ -298,8 +299,8 @@ const todayStr = new Date().toDateString();
 function RecentSales({ sales, onView, isDark }) {
   const { t } = useLocale();
   return (
-    <div className="min-h-[220px] bg-white rounded-2xl border p-5"
-      style={isDark ? { backgroundColor: '#141414', borderColor: '#2a2a2a', boxShadow: '0 4px 24px rgba(0,0,0,0.5)' } : {}}>
+    <div className="min-h-[220px] bg-white rounded-2xl border border-slate-200 p-5"
+      style={isDark ? { backgroundColor: '#141414', borderColor: '#2a2a2a', boxShadow: '0 4px 24px rgba(0,0,0,0.5)' } : { boxShadow: '0 2px 12px rgba(0,0,0,0.10), 0 1px 3px rgba(0,0,0,0.08)' }}>
       <div className="flex items-center justify-between mb-4">
         <p className="font-bold text-slate-800 text-sm">{t('dash.recent_sales')}</p>
         <button onClick={onView} className="text-xs font-semibold text-blue-600 hover:text-blue-500 flex items-center gap-1">
@@ -359,7 +360,7 @@ function FastMoving({ items, isDark }) {
   const { t } = useLocale();
   const max = Math.max(...(items || []).map(i => parseInt(i.total_qty)), 1);
   return (
-    <div className="min-h-[350px] bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+    <div className="min-h-[350px] bg-white rounded-2xl border border-slate-200 overflow-hidden" style={{ boxShadow: '0 2px 12px rgba(0,0,0,0.10), 0 1px 3px rgba(0,0,0,0.08)' }}>
       {/* Header */}
       <div className="flex items-center justify-between px-5 py-3.5 border-b border-slate-100">
         <div className="flex items-center gap-2">

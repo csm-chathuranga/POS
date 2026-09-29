@@ -1,4 +1,48 @@
+import { useState, useEffect } from 'react';
 import { useTheme } from '../contexts/ThemeContext';
+
+const TAGLINES = [
+  'Fast, reliable sales management for your business.',
+  'Sell smarter — track stock, sales & customers in one place.',
+  'Built for Sri Lankan businesses. Works offline too.',
+  'From checkout to reports, everything in one screen.',
+  'Real-time insights. Zero complexity. Full control.',
+  'Your shop, your data — always at your fingertips.',
+];
+
+function Typewriter({ speed = 45, pause = 1800, eraseSpeed = 25 }) {
+  const [displayed, setDisplayed] = useState('');
+  const [idx, setIdx]             = useState(0);
+  const [erasing, setErasing]     = useState(false);
+
+  useEffect(() => {
+    const text = TAGLINES[idx];
+    if (!erasing) {
+      if (displayed.length < text.length) {
+        const id = setTimeout(() => setDisplayed(text.slice(0, displayed.length + 1)), speed);
+        return () => clearTimeout(id);
+      } else {
+        const id = setTimeout(() => setErasing(true), pause);
+        return () => clearTimeout(id);
+      }
+    } else {
+      if (displayed.length > 0) {
+        const id = setTimeout(() => setDisplayed(displayed.slice(0, -1)), eraseSpeed);
+        return () => clearTimeout(id);
+      } else {
+        setErasing(false);
+        setIdx(i => (i + 1) % TAGLINES.length);
+      }
+    }
+  }, [displayed, erasing, idx, speed, pause, eraseSpeed]);
+
+  return (
+    <span>
+      {displayed}
+      <span className="inline-block w-0.5 h-4 bg-blue-300 ml-0.5 align-middle animate-pulse" />
+    </span>
+  );
+}
 
 export default function GuestLayout({ children }) {
   const { theme, setTheme } = useTheme();
@@ -35,10 +79,6 @@ export default function GuestLayout({ children }) {
             80%       { opacity: 0.6; }
             100%      { opacity: 0; transform: translateY(-80px) scale(1.2); }
           }
-          @keyframes ringPulse {
-            0%, 100% { transform: scale(1); opacity: 0.08; }
-            50%       { transform: scale(1.08); opacity: 0.18; }
-          }
           @keyframes shimmer {
             0%   { background-position: -200% center; }
             100% { background-position: 200% center; }
@@ -67,14 +107,6 @@ export default function GuestLayout({ children }) {
             background: 'radial-gradient(circle, rgba(245,158,11,0.3) 0%, transparent 65%)',
             animation: 'blobFloat2 13s ease-in-out infinite reverse' }} />
 
-        {/* Concentric ring pulses around center */}
-        {[180, 260, 340, 420].map((size, i) => (
-          <div key={i} className="absolute rounded-full border border-white pointer-events-none"
-            style={{ width: size, height: size,
-              top: '50%', left: '50%',
-              transform: 'translate(-50%, -50%)',
-              animation: `ringPulse ${5 + i * 1.5}s ease-in-out ${i * 0.8}s infinite` }} />
-        ))}
 
         {/* Floating particles */}
         {[
@@ -113,8 +145,8 @@ export default function GuestLayout({ children }) {
             style={{ textShadow: '0 0 30px rgba(147,197,253,0.6)' }}>
             Point of Sale
           </h1>
-          <p className="text-blue-300 text-sm leading-relaxed max-w-xs mb-8">
-            Fast, reliable sales management for your business
+          <p className="text-blue-300 text-sm leading-relaxed max-w-xs mb-8 min-h-[40px]">
+            <Typewriter />
           </p>
 
           <div className="flex flex-col gap-2.5 w-full max-w-[230px]">
