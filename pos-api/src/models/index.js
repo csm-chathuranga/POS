@@ -14,11 +14,10 @@ function getModels(sequelize) {
   }, { tableName: 'roles', timestamps: false });
 
   const Category = sequelize.define('Category', {
-    id:     { type: DataTypes.BIGINT.UNSIGNED, primaryKey: true, autoIncrement: true },
-    name:   { type: DataTypes.STRING(191), allowNull: false },
-    slug:   { type: DataTypes.STRING(191), allowNull: true },
-    image:  { type: DataTypes.TEXT('long'), allowNull: true },
-    active: { type: DataTypes.TINYINT, defaultValue: 1 },
+    id:    { type: DataTypes.BIGINT.UNSIGNED, primaryKey: true, autoIncrement: true },
+    name:  { type: DataTypes.STRING(191), allowNull: false },
+    slug:  { type: DataTypes.STRING(191), allowNull: true },
+    image: { type: DataTypes.TEXT('long'), allowNull: true },
   }, { tableName: 'categories' });
 
   const Product = sequelize.define('Product', {
