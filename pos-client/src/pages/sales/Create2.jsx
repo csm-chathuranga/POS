@@ -661,11 +661,11 @@ export default function SalesCreate() {
   // ─── Derived ─────────────────────────────────────────────────────────────────
   const categories = useMemo(() => {
     if (allCategories.length > 0)
-      return [...allCategories].filter(c => c.show_in_pos).sort((a, b) => a.name.localeCompare(b.name));
+      return [...allCategories].sort((a, b) => a.name.localeCompare(b.name)).slice(0, 10);
     // offline fallback: derive from loaded products
     const map = new Map();
     products.forEach(p => { if (p.category_id && p.category?.name) map.set(p.category_id, p.category.name); });
-    return [...map.entries()].map(([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name));
+    return [...map.entries()].map(([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name)).slice(0, 10);
   }, [allCategories, products]);
 
   const dropdownItems = useMemo(() => {
