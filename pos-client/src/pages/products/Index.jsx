@@ -19,10 +19,9 @@ const SAMPLE_CSV_ROW     = 'Sample Product,123456,100.00,70.00,80.00,50,5,pcs';
 
 function printBarcode(product, qty = 1, shopName = '') {
   const code = product.barcode || String(product.id).padStart(6, '0');
-  const isEan13  = /^\d{13}$/.test(code);
-  const isEan8   = /^\d{8}$/.test(code);
-  const isNumeric = /^\d+$/.test(code);
-  const fmt = isEan13 ? 'EAN13' : isEan8 ? 'EAN8' : isNumeric ? 'CODE128' : 'CODE128';
+  const isEan13 = /^\d{13}$/.test(code);
+  const isEan8  = /^\d{8}$/.test(code);
+  const fmt = isEan13 ? 'EAN13' : isEan8 ? 'EAN8' : 'CODE128';
 
   // Pre-render barcode SVG so it works in Electron print without CDN or script execution
   const svgNode = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
@@ -199,7 +198,7 @@ export default function ProductsIndex() {
 
     let p = product;
     if (!p.barcode) {
-      const generated = generateEan8(p.id);
+      const generated = String(p.id).padStart(6, '0');
       try { await updateProduct({ id: p.id, barcode: generated }).unwrap(); } catch {}
       p = { ...p, barcode: generated };
     }
