@@ -48,7 +48,9 @@ router.post('/', auth, role('admin', 'manager'), async (req, res) => {
   try {
     const name = String(req.body.name || '').trim();
     if (!name) return res.status(422).json({ error: 'Name is required' });
-    const cat = await req.models.Category.create({ name });
+    const image  = req.body.image  || null;
+    const active = req.body.active !== undefined ? (req.body.active ? 1 : 0) : 1;
+    const cat = await req.models.Category.create({ name, image, active });
     res.status(201).json(cat);
   } catch (e) { res.status(422).json({ error: e.message }); }
 });
@@ -60,7 +62,9 @@ router.put('/:id', auth, role('admin', 'manager'), async (req, res) => {
     if (!cat) return res.status(404).json({ error: 'Not found' });
     const name = String(req.body.name || '').trim();
     if (!name) return res.status(422).json({ error: 'Name is required' });
-    await cat.update({ name });
+    const image  = req.body.image  !== undefined ? (req.body.image || null) : cat.image;
+    const active = req.body.active !== undefined ? (req.body.active ? 1 : 0) : cat.active;
+    await cat.update({ name, image, active });
     res.json(cat);
   } catch (e) { res.status(422).json({ error: e.message }); }
 });
