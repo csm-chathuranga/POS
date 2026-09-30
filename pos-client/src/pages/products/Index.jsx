@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import JsBarcode from 'jsbarcode';
 import { Link } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import {
@@ -18,12 +19,18 @@ const SAMPLE_CSV_ROW     = 'Sample Product,123456,100.00,70.00,80.00,50,5,pcs';
 
 function printBarcode(product, qty = 1, shopName = '') {
   const code = product.barcode || String(product.id).padStart(6, '0');
-  const isEan13 = /^\d{13}$/.test(code);
-  const isEan8  = /^\d{8}$/.test(code);
-  const fmt = isEan13 ? 'EAN13' : isEan8 ? 'EAN8' : 'CODE128';
+  const isEan13  = /^\d{13}$/.test(code);
+  const isEan8   = /^\d{8}$/.test(code);
+  const isNumeric = /^\d+$/.test(code);
+  const fmt = isEan13 ? 'EAN13' : isEan8 ? 'EAN8' : isNumeric ? 'CODE128' : 'CODE128';
+
+  // Pre-render barcode SVG so it works in Electron print without CDN or script execution
+  const svgNode = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  JsBarcode(svgNode, code, { format: fmt, width: 1.0, height: 16, displayValue: false, margin: 0 });
+  const svgHtml = svgNode.outerHTML;
+
   const html = `<!DOCTYPE html><html><head>
     <title>Barcode</title>
-    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
     <style>
       @page { size: 30mm 20mm; margin: 0; }
       *{box-sizing:border-box;margin:0;padding:0}
@@ -42,16 +49,13 @@ function printBarcode(product, qty = 1, shopName = '') {
     </style>
   </head><body>
     ${shopName ? `<p class="shop">${shopName.replace(/</g,'&lt;')}</p>` : ''}
-    <svg id="bc"></svg>
+    ${svgHtml}
     <p class="name">${product.name.replace(/</g,'&lt;')}</p>
     ${product.our_price
       ? `<p class="orig">Rs. ${Number(product.selling_price||0).toFixed(2)}</p>
          <p class="price">Rs. ${Number(product.our_price).toFixed(2)}</p>`
       : `<p class="price">Rs. ${Number(product.selling_price||0).toFixed(2)}</p>`
     }
-    <script>
-      JsBarcode("#bc","${code}",{format:"${fmt}",width:1.0,height:16,displayValue:false,margin:0});
-    </script>
   </body></html>`;
 
   if (window.electronAPI?.printBarcode) {
@@ -63,7 +67,7 @@ function printBarcode(product, qty = 1, shopName = '') {
   // Browser fallback
   const win = window.open('', '_blank', 'width=380,height=260');
   if (!win) return Promise.resolve();
-  win.document.write(html.replace('</script>', ';setTimeout(()=>window.print(),400)</script>'));
+  win.document.write(html.replace('</head>', '<script>setTimeout(()=>window.print(),200)</script></head>'));
   win.document.close();
   return Promise.resolve();
 }
@@ -195,7 +199,7 @@ export default function ProductsIndex() {
 
     let p = product;
     if (!p.barcode) {
-      const generated = String(p.id).padStart(6, '0');
+      const generated = generateEan8(p.id);
       try { await updateProduct({ id: p.id, barcode: generated }).unwrap(); } catch {}
       p = { ...p, barcode: generated };
     }
