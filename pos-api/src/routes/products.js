@@ -211,8 +211,6 @@ router.post('/', auth, role('admin', 'manager'), async (req, res) => {
   const { Product, ProductVariant } = req.models;
   const { variants = [], ...data } = req.body;
 
-  if (!data.barcode) data.barcode = data.name.replace(/\s+/g, '').toUpperCase().slice(0, 8) + '-' + Math.random().toString(36).slice(2, 8).toUpperCase();
-
   if (data.barcode) {
     const existing = await Product.findOne({ where: { barcode: data.barcode } });
     if (existing) return res.status(409).json({ error: `Barcode already used by "${existing.name}"` });

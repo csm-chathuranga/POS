@@ -16,8 +16,8 @@ function getModels(sequelize) {
   const Category = sequelize.define('Category', {
     id:     { type: DataTypes.BIGINT.UNSIGNED, primaryKey: true, autoIncrement: true },
     name:   { type: DataTypes.STRING(191), allowNull: false },
-    image:  { type: DataTypes.TEXT('long'), allowNull: true },
-    active: { type: DataTypes.TINYINT, defaultValue: 1 },
+    image:  { type: DataTypes.STRING(512), allowNull: true },
+    active: { type: DataTypes.BOOLEAN, defaultValue: true },
   }, { tableName: 'categories' });
 
   const Product = sequelize.define('Product', {

@@ -270,9 +270,9 @@ export default function SaleShow() {
             className="p-1.5 rounded-lg text-slate-500 hover:text-slate-700 hover:bg-slate-100 transition-colors shrink-0">
             {IcoBack}
           </button>
-          <span className="font-bold text-slate-800 font-mono text-xs sm:text-sm truncate">{sale.invoice_no}</span>
+          <span className="font-semibold text-slate-800 font-mono text-xs sm:text-sm truncate">{sale.invoice_no}</span>
           {sale.status === 'returned' && (
-            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-red-100 text-red-600 uppercase tracking-wide shrink-0">{t('btn.return')}</span>
+            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-red-100 text-red-600 uppercase tracking-wide shrink-0">{t('btn.return')}</span>
           )}
         </div>
 
@@ -314,7 +314,7 @@ export default function SaleShow() {
           <div className="w-px h-5 bg-slate-200 hidden sm:block" />
 
           {/* User avatar */}
-          <div className={`w-7 h-7 rounded-full ${roleColor[role] || 'bg-slate-500'} flex items-center justify-center text-white font-bold text-xs shrink-0`}>
+          <div className={`w-7 h-7 rounded-full ${roleColor[role] || 'bg-slate-500'} flex items-center justify-center text-white font-semibold text-xs shrink-0`}>
             {user?.name?.[0]?.toUpperCase() || 'U'}
           </div>
           <div className="text-xs leading-tight hidden md:block">
@@ -345,11 +345,11 @@ export default function SaleShow() {
               <img src={shopInfo.shop_logo} alt="logo"
                 className="w-36 h-36 object-contain mx-auto mb-3 rounded-full" />
             ) : (
-              <div className="w-36 h-36 bg-slate-100 rounded-full mx-auto mb-3 flex items-center justify-center text-slate-400 text-5xl font-black">
+              <div className="w-36 h-36 bg-slate-100 rounded-full mx-auto mb-3 flex items-center justify-center text-slate-400 text-5xl font-semibold">
                 {(shopInfo.shop_name || 'L')[0]}
               </div>
             )}
-            <p className="font-black text-black text-xl tracking-wide uppercase">
+            <p className="font-semibold text-black text-xl tracking-wide uppercase">
               {shopInfo.shop_name || 'LMUC POS'}
             </p>
             {shopInfo.address && <p className="text-black text-sm font-medium mt-0.5">{shopInfo.address}</p>}
@@ -370,7 +370,7 @@ export default function SaleShow() {
 
           {/* Items */}
           <div className="mb-3 min-w-0">
-            <div className="grid grid-cols-5 gap-1 text-xs font-black text-black border-b-2 border-slate-200 pb-2 mb-3 text-center min-w-0 leading-tight">
+            <div className="grid grid-cols-5 gap-1 text-xs font-semibold text-black border-b-2 border-slate-200 pb-2 mb-3 text-center min-w-0 leading-tight">
               <span className="text-center">RETAIL<br/>PRICE</span>
               <span className="text-center">OUR<br/>PRICE</span>
               <span className="text-center">DISC</span>
@@ -387,7 +387,7 @@ export default function SaleShow() {
               const ourUnit = qty > 0 ? Math.max(0, reducedLineTotal / qty) : unit;
               return (
               <div key={item.id} className="mb-3 min-w-0">
-                <div className="text-sm font-bold text-black break-words" style={{ overflowWrap: 'anywhere' }}>{idx + 1}) {item.product_name}</div>
+                <div className="text-sm font-semibold text-black break-words" style={{ overflowWrap: 'anywhere' }}>{idx + 1}) {item.product_name}</div>
                 <div className="grid grid-cols-5 gap-1 text-xs text-black font-semibold mt-0.5 min-w-0 items-center">
                   <span className="text-right min-w-0">{fmt(origPrice)}</span>
                   <span className="text-right text-black min-w-0">{fmt(ourUnit)}</span>
@@ -406,43 +406,43 @@ export default function SaleShow() {
           <div className="space-y-2">
             {parseFloat(sale.discount) > 0 && (
               <div className="flex justify-between items-center border-2 border-slate-300 rounded-xl px-4 py-3 bg-slate-50">
-                <span className="text-black font-bold text-lg">{t('lbl.earned_profit')}</span>
-                <span className="text-black font-extrabold text-xl">- {fmt(sale.discount)}</span>
+                <span className="text-black font-semibold text-lg">{t('lbl.earned_profit')}</span>
+                <span className="text-black font-semibold text-xl">- {fmt(sale.discount)}</span>
               </div>
             )}
 
             {parseFloat(sale.tax) > 0 && (
               <div className="flex justify-between text-sm">
                 <span className="text-black font-semibold">{t('lbl.tax')}</span>
-                <span className="font-bold text-black">{fmt(sale.tax)}</span>
+                <span className="font-semibold text-black">{fmt(sale.tax)}</span>
               </div>
             )}
 
             <div className="flex justify-between items-baseline pt-1 border-t border-slate-100">
-              <span className="text-base font-black text-black">{t('lbl.grand_total')}</span>
-              <span className="text-xl font-black text-black">{currency} {fmt(sale.total)}</span>
+              <span className="text-base font-semibold text-black">{t('lbl.grand_total')}</span>
+              <span className="text-xl font-semibold text-black">{currency} {fmt(sale.total)}</span>
             </div>
 
             {paidCash   > 0 && (
               <div className="flex justify-between text-sm">
                 <span className="text-black font-semibold">{t('lbl.cash_paid')} ({t('lbl.cash')})</span>
-                <span className="font-bold text-black">{fmt(cashGiven)}</span>
+                <span className="font-semibold text-black">{fmt(cashGiven)}</span>
               </div>
             )}
             {paidCard   > 0 && (
               <div className="flex justify-between text-sm">
                 <span className="text-black font-semibold">{t('lbl.cash_paid')} ({t('lbl.card')})</span>
-                <span className="font-bold text-black">{fmt(paidCard)}</span>
+                <span className="font-semibold text-black">{fmt(paidCard)}</span>
               </div>
             )}
             {paidCredit > 0 && (
               <div className="flex justify-between text-sm">
                 <span className="text-black font-semibold">{t('lbl.credit')}</span>
-                <span className="font-bold text-black">{fmt(paidCredit)}</span>
+                <span className="font-semibold text-black">{fmt(paidCredit)}</span>
               </div>
             )}
             {change > 0 && (
-              <div className="flex justify-between text-sm font-bold text-black">
+              <div className="flex justify-between text-sm font-semibold text-black">
                 <span>{t('lbl.change')}</span>
                 <span>{fmt(change)}</span>
               </div>
@@ -457,8 +457,8 @@ export default function SaleShow() {
               }, 0);
               return saved > 0 ? (
                 <div className="flex justify-between items-center border-2 border-black rounded-lg px-3 py-2 mt-1">
-                  <span className="text-black font-black text-lg">{t('lbl.you_saved')}</span>
-                  <span className="text-black font-black text-2xl">{fmt(saved)}</span>
+                  <span className="text-black font-semibold text-lg">{t('lbl.you_saved')}</span>
+                  <span className="text-black font-semibold text-2xl">{fmt(saved)}</span>
                 </div>
               ) : null;
             })()}
@@ -477,7 +477,7 @@ export default function SaleShow() {
               {shopInfo.receipt_footer || 'Thank you for shopping with us!'}
             </p>
             {true && (
-              <p className="text-black font-bold text-[11px] mt-1">
+              <p className="text-black font-semibold text-[11px] mt-1">
                 lumac.lk
               </p>
             )}
@@ -491,7 +491,7 @@ export default function SaleShow() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg p-6 space-y-4 max-h-[90vh] overflow-y-auto mx-4">
             <div className="flex items-center justify-between">
-              <h2 className="text-base font-bold text-slate-800">{t('btn.return')}</h2>
+              <h2 className="text-base font-semibold text-slate-800">{t('btn.return')}</h2>
               <span className="font-mono text-xs text-slate-400">{sale.invoice_no}</span>
             </div>
             <form onSubmit={handleReturn} className="space-y-4">
@@ -557,7 +557,7 @@ function MetaRow({ label, value, mono }) {
     <div className="flex items-center justify-between gap-3 text-sm leading-snug min-w-0">
       <span className="text-black font-semibold pr-2 shrink-0">{label}</span>
       <span
-        className={`ml-auto text-right font-bold text-black min-w-0 break-words ${mono ? 'font-mono' : ''}`}
+        className={`ml-auto text-right font-semibold text-black min-w-0 break-words ${mono ? 'font-mono' : ''}`}
         style={{ overflowWrap: 'anywhere' }}
       >
         {value}

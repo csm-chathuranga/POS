@@ -135,11 +135,12 @@ input, select, textarea {
 }
 
 /* ─── Light mode card visibility ──────────────────────────────────────────── */
-/* Give all white rounded cards a visible edge + soft shadow on light theme   */
+/* Give all white rounded cards a gradient, visible border + shadow           */
 :not(.dark) .bg-white.rounded-2xl,
 :not(.dark) .bg-white.rounded-xl,
 :not(.dark) .bg-white.rounded-lg {
-  border-color: #cbd5e1 !important;           /* slate-300 — clearly visible  */
+  background: linear-gradient(160deg, #ffffff 0%, #f8fafc 55%, #f1f5f9 100%) !important;
+  border-color: #94a3b8 !important;           /* slate-400 — hard visible edge */
   box-shadow: 0 2px 10px rgba(0,0,0,0.09), 0 1px 3px rgba(0,0,0,0.07) !important;
 }
 

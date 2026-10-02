@@ -1334,7 +1334,7 @@ export default function SalesCreate() {
           </div>
 
           {/* Cart area */}
-          <div className="flex-1 min-h-0 overflow-y-auto mx-4 mb-2 bg-white rounded-xl shadow-sm border border-slate-300">
+          <div className="flex-1 min-h-0 overflow-y-auto mx-4 mb-2 rounded-xl shadow-sm border border-slate-300" style={{background: 'linear-gradient(160deg, #ffffff 0%, #f8fafc 50%, #f1f5f9 100%)'}}>
             {cart.length > 0 ? (
               <>
                 {/* Cart header */}
@@ -1379,7 +1379,7 @@ export default function SalesCreate() {
           </div>
 
           {/* Fixed bottom: Total + Paid + Action buttons */}
-          <div className="sticky bottom-0 bg-white border-t border-slate-200 shadow-[0_-4px_12px_rgba(0,0,0,0.06)] px-4 py-3 shrink-0 space-y-2">
+          <div className="sticky bottom-0 border-t border-slate-200 shadow-[0_-4px_12px_rgba(0,0,0,0.06)] px-4 py-3 shrink-0 space-y-2" style={{background:'linear-gradient(180deg,#ffffff 0%,#f8fafc 50%,#f1f5f9 100%)'}}>
 
             {/* Combined box: payment buttons (left) + totals (right) inline */}
             <div className="border-2 border-slate-200 rounded-xl px-4 py-3 flex gap-4 items-stretch">
@@ -1388,14 +1388,14 @@ export default function SalesCreate() {
               <div className="flex flex-col gap-2 w-[40%] shrink-0">
                 <div className="flex gap-2">
                   {[
-                    { id: 'cash',   label: t('lbl.cash'),   shortcut: 'F2', icon: Icon.cash,   active: 'bg-green-600',  inactive: 'bg-green-500 hover:bg-green-600'   },
-                    { id: 'card',   label: t('lbl.card'),   shortcut: 'F3', icon: Icon.card,   active: 'bg-blue-700',   inactive: 'bg-blue-500 hover:bg-blue-600'    },
-                    { id: 'credit', label: t('lbl.credit'), shortcut: 'F4', icon: Icon.credit, active: 'bg-orange-600', inactive: 'bg-orange-500 hover:bg-orange-600' },
-                    { id: 'split',  label: 'Split',          shortcut: null,  icon: Icon.split,  active: 'bg-violet-700', inactive: 'bg-violet-600 hover:bg-violet-700' },
+                    { id: 'cash',   label: t('lbl.cash'),   shortcut: 'F2', icon: Icon.cash,   active: 'bg-gradient-to-br from-green-500 to-green-800',  inactive: 'bg-gradient-to-br from-green-500 to-green-700 hover:from-green-400 hover:to-green-700'   },
+                    { id: 'card',   label: t('lbl.card'),   shortcut: 'F3', icon: Icon.card,   active: 'bg-gradient-to-br from-blue-500 to-blue-800',   inactive: 'bg-gradient-to-br from-blue-500 to-blue-700 hover:from-blue-400 hover:to-blue-700'    },
+                    { id: 'credit', label: t('lbl.credit'), shortcut: 'F4', icon: Icon.credit, active: 'bg-gradient-to-br from-orange-500 to-orange-800', inactive: 'bg-gradient-to-br from-orange-500 to-orange-700 hover:from-orange-400 hover:to-orange-700' },
+                    { id: 'split',  label: 'Split',          shortcut: null,  icon: Icon.split,  active: 'bg-gradient-to-br from-violet-500 to-violet-800', inactive: 'bg-gradient-to-br from-violet-500 to-violet-700 hover:from-violet-400 hover:to-violet-700' },
                   ].map(m => (
                     <button key={m.id} onClick={() => setPayMethod(m.id)}
-                      className={`flex-1 aspect-square flex flex-col items-center justify-center gap-0.5 rounded-xl text-xs font-bold transition-all shadow-sm text-white
-                        ${payMethod === m.id ? `${m.active} shadow-inner ring-2 ring-white/30` : m.inactive}`}>
+                      className={`flex-1 aspect-square flex flex-col items-center justify-center gap-0.5 rounded-xl text-xs font-bold transition-all shadow-lg text-white
+                        ${payMethod === m.id ? `${m.active} ring-2 ring-white/40 shadow-inner` : m.inactive}`}>
                       <span className="[&>svg]:w-7 [&>svg]:h-7">{m.icon}</span>
                       <span className="text-sm font-extrabold leading-none">{m.label}</span>
                       {m.shortcut && <span className="text-[10px] opacity-75">[{m.shortcut}]</span>}
@@ -1461,7 +1461,7 @@ export default function SalesCreate() {
                   <div className="flex items-center gap-2">
                     <input type="number" min="0" step="0.01" value={billDiscount}
                       onChange={e => { setBillDisc(e.target.value); setDiscType('amount'); }} placeholder="0"
-                      className="w-24 rounded-lg border border-slate-300 px-2 py-1 text-base font-semibold outline-none focus:ring-1 focus:ring-orange-400 text-right bg-white" />
+                      className="w-32 rounded-lg border border-slate-300 px-3 py-2 text-lg font-semibold outline-none focus:ring-2 focus:ring-orange-400 text-right bg-white" />
                     <span className="text-sm font-bold text-slate-500">Rs</span>
                     {totalDisc > 0 && <span className="text-sm font-bold text-red-500">-{fmtAmt(totalDisc)}</span>}
                   </div>
@@ -1476,7 +1476,7 @@ export default function SalesCreate() {
                       onBlur={() => setCashFocused(false)}
                       onKeyDown={e => { if (e.key==='Enter') handleCompleteSale(false, true); }}
                       placeholder="0.00"
-                      className={`text-xl font-extrabold bg-transparent outline-none border-2 rounded text-right w-40 px-2 ${shakeInput ? 'border-red-500 text-red-600' : 'border-green-500 text-green-700'}`} />
+                      className={`text-2xl font-extrabold bg-transparent outline-none border-2 rounded-lg text-right w-48 px-3 py-1.5 ${shakeInput ? 'border-red-500 text-red-600' : 'border-green-500 text-green-700'}`} />
                   ) : (
                     <span className="text-xl font-extrabold text-green-700">{Number(total||0).toLocaleString('en-LK',{minimumFractionDigits:2})}</span>
                   )}
@@ -1496,20 +1496,20 @@ export default function SalesCreate() {
             <div className="flex gap-2">
               <button disabled={cart.length === 0}
                 onClick={() => { setCart([]); setCustomer(null); setCustQuery(''); setBillDisc(''); refocus(); }}
-                className="w-16 h-16 shrink-0 flex flex-col items-center justify-center gap-1 bg-red-500 hover:bg-red-600 text-white disabled:cursor-not-allowed rounded-xl text-xs font-bold transition-colors shadow-lg">
+                className="w-16 h-16 shrink-0 flex flex-col items-center justify-center gap-1 bg-gradient-to-br from-red-500 to-red-700 hover:from-red-400 hover:to-red-600 text-white disabled:cursor-not-allowed rounded-xl text-xs font-bold transition-all shadow-[0_4px_14px_rgba(239,68,68,0.5)]">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                 <span>Clear</span>
               </button>
               <button disabled={cart.length === 0} onClick={() => setHoldModal(true)}
-                className="flex-1 flex flex-col items-center justify-center gap-1 py-3 bg-amber-400 hover:bg-amber-500 text-amber-900 disabled:cursor-not-allowed rounded-xl font-bold text-sm transition-colors shadow-lg">
+                className="flex-1 flex flex-col items-center justify-center gap-1 py-3 bg-gradient-to-br from-amber-400 to-amber-600 hover:from-amber-300 hover:to-amber-500 text-white disabled:cursor-not-allowed rounded-xl font-bold text-sm transition-all shadow-[0_4px_14px_rgba(245,158,11,0.5)]">
                 {Icon.pause} <span>{t('pos.hold_btn')}</span>
               </button>
               <button disabled={cart.length === 0 || total === 0 || submitting} onClick={() => handleCompleteSale(true)}
-                className="w-16 h-16 shrink-0 flex flex-col items-center justify-center gap-1 bg-teal-500 hover:bg-teal-600 text-white disabled:cursor-not-allowed rounded-xl text-xs font-bold transition-colors shadow-lg">
+                className="w-16 h-16 shrink-0 flex flex-col items-center justify-center gap-1 bg-gradient-to-br from-teal-400 to-teal-600 hover:from-teal-300 hover:to-teal-500 text-white disabled:cursor-not-allowed rounded-xl text-xs font-bold transition-all shadow-[0_4px_14px_rgba(20,184,166,0.5)]">
                 {Icon.save} <span>F11</span>
               </button>
               <button disabled={cart.length === 0 || total === 0 || submitting} onClick={() => handleCompleteSale(false, true)}
-                className="flex-[2] flex flex-col items-center justify-center gap-1 py-3 bg-green-700 hover:bg-green-800 text-white rounded-xl font-bold text-sm transition-colors shadow-lg disabled:cursor-not-allowed">
+                className="flex-[2] flex flex-col items-center justify-center gap-1 py-3 bg-gradient-to-br from-green-600 to-green-800 hover:from-green-500 hover:to-green-700 text-white rounded-xl font-bold text-sm transition-all shadow-[0_4px_14px_rgba(22,163,74,0.5)] disabled:cursor-not-allowed">
                 {Icon.print} <span>{t('pos.complete_sale')} <span className="text-xs opacity-70">F10</span></span>
               </button>
             </div>
@@ -1549,10 +1549,17 @@ export default function SalesCreate() {
                   const isActive = selectedCategory === cat.id;
                   return (
                     <button key={cat.id} onClick={() => setSelectedCategory(isActive ? null : cat.id)}
-                      className={`w-full overflow-hidden flex flex-col items-center gap-1.5 py-3 px-1 rounded-xl border-2 transition-all active:scale-95
-                        ${isActive
-                          ? 'border-blue-500 bg-blue-50 shadow-md'
-                          : 'border-slate-100 bg-white hover:border-blue-300 hover:shadow-md'}`}>
+                      className="w-full overflow-hidden flex flex-col items-center gap-1.5 py-3 px-1 rounded-xl border transition-all"
+                      style={isActive ? {
+                        background: '#eff6ff',
+                        borderColor: '#3b82f6',
+                        boxShadow: '0 2px 0 #1d4ed8, 0 2px 6px rgba(59,130,246,0.15)',
+                        transform: 'translateY(2px)',
+                      } : {
+                        background: '#ffffff',
+                        borderColor: '#e2e8f0',
+                        boxShadow: '0 4px 0 #cbd5e1, 0 2px 8px rgba(0,0,0,0.06)',
+                      }}>
                       {cat.image ? (
                         <img src={cat.image} alt={cat.name} className="w-14 h-14 object-cover rounded-xl shadow-sm" />
                       ) : (
