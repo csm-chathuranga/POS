@@ -103,6 +103,7 @@ function TenantTable({ token }) {
   const [editRow, setEditRow]     = useState({});
   const [saving, setSaving]       = useState(false);
   const [showPw, setShowPw]       = useState({});
+  const [revealPw, setRevealPw]   = useState({}); // rowId → true/false for view mode
   const [migrating, setMigrating] = useState({});  // id → true/false
   const [migrateResult, setMigrateResult] = useState({}); // id → { ok, results, error }
   const [seeding, setSeeding]     = useState({});  // id → true/false
@@ -200,10 +201,19 @@ function TenantTable({ token }) {
                         onChange={e => setEditRow(r => ({ ...r, [key]: e.target.value }))}
                         className="w-full min-w-[100px] border border-blue-300 rounded-lg px-2 py-1 text-xs outline-none focus:ring-2 focus:ring-blue-500"
                       />
+                    ) : secret ? (
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-mono text-xs text-slate-700">
+                          {revealPw[t.id] ? (t[key] ?? '—') : '••••••••'}
+                        </span>
+                        <button
+                          onClick={() => setRevealPw(r => ({ ...r, [t.id]: !r[t.id] }))}
+                          className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-slate-100 text-slate-500 hover:bg-slate-200 transition-colors">
+                          {revealPw[t.id] ? 'Hide' : 'Show'}
+                        </button>
+                      </div>
                     ) : (
-                      <span className="font-mono text-xs text-slate-700">
-                        {secret ? '••••••••' : (t[key] ?? '—')}
-                      </span>
+                      <span className="font-mono text-xs text-slate-700">{t[key] ?? '—'}</span>
                     )}
                   </td>
                 ))}

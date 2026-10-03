@@ -33,8 +33,10 @@ function getMasterDb() {
     }, { tableName: 'tenants', timestamps: false });
 
     _Category = _master.define('Category', {
-      id:   { type: DataTypes.BIGINT.UNSIGNED, primaryKey: true, autoIncrement: true },
-      name: { type: DataTypes.STRING(191), allowNull: false },
+      id:     { type: DataTypes.BIGINT.UNSIGNED, primaryKey: true, autoIncrement: true },
+      name:   { type: DataTypes.STRING(191), allowNull: false },
+      image:  { type: DataTypes.STRING(512), allowNull: true },
+      active: { type: DataTypes.BOOLEAN, defaultValue: true },
     }, { tableName: 'categories' });
 
     _Product = _master.define('Product', {

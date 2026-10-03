@@ -611,6 +611,9 @@ export default function SalesCreate() {
 
   // Category filter
   const [selectedCategory, setSelectedCategory] = useState(null);
+  // Category drawer
+  const [drawerCategory, setDrawerCategory] = useState(null); // { id, name } | null
+  const [drawerSearch, setDrawerSearch]     = useState('');
 
   // Return modal
   const [showReturn, setShowReturn] = useState(false);
@@ -1530,11 +1533,8 @@ export default function SalesCreate() {
               <div className="grid grid-cols-2 gap-1.5">
                 {/* All tile */}
                 <button
-                  onClick={() => setSelectedCategory(null)}
-                  className={`col-span-2 flex items-center justify-center gap-1.5 py-2 px-2 rounded-xl border-2 transition-all active:scale-95 text-xs font-bold
-                    ${selectedCategory === null
-                      ? 'bg-blue-600 border-blue-600 text-white shadow-md'
-                      : 'bg-white border-slate-100 text-slate-600 hover:border-blue-300 hover:shadow-md'}`}>
+                  onClick={() => { setDrawerSearch(''); setDrawerCategory({ id: null, name: 'All Products' }); }}
+                  className="col-span-2 flex items-center justify-center gap-1.5 py-2 px-2 rounded-xl border-2 transition-all active:scale-95 text-xs font-bold bg-blue-600 border-blue-600 text-white shadow-md">
                   All Products
                 </button>
                 {categories.map((cat, i) => {
@@ -1548,7 +1548,7 @@ export default function SalesCreate() {
                   const grad = CAT_GRADIENTS[i % CAT_GRADIENTS.length];
                   const isActive = selectedCategory === cat.id;
                   return (
-                    <button key={cat.id} onClick={() => setSelectedCategory(isActive ? null : cat.id)}
+                    <button key={cat.id} onClick={() => { setDrawerSearch(''); setDrawerCategory(cat); }}
                       className="w-full overflow-hidden flex flex-col items-center gap-1.5 py-3 px-1 rounded-xl border transition-all"
                       style={isActive ? {
                         background: '#eff6ff',
@@ -1576,6 +1576,70 @@ export default function SalesCreate() {
           </div>
         </div>
       </div>
+
+      {/* ═══ CATEGORY PRODUCT DRAWER ══════════════════════════════════════ */}
+      {drawerCategory && (() => {
+        const q = drawerSearch.trim().toLowerCase();
+        const drawerProducts = products.filter(p => {
+          if (p.active === false) return false;
+          if (drawerCategory.id !== null && p.category_id !== drawerCategory.id) return false;
+          if (!q) return true;
+          return p.name.toLowerCase().includes(q) || (p.name_si && p.name_si.includes(q)) || (p.barcode && p.barcode.toLowerCase().includes(q));
+        });
+        return (
+          <>
+            {/* Backdrop */}
+            <div className="fixed inset-0 z-40 bg-black/30" onClick={() => setDrawerCategory(null)} />
+            {/* Drawer */}
+            <div className="fixed bottom-0 left-0 right-0 z-50 bg-white rounded-t-2xl shadow-2xl flex flex-col"
+              style={{ maxHeight: '75vh' }}>
+              {/* Header */}
+              <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 shrink-0 gap-3">
+                <p className="font-bold text-slate-800 text-sm shrink-0">{drawerCategory.name}
+                  <span className="ml-2 text-xs font-normal text-slate-400">({drawerProducts.length})</span>
+                </p>
+                <input
+                  autoFocus
+                  type="text"
+                  value={drawerSearch}
+                  onChange={e => setDrawerSearch(e.target.value)}
+                  placeholder="Search products…"
+                  className="flex-1 rounded-lg border border-slate-200 px-3 py-1.5 text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <button onClick={() => setDrawerCategory(null)}
+                  className="text-slate-400 hover:text-slate-600 text-2xl leading-none w-8 h-8 flex items-center justify-center shrink-0">&times;</button>
+              </div>
+              {/* Product grid */}
+              <div className="overflow-y-auto p-3 grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2">
+                {drawerProducts.length === 0 ? (
+                  <p className="col-span-full text-center text-sm text-slate-400 py-8">No products in this category.</p>
+                ) : drawerProducts.map(p => {
+                  const price = parseFloat(p.our_price ?? p.promo_price ?? p.selling_price) || 0;
+                  const inStock = (p.stock_qty ?? 0) > 0;
+                  return (
+                    <button key={p.id}
+                      onClick={() => { addToCart(p, null, false); }}
+                      disabled={!inStock}
+                      className={`flex flex-col items-center gap-1.5 p-2 rounded-xl border transition-all active:scale-95 text-left
+                        ${inStock ? 'bg-white border-slate-100 hover:border-blue-300 hover:shadow-md' : 'bg-slate-50 border-slate-100 opacity-50 cursor-not-allowed'}`}>
+                      {p.image ? (
+                        <img src={p.image} alt={p.name} className="w-14 h-14 object-cover rounded-lg" />
+                      ) : (
+                        <div className="w-14 h-14 rounded-lg bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center text-slate-400 text-2xl font-bold">
+                          {(p.name || '?')[0]}
+                        </div>
+                      )}
+                      <span className="text-[10px] font-semibold text-slate-700 text-center leading-tight line-clamp-2 w-full">{isSinhala && p.name_si ? p.name_si : p.name}</span>
+                      <span className="text-xs font-bold text-blue-700">Rs.{fmt(price)}</span>
+                      {!inStock && <span className="text-[9px] text-red-400 font-semibold">Out of stock</span>}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </>
+        );
+      })()}
 
       {/* ═══ MODALS ══════════════════════════════════════════════════════════ */}
 

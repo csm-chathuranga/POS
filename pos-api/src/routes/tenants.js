@@ -90,10 +90,11 @@ router.post('/provision', auth, async (req, res) => {
     );
     send(`Admin user created (${admin_email})`);
 
-    // 6. Copy categories
+    // 6. Copy categories + products (only when toggle is on)
+    if (copy_products) {
     await master.query(
-      `INSERT IGNORE INTO ${db}.categories (id, name, created_at, updated_at)
-       SELECT id, name, created_at, updated_at FROM pos_master.categories`
+      `INSERT IGNORE INTO ${db}.categories (id, name, image, active, created_at, updated_at)
+       SELECT id, name, image, active, created_at, updated_at FROM pos_master.categories`
     );
     const [[{ total: cCount }]] = await master.query(
       `SELECT COUNT(*) AS total FROM ${db}.categories`
@@ -101,7 +102,7 @@ router.post('/provision', auth, async (req, res) => {
     send(`Categories copied (${cCount})`);
 
     // 7. Copy products
-    if (copy_products) {
+    {
       await master.query(
         `INSERT IGNORE INTO ${db}.products
            (id, category_id, name, name_si, barcode, sku, description, image,
@@ -121,7 +122,7 @@ router.post('/provision', auth, async (req, res) => {
         `SELECT COUNT(*) AS total FROM ${db}.products`
       );
       send(`Products copied (${pCount})`);
-    }
+    }} // end copy_products
 
     // 8. Register tenant in pos_master
     await Tenant.findOrCreate({

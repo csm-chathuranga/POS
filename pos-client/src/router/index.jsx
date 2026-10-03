@@ -93,10 +93,6 @@ export const router = createAppRouter([
     element: <GuestLayout><Login /></GuestLayout>,
   },
   {
-    path: '/admin/provision-tenant',
-    element: <ProvisionTenant />,
-  },
-  {
     element: <ProtectedRoute />,
     children: [{
       element: <RoleLayout />,
@@ -135,7 +131,8 @@ export const router = createAppRouter([
             {
               element: <AdminOnlyRoute />,
               children: [
-                { path: 'admin/data-import', element: <ImportDataPage /> },
+                { path: 'admin/data-import',       element: <ImportDataPage /> },
+                { path: 'admin/provision-tenant',  element: <ProvisionTenant /> },
               ],
             },
           ],
