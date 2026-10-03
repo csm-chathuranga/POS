@@ -212,8 +212,8 @@ export default function GuestLayout({ children }) {
 
         {/* Top-right controls */}
         <div className="absolute top-4 right-4 flex items-center gap-2">
-          {/* PWA install button */}
-          {installPrompt && !installed && (
+          {/* PWA install button — always visible unless already installed */}
+          {!installed && (
             <button onClick={handleInstall}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-semibold transition-all"
               style={isDark
