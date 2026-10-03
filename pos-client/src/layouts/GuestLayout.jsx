@@ -48,6 +48,23 @@ export default function GuestLayout({ children }) {
   const { theme, setTheme } = useTheme();
   const isDark = theme === 'dark';
 
+  const [installPrompt, setInstallPrompt] = useState(null);
+  const [installed, setInstalled] = useState(false);
+
+  useEffect(() => {
+    const handler = e => { e.preventDefault(); setInstallPrompt(e); };
+    window.addEventListener('beforeinstallprompt', handler);
+    window.addEventListener('appinstalled', () => { setInstallPrompt(null); setInstalled(true); });
+    return () => window.removeEventListener('beforeinstallprompt', handler);
+  }, []);
+
+  async function handleInstall() {
+    if (!installPrompt) return;
+    installPrompt.prompt();
+    const { outcome } = await installPrompt.userChoice;
+    if (outcome === 'accepted') { setInstallPrompt(null); setInstalled(true); }
+  }
+
   return (
     <div className="min-h-screen flex">
       {/* Left branding panel */}
@@ -193,28 +210,45 @@ export default function GuestLayout({ children }) {
       <div className="flex-1 flex flex-col items-center justify-center px-6 py-10 relative transition-colors duration-300"
         style={{ backgroundColor: isDark ? '#111827' : '#e5e7eb' }}>
 
-        {/* Theme toggle */}
-        <button onClick={() => setTheme(isDark ? 'light' : 'dark')}
-          className="absolute top-4 right-4 flex items-center gap-2 px-3 py-1.5 rounded-full border text-xs font-semibold transition-all"
-          style={isDark
-            ? { backgroundColor: '#1f2937', borderColor: '#374151', color: '#d1d5db' }
-            : { backgroundColor: '#fff', borderColor: '#d1d5db', color: '#475569' }}>
-          {isDark ? (
-            <>
-              <svg className="w-3.5 h-3.5 text-yellow-400" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M12 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm0 15a5 5 0 100-10 5 5 0 000 10zm7-5a1 1 0 011-1h1a1 1 0 110 2h-1a1 1 0 01-1-1zM3 11a1 1 0 110 2H2a1 1 0 110-2h1zm15.657-6.243a1 1 0 010 1.414l-.707.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM6.757 17.657a1 1 0 010 1.414l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 0zM20 19.071a1 1 0 01-1.414 0l-.707-.707a1 1 0 011.414-1.414l.707.707A1 1 0 0120 19.07zM5.05 6.464a1 1 0 01-1.414 1.414l-.707-.707A1 1 0 014.343 5.757l.707.707zM12 20a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1z"/>
+        {/* Top-right controls */}
+        <div className="absolute top-4 right-4 flex items-center gap-2">
+          {/* PWA install button */}
+          {installPrompt && !installed && (
+            <button onClick={handleInstall}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-semibold transition-all"
+              style={isDark
+                ? { backgroundColor: '#1f2937', borderColor: '#374151', color: '#60a5fa' }
+                : { backgroundColor: '#fff', borderColor: '#bfdbfe', color: '#2563eb' }}>
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
               </svg>
-              Light mode
-            </>
-          ) : (
-            <>
-              <svg className="w-3.5 h-3.5 text-slate-500" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M21 12.79A9 9 0 1111.21 3a7 7 0 109.79 9.79z"/>
-              </svg>
-              Dark mode
-            </>
+              Install App
+            </button>
           )}
-        </button>
+
+          {/* Theme toggle */}
+          <button onClick={() => setTheme(isDark ? 'light' : 'dark')}
+            className="flex items-center gap-2 px-3 py-1.5 rounded-full border text-xs font-semibold transition-all"
+            style={isDark
+              ? { backgroundColor: '#1f2937', borderColor: '#374151', color: '#d1d5db' }
+              : { backgroundColor: '#fff', borderColor: '#d1d5db', color: '#475569' }}>
+            {isDark ? (
+              <>
+                <svg className="w-3.5 h-3.5 text-yellow-400" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M12 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm0 15a5 5 0 100-10 5 5 0 000 10zm7-5a1 1 0 011-1h1a1 1 0 110 2h-1a1 1 0 01-1-1zM3 11a1 1 0 110 2H2a1 1 0 110-2h1zm15.657-6.243a1 1 0 010 1.414l-.707.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM6.757 17.657a1 1 0 010 1.414l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 0zM20 19.071a1 1 0 01-1.414 0l-.707-.707a1 1 0 011.414-1.414l.707.707A1 1 0 0120 19.07zM5.05 6.464a1 1 0 01-1.414 1.414l-.707-.707A1 1 0 014.343 5.757l.707.707zM12 20a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1z"/>
+                </svg>
+                Light mode
+              </>
+            ) : (
+              <>
+                <svg className="w-3.5 h-3.5 text-slate-500" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M21 12.79A9 9 0 1111.21 3a7 7 0 109.79 9.79z"/>
+                </svg>
+                Dark mode
+              </>
+            )}
+          </button>
+        </div>
 
         <div className="w-full max-w-sm flex flex-col gap-4">
           {children}
