@@ -115,9 +115,23 @@ export default function AppLayout() {
   const notifCount = useNotifBadge(token);
 
   const [collapsed, setCollapsed] = useState(
-    () => localStorage.getItem('sidebar_collapsed') === 'true'
+    () => window.matchMedia('(max-width: 1349px)').matches || localStorage.getItem('sidebar_collapsed') === 'true'
   );
   const [sidebarHover, setSidebarHover] = useState(false);
+
+  // Auto-collapse below the wide (1350px) breakpoint
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 1349px)');
+    const handler = e => {
+      if (e.matches) {
+        setCollapsed(true);
+      } else {
+        setCollapsed(localStorage.getItem('sidebar_collapsed') === 'true');
+      }
+    };
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
+  }, []);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [routing, setRouting] = useState(false);
   const [shopInfo, setShopInfo] = useState({ shop_name: '', shop_logo: '' });
@@ -428,7 +442,7 @@ export default function AppLayout() {
           ${displayCollapsed ? 'px-1' : 'px-3'}`}>
           <button onClick={toggleCollapse}
             title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-            className={`hidden md:flex items-center gap-2 py-2 rounded-xl transition-all duration-150 text-slate-400 hover:text-white hover:bg-white/10
+            className={`hidden wide:flex items-center gap-2 py-2 rounded-xl transition-all duration-150 text-slate-400 hover:text-white hover:bg-white/10
               ${displayCollapsed ? 'justify-center w-10 mx-auto px-0' : 'px-3 w-full'}`}>
             {collapsed ? Icons.chevronsRight : Icons.chevronsLeft}
             {!displayCollapsed && <span className="text-sm font-medium">{t('btn.collapse')}</span>}

@@ -1235,7 +1235,7 @@ export default function SalesCreate() {
 
         {/* ═══ LEFT PANEL (Cart / Products) ════════════════════════════════════ */}
         <div className={`flex flex-col min-w-0 overflow-hidden
-          w-full lg:w-[82%]
+          w-full wide:w-[82%]
           ${mobileTab === 'pay' ? 'hidden lg:flex' : 'flex'}`}>
 
           {/* Section header + search + tabs */}
@@ -1521,8 +1521,8 @@ export default function SalesCreate() {
 
         {/* ═══ RIGHT PANEL (Categories) ══════════════════════════════════════ */}
         <div className={`bg-slate-50 border-l border-slate-200 flex-col shrink-0 overflow-y-auto
-          w-full lg:w-[18%]
-          ${mobileTab === 'cart' ? 'hidden lg:flex' : 'flex'}`}>
+          w-full wide:w-[18%]
+          ${mobileTab === 'cart' ? 'hidden wide:flex' : 'flex'}`}>
 
           {/* Category Tiles */}
           <div className="px-2 py-3 flex-1 overflow-y-auto">
