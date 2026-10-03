@@ -661,6 +661,15 @@ export default function SalesCreate() {
   // Mobile tab: 'cart' | 'pay'
   const [mobileTab, setMobileTab] = useState('cart');
 
+  // Show category panel only on wide screens (>= 1350px) — JS-driven, bypasses CSS breakpoint
+  const [isWideScreen, setIsWideScreen] = useState(() => window.matchMedia('(min-width: 1350px)').matches);
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 1350px)');
+    const handler = e => setIsWideScreen(e.matches);
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
+  }, []);
+
   // ─── Derived ─────────────────────────────────────────────────────────────────
   const categories = useMemo(() => {
     if (allCategories.length > 0)
@@ -1235,7 +1244,7 @@ export default function SalesCreate() {
 
         {/* ═══ LEFT PANEL (Cart / Products) ════════════════════════════════════ */}
         <div className={`flex flex-col min-w-0 overflow-hidden
-          w-full wide:w-[82%]
+          ${isWideScreen ? 'w-[82%]' : 'w-full'}
           ${mobileTab === 'pay' ? 'hidden lg:flex' : 'flex'}`}>
 
           {/* Section header + search + tabs */}
@@ -1521,8 +1530,7 @@ export default function SalesCreate() {
 
         {/* ═══ RIGHT PANEL (Categories) ══════════════════════════════════════ */}
         <div className={`bg-slate-50 border-l border-slate-200 flex-col shrink-0 overflow-y-auto
-          w-full wide:w-[18%]
-          ${mobileTab === 'cart' ? 'hidden wide:flex' : 'flex'}`}>
+          ${isWideScreen ? 'flex w-[18%]' : (mobileTab === 'cart' ? 'hidden w-full' : 'flex w-full')}`}>
 
           {/* Category Tiles */}
           <div className="px-2 py-3 flex-1 overflow-y-auto">
