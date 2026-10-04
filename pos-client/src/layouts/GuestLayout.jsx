@@ -1,5 +1,16 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useTheme } from '../contexts/ThemeContext';
+
+// ── Tutorial videos ──────────────────────────────────────────────────────────
+// Fill in the `id` field with the YouTube video ID when ready (e.g. 'dQw4w9WgXcQ')
+const TUTORIALS = [
+  { id: 'Pt5_gFnHugc', title: 'Login & Getting Started',  si_title: 'ලොගින් සහ ආරම්භය',              desc: 'How to sign in to the system',        si_desc: 'පද්ධතියට ඇතුල් වන ආකාරය'           },
+  { id: 'H21_cwd4rnU', title: 'Settings',                 si_title: 'සැකසුම්',                        desc: 'Configure your POS settings',         si_desc: 'POS සැකසුම් සකස් කරන්න'            },
+  { id: '6stflHu-kLc', title: 'Add Product & Category',   si_title: 'නිෂ්පාදන සහ වර්ගය එකතු කිරීම', desc: 'Add new products and categories',      si_desc: 'නව නිෂ්පාදන සහ වර්ග එකතු කරන්න'  },
+  { id: '1ImnZkjY04A', title: 'Add Supplier & Goods',     si_title: 'සැපයුම්කරු සහ භාණ්ඩ එකතු කිරීම', desc: 'Manage suppliers and incoming goods',  si_desc: 'සැපයුම්කරුවන් සහ භාණ්ඩ කළමනාකරණය' },
+  { id: 'Ld3AbVIbYpY', title: 'Billing',                  si_title: 'බිල්පත් කිරීම',                 desc: 'Process customer bills and payments',  si_desc: 'ගනුදෙනුකරු බිල්පත් සකසන්න'         },
+  { id: 'TNT8UnF9Wtw', title: 'Sale History',             si_title: 'විකිණුම් ඉතිහාසය',              desc: 'View and manage past sales records',   si_desc: 'පසුගිය විකිණුම් වාර්තා බලන්න'       },
+];
 
 const TAGLINES = [
   'Fast, reliable sales management for your business.',
@@ -44,12 +55,78 @@ function Typewriter({ speed = 45, pause = 1800, eraseSpeed = 25 }) {
   );
 }
 
+function VideoModal({ video, onClose }) {
+  useEffect(() => {
+    const handler = e => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, [onClose]);
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-2 md:p-4"
+      style={{ backgroundColor: 'rgba(0,0,0,0.92)', backdropFilter: 'blur(8px)' }}
+      onClick={onClose}
+    >
+      <div className="w-full max-w-6xl" onClick={e => e.stopPropagation()}>
+        {/* Header */}
+        <div className="flex items-center justify-between mb-4 px-1">
+          <div>
+            <h3 className="text-white font-bold text-lg leading-tight">{video.title} <span className="text-blue-200/60 font-normal text-base">· {video.si_title}</span></h3>
+            <p className="text-blue-300 text-sm mt-0.5">{video.desc} · {video.si_desc}</p>
+          </div>
+          <button
+            onClick={onClose}
+            className="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors shrink-0 ml-4"
+          >
+            <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+          </button>
+        </div>
+
+        {/* Video */}
+        <div className="relative rounded-2xl overflow-hidden shadow-2xl bg-black" style={{ aspectRatio: '16/9' }}>
+          {video.id ? (
+            <iframe
+              src={`https://www.youtube.com/embed/${video.id}?autoplay=1&rel=0`}
+              title={video.title}
+              className="absolute inset-0 w-full h-full border-0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+            />
+          ) : (
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
+              <div className="w-16 h-16 rounded-full bg-white/10 flex items-center justify-center">
+                <svg className="w-8 h-8 text-white/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 10l4.553-2.069A1 1 0 0121 8.82v6.36a1 1 0 01-1.447.894L15 14M3 8a2 2 0 012-2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z"/>
+                </svg>
+              </div>
+              <div className="text-center">
+                <p className="text-white font-semibold">Coming Soon</p>
+                <p className="text-white/50 text-sm mt-1">This tutorial is being prepared</p>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Close hint */}
+        <p className="text-center text-white/30 text-xs mt-4">Press Esc or click outside to close</p>
+      </div>
+    </div>
+  );
+}
+
 export default function GuestLayout({ children }) {
   const { theme, setTheme } = useTheme();
   const isDark = theme === 'dark';
 
   const [installPrompt, setInstallPrompt] = useState(null);
   const [installed, setInstalled] = useState(false);
+  const [activeVideo, setActiveVideo] = useState(null);
+
+  const openVideo = useCallback(video => setActiveVideo(video), []);
+  const closeVideo = useCallback(() => setActiveVideo(null), []);
 
   useEffect(() => {
     const handler = e => { e.preventDefault(); setInstallPrompt(e); };
@@ -67,6 +144,7 @@ export default function GuestLayout({ children }) {
 
   return (
     <div className="min-h-screen flex">
+      {activeVideo && <VideoModal video={activeVideo} onClose={closeVideo} />}
       {/* Left branding panel */}
       <div className="hidden md:flex md:w-[45%] lg:w-[40%] flex-col items-center justify-center relative overflow-hidden"
         style={{ background: 'linear-gradient(145deg, #0f172a 0%, #1e3a5f 60%, #1e40af 100%)' }}>
@@ -150,59 +228,65 @@ export default function GuestLayout({ children }) {
             backgroundSize: '40px 40px' }} />
 
         {/* Content */}
-        <div className="relative z-10 flex flex-col items-center text-center px-10 w-full">
-          <div className="w-20 h-20 rounded-2xl bg-white/15 border border-white/30 flex items-center justify-center mb-5 shadow-2xl"
-            style={{ boxShadow: '0 0 30px rgba(59,130,246,0.5), 0 8px 32px rgba(0,0,0,0.4)' }}>
-            <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 7H6a2 2 0 00-2 2v9a2 2 0 002 2h12a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1-4H9m0 0a2 2 0 000 4h6a2 2 0 000-4M9 3h6"/>
-            </svg>
+        <div className="relative z-10 flex flex-col items-center text-center px-10 w-full mt-10">
+          <div className="mb-5">
+            <img src="/icon-new.jpg" alt="LMUC POS"
+              className="w-20 h-20 rounded-2xl object-cover shadow-2xl"
+              style={{ boxShadow: '0 0 30px rgba(59,130,246,0.5), 0 8px 32px rgba(0,0,0,0.4)' }} />
           </div>
 
-          <h1 className="text-3xl font-extrabold text-white tracking-tight mb-1"
-            style={{ textShadow: '0 0 30px rgba(147,197,253,0.6)' }}>
-            Point of Sale
-          </h1>
           <p className="text-blue-300 text-sm leading-relaxed max-w-xs mb-8 min-h-[40px]">
             <Typewriter />
           </p>
 
-          <div className="flex flex-col gap-2.5 w-full max-w-[230px]">
-            {[
-              { icon: '⚡', text: 'Fast checkout',      color: 'rgba(251,191,36,0.15)',  border: 'rgba(251,191,36,0.3)'  },
-              { icon: '📊', text: 'Real-time reports',  color: 'rgba(99,102,241,0.15)',  border: 'rgba(99,102,241,0.3)'  },
-              { icon: '🔒', text: 'Offline capable',    color: 'rgba(16,185,129,0.15)',  border: 'rgba(16,185,129,0.3)'  },
-            ].map(f => (
-              <div key={f.text} className="flex items-center gap-3 rounded-xl px-4 py-3 backdrop-blur-sm"
-                style={{ backgroundColor: f.color, border: `1px solid ${f.border}` }}>
-                <span className="text-xl">{f.icon}</span>
-                <span className="text-white text-sm font-semibold">{f.text}</span>
+          {/* Tutorial Videos */}
+          <div className="mt-6 w-full rounded-2xl overflow-hidden"
+            style={{ backgroundColor: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)' }}>
+            {/* Header */}
+            <div className="px-4 pt-4 pb-3 flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-red-500 flex items-center justify-center shrink-0 shadow-md">
+                <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M19.615 3.184c-3.604-.246-11.631-.245-15.23 0C.488 3.45.029 5.804 0 12c.029 6.185.484 8.549 4.385 8.816 3.6.245 11.626.246 15.23 0C23.512 20.55 23.971 18.196 24 12c-.029-6.185-.484-8.549-4.385-8.816zM9 16V8l8 4-8 4z"/>
+                </svg>
               </div>
-            ))}
+              <div>
+                <p className="text-white font-bold text-sm">Video Tutorials <span className="text-blue-200/60 font-normal text-xs">· වීඩියෝ නිබන්ධන</span></p>
+                <p className="text-blue-300/60 text-xs mt-0.5">Learn how to use the POS system · POS පද්ධතිය ඉගෙන ගන්න</p>
+              </div>
+            </div>
+            {/* List */}
+            <div className="px-3 pb-3 flex flex-col gap-1.5">
+              {TUTORIALS.map((v, i) => (
+                <button
+                  key={i}
+                  onClick={() => openVideo(v)}
+                  className="w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-all"
+                  style={{ backgroundColor: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)' }}
+                  onMouseEnter={e => e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.14)'}
+                  onMouseLeave={e => e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.06)'}
+                >
+                  <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
+                    style={{ backgroundColor: v.id ? 'rgba(239,68,68,0.85)' : 'rgba(255,255,255,0.15)' }}>
+                    <svg className="w-3.5 h-3.5 text-white ml-0.5" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M8 5v14l11-7z"/>
+                    </svg>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-white text-sm font-semibold truncate">{v.title}</p>
+                    <p className="text-blue-200/50 text-xs truncate">{v.si_title}</p>
+                    <p className="text-blue-300/40 text-[10px] truncate">{v.desc} · {v.si_desc}</p>
+                  </div>
+                  {!v.id && (
+                    <span className="shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full"
+                      style={{ backgroundColor: 'rgba(251,191,36,0.15)', color: '#fbbf24', border: '1px solid rgba(251,191,36,0.3)' }}>
+                      Soon
+                    </span>
+                  )}
+                </button>
+              ))}
+            </div>
           </div>
 
-          {/* Lumac Solutions footer */}
-          <div className="mt-10 pt-6 border-t border-white/10 w-full max-w-[230px] flex flex-col items-center gap-1.5">
-            <p className="text-white/40 text-[10px] uppercase tracking-widest">Powered by</p>
-            <p className="text-white font-bold text-base tracking-wide"
-              style={{ textShadow: '0 0 20px rgba(147,197,253,0.5)' }}>
-              Lumac Solutions
-            </p>
-            <a href="tel:0764643050"
-              className="flex items-center gap-1.5 text-blue-200 font-bold hover:text-white transition-colors"
-              style={{ fontSize: '1.05rem' }}>
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/>
-              </svg>
-              076 464 3050
-            </a>
-            <a href="https://www.lumac.lk" target="_blank" rel="noopener noreferrer"
-              className="flex items-center gap-1.5 text-blue-400 text-xs font-semibold hover:text-white transition-colors">
-              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9"/>
-              </svg>
-              www.lumac.lk
-            </a>
-          </div>
         </div>
       </div>
 
@@ -250,42 +334,27 @@ export default function GuestLayout({ children }) {
           </button>
         </div>
 
-        <div className="w-full max-w-sm flex flex-col gap-4">
+        <div className="w-full max-w-lg flex flex-col gap-4">
           {children}
 
-          {/* Watch Tutorial */}
-          <div className="rounded-2xl border p-4 flex items-center gap-4 transition-colors"
-            style={isDark ? { backgroundColor: '#1f2937', borderColor: '#374151' } : { backgroundColor: '#fff', borderColor: '#e2e8f0' }}>
-            <div className="w-12 h-12 rounded-xl bg-red-500 flex items-center justify-center shrink-0 shadow-md">
-              <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M19.615 3.184c-3.604-.246-11.631-.245-15.23 0C.488 3.45.029 5.804 0 12c.029 6.185.484 8.549 4.385 8.816 3.6.245 11.626.246 15.23 0C23.512 20.55 23.971 18.196 24 12c-.029-6.185-.484-8.549-4.385-8.816zM9 16V8l8 4-8 4z"/>
+          {/* Lumac footer */}
+          <div className="flex flex-col items-center gap-1 pt-2">
+            <p className="text-[10px] uppercase tracking-widest text-slate-400">Powered by</p>
+            <p className="font-bold text-sm" style={{ color: isDark ? '#f1f5f9' : '#1e293b' }}>Lumac Solutions</p>
+            <a href="tel:0764643050"
+              className="flex items-center gap-1.5 text-blue-500 font-semibold text-sm hover:text-blue-600 transition-colors">
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/>
               </svg>
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="font-bold text-sm" style={{ color: isDark ? '#f1f5f9' : '#1e293b' }}>Watch System Tutorial</p>
-              <p className="text-xs text-slate-400 mt-0.5">Learn how to use the POS system</p>
-            </div>
-            <span className="shrink-0 text-[10px] font-bold px-2.5 py-1 rounded-full bg-amber-100 text-amber-600 border border-amber-200">
-              Coming Soon
-            </span>
-          </div>
-
-          {/* Store buttons */}
-          <div className="flex gap-2 justify-center">
-            <div className="flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 opacity-50 cursor-not-allowed"
-              style={isDark ? { borderColor: '#374151', backgroundColor: '#1f2937' } : { borderColor: '#e2e8f0', backgroundColor: '#fff' }}>
-              <svg className="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="currentColor" style={{ color: isDark ? '#94a3b8' : '#475569' }}>
-                <path d="M3.18 23.76c.3.17.64.24.99.19l12.6-12.6-3.18-3.18L3.18 23.76zm16.29-13.77l-2.32-1.35L14 11.79l3.5 3.5 2.0-1.16c.67-.39.67-1.36-.03-1.74zM3.01.55C2.7.87 2.5 1.37 2.5 2.01v19.98c0 .64.2 1.14.51 1.46l.08.07 11.2-11.2v-.26L3.09.48.01.55zm8.49 8.49l-8-8 .08-.07c.3-.17.64-.24.99-.19l12.6 12.6-3.18 3.18-2.49-7.52z"/>
+              076 464 3050
+            </a>
+            <a href="https://www.lumac.lk" target="_blank" rel="noopener noreferrer"
+              className="flex items-center gap-1 text-blue-400 text-xs hover:text-blue-500 transition-colors">
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9"/>
               </svg>
-              <span className="text-xs font-semibold" style={{ color: isDark ? '#94a3b8' : '#475569' }}>Google Play</span>
-            </div>
-            <div className="flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 opacity-50 cursor-not-allowed"
-              style={isDark ? { borderColor: '#374151', backgroundColor: '#1f2937' } : { borderColor: '#e2e8f0', backgroundColor: '#fff' }}>
-              <svg className="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="currentColor" style={{ color: isDark ? '#94a3b8' : '#475569' }}>
-                <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
-              </svg>
-              <span className="text-xs font-semibold" style={{ color: isDark ? '#94a3b8' : '#475569' }}>App Store</span>
-            </div>
+              www.lumac.lk
+            </a>
           </div>
         </div>
       </div>
