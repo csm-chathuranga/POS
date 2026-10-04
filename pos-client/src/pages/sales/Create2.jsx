@@ -729,8 +729,8 @@ export default function SalesCreate() {
       if (e.key === 'F3')  { e.preventDefault(); setPayMethod('card'); }
       if (e.key === 'F4')  { e.preventDefault(); setPayMethod('credit'); }
       if (e.key === 'F5')  { e.preventDefault(); setPayMethod('split'); }
-      if (e.key === 'F10') { e.preventDefault(); if (cart.length > 0 && total > 0) handleCompleteSale(false, true); }
-      if (e.key === 'F11') { e.preventDefault(); if (cart.length > 0 && total > 0) handleCompleteSale(true); }
+      if (e.key === 'F10') { e.preventDefault(); if (cart.length > 0 && total > 0 && !completeSaleInFlight.current) handleCompleteSale(false, true); }
+      if (e.key === 'F11') { e.preventDefault(); if (cart.length > 0 && total > 0 && !completeSaleInFlight.current) handleCompleteSale(true); }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
@@ -963,8 +963,12 @@ export default function SalesCreate() {
     }
   }
 
+  const completeSaleInFlight = useRef(false);
+
   // ─── Complete sale ────────────────────────────────────────────────────────
   async function handleCompleteSale(saveOnly = false, redirectAndPrint = false) {
+    if (completeSaleInFlight.current) return;
+    completeSaleInFlight.current = true;
     setErr('');
 
     // Block if too many unsynced offline invoices
@@ -1032,6 +1036,8 @@ export default function SalesCreate() {
         }
       } catch (e) {
         setErr('Failed to save offline: ' + (e.message || 'unknown error'));
+      } finally {
+        completeSaleInFlight.current = false;
       }
       return;
     }
@@ -1074,6 +1080,8 @@ export default function SalesCreate() {
       }
     } catch (e) {
       setErr(e?.data?.error || 'Failed to save sale');
+    } finally {
+      completeSaleInFlight.current = false;
     }
   }
 
@@ -1486,7 +1494,7 @@ export default function SalesCreate() {
                       onChange={e => { setCashPaid(e.target.value.replace(/,/g,'')); setShakeInput(false); }}
                       onFocus={e => { setCashFocused(true); setTimeout(() => e.target.select(), 0); }}
                       onBlur={() => setCashFocused(false)}
-                      onKeyDown={e => { if (e.key==='Enter') handleCompleteSale(false, true); }}
+                      onKeyDown={e => { if (e.key==='Enter' && !submitting) handleCompleteSale(false, true); }}
                       placeholder="0.00"
                       className={`text-2xl font-extrabold bg-transparent outline-none border-2 rounded-lg text-right w-48 px-3 py-1.5 ${shakeInput ? 'border-red-500 text-red-600' : 'border-green-500 text-green-700'}`} />
                   ) : (

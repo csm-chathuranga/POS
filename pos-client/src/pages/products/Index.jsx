@@ -39,7 +39,7 @@ function printBarcode(product, qty = 1, shopName = '') {
         padding:1mm;padding-top:2mm;
         display:flex;flex-direction:column;align-items:center;justify-content:center;
       }
-      svg{display:block;width:22mm;height:auto}
+      svg{display:block;width:22mm;height:auto;margin-left:2mm}
       p{font-size:4pt;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;width:26mm}
       .shop{font-weight:bold;font-size:6pt;text-transform:uppercase;letter-spacing:0.03em}
       .name{font-weight:bold;font-size:7pt}
