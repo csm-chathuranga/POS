@@ -29,6 +29,15 @@ const settingsApi = api.injectEndpoints({
 
 const API = getApiUrl();
 
+const TUTORIALS = [
+  { id: 'Pt5_gFnHugc', title: 'Login & Getting Started', si_title: 'ලොගින් සහ ආරම්භය',              desc: 'How to sign in to the system'       },
+  { id: 'H21_cwd4rnU', title: 'Settings',                si_title: 'සැකසුම්',                        desc: 'Configure your POS settings'        },
+  { id: '6stflHu-kLc', title: 'Add Product & Category',  si_title: 'නිෂ්පාදන සහ වර්ගය එකතු කිරීම', desc: 'Add new products and categories'    },
+  { id: '1ImnZkjY04A', title: 'Add Supplier & Goods',    si_title: 'සැපයුම්කරු සහ භාණ්ඩ',           desc: 'Manage suppliers and incoming goods' },
+  { id: 'Ld3AbVIbYpY', title: 'Billing',                 si_title: 'බිල්පත් කිරීම',                 desc: 'Process customer bills and payments' },
+  { id: 'TNT8UnF9Wtw', title: 'Sale History',            si_title: 'විකිණුම් ඉතිහාසය',              desc: 'View and manage past sales records'  },
+];
+
 // ─── Icons ────────────────────────────────────────────────────────────────────
 const Icons = {
   dashboard: <svg className="w-6 h-6 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1" strokeWidth={2}/><rect x="14" y="3" width="7" height="7" rx="1" strokeWidth={2}/><rect x="3" y="14" width="7" height="7" rx="1" strokeWidth={2}/><rect x="14" y="14" width="7" height="7" rx="1" strokeWidth={2}/></svg>,
@@ -135,6 +144,8 @@ export default function AppLayout() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [routing, setRouting] = useState(false);
   const [shopInfo, setShopInfo] = useState({ shop_name: '', shop_logo: '' });
+  const [tutorialOpen, setTutorialOpen] = useState(false);
+  const [activeVideo, setActiveVideo] = useState(TUTORIALS[0]);
 
   useEffect(() => {
     setRouting(true);
@@ -609,6 +620,20 @@ export default function AppLayout() {
 
             <div className="flex items-center gap-1.5 md:gap-3">
               <InstallPWA />
+              {/* Tutorial button */}
+              <button
+                onClick={() => { setActiveVideo(TUTORIALS[0]); setTutorialOpen(true); }}
+                title="Video Tutorials"
+                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-semibold transition-colors"
+                style={{ backgroundColor: '#ef4444', color: '#fff' }}
+                onMouseEnter={e => e.currentTarget.style.backgroundColor = '#dc2626'}
+                onMouseLeave={e => e.currentTarget.style.backgroundColor = '#ef4444'}
+              >
+                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M19.615 3.184c-3.604-.246-11.631-.245-15.23 0C.488 3.45.029 5.804 0 12c.029 6.185.484 8.549 4.385 8.816 3.6.245 11.626.246 15.23 0C23.512 20.55 23.971 18.196 24 12c-.029-6.185-.484-8.549-4.385-8.816zM9 16V8l8 4-8 4z"/>
+                </svg>
+                <span className="hidden sm:inline">Tutorials</span>
+              </button>
               {/* Manual sync button */}
               {isOnline && (
                 <button
@@ -674,6 +699,114 @@ export default function AppLayout() {
               </button>
             </div>
           </header>
+        )}
+
+        {/* Tutorial Modal */}
+        {tutorialOpen && createPortal(
+          <div
+            className="fixed inset-0 z-[9999] flex items-center justify-center p-3"
+            style={{ backgroundColor: 'rgba(0,0,0,0.88)', backdropFilter: 'blur(8px)' }}
+            onClick={() => setTutorialOpen(false)}
+          >
+            <div
+              className="w-full max-w-6xl rounded-2xl overflow-hidden shadow-2xl flex flex-col"
+              style={{ backgroundColor: theme === 'dark' ? '#1f2937' : '#fff', maxHeight: '90vh' }}
+              onClick={e => e.stopPropagation()}
+            >
+              {/* Modal header */}
+              <div className="flex items-center justify-between px-5 py-3 border-b"
+                style={{ borderColor: theme === 'dark' ? '#374151' : '#e2e8f0' }}>
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-red-500 flex items-center justify-center">
+                    <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M19.615 3.184c-3.604-.246-11.631-.245-15.23 0C.488 3.45.029 5.804 0 12c.029 6.185.484 8.549 4.385 8.816 3.6.245 11.626.246 15.23 0C23.512 20.55 23.971 18.196 24 12c-.029-6.185-.484-8.549-4.385-8.816zM9 16V8l8 4-8 4z"/>
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="font-bold text-sm" style={{ color: theme === 'dark' ? '#f1f5f9' : '#1e293b' }}>
+                      Video Tutorials · <span className="font-normal text-blue-400">වීඩියෝ නිබන්ධන</span>
+                    </p>
+                    <p className="text-xs" style={{ color: theme === 'dark' ? '#94a3b8' : '#64748b' }}>
+                      {activeVideo.title} · {activeVideo.si_title}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setTutorialOpen(false)}
+                  className="w-8 h-8 rounded-full flex items-center justify-center transition-colors"
+                  style={{ backgroundColor: theme === 'dark' ? '#374151' : '#f1f5f9' }}
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                    style={{ color: theme === 'dark' ? '#9ca3af' : '#475569' }}>
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12"/>
+                  </svg>
+                </button>
+              </div>
+
+              {/* Body: list + player */}
+              <div className="flex flex-1 min-h-0 overflow-hidden">
+                {/* Left: video list */}
+                <div className="w-72 shrink-0 border-r overflow-y-auto flex flex-col gap-1 p-2"
+                  style={{ borderColor: theme === 'dark' ? '#374151' : '#e2e8f0', backgroundColor: theme === 'dark' ? '#111827' : '#f8fafc' }}>
+                  {TUTORIALS.map((v, i) => {
+                    const isActive = activeVideo.id === v.id;
+                    return (
+                      <button
+                        key={i}
+                        onClick={() => setActiveVideo(v)}
+                        className="w-full flex items-center gap-3 rounded-xl px-3 py-3 text-left transition-all"
+                        style={{
+                          backgroundColor: isActive
+                            ? (theme === 'dark' ? '#1d4ed8' : '#eff6ff')
+                            : 'transparent',
+                          border: isActive ? '1px solid #3b82f6' : '1px solid transparent',
+                        }}
+                      >
+                        <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
+                          style={{ backgroundColor: v.id ? '#ef4444' : (theme === 'dark' ? '#374151' : '#e2e8f0') }}>
+                          <svg className="w-3.5 h-3.5 ml-0.5" fill="currentColor" viewBox="0 0 24 24"
+                            style={{ color: '#fff' }}>
+                            <path d="M8 5v14l11-7z"/>
+                          </svg>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-semibold truncate" style={{ color: isActive ? '#3b82f6' : (theme === 'dark' ? '#f1f5f9' : '#1e293b') }}>{v.title}</p>
+                          <p className="text-[10px] truncate" style={{ color: theme === 'dark' ? '#9ca3af' : '#64748b' }}>{v.si_title}</p>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Right: player */}
+                <div className="flex-1 flex flex-col p-3" style={{ backgroundColor: theme === 'dark' ? '#111827' : '#f1f5f9' }}>
+                  <div className="relative flex-1 rounded-xl overflow-hidden" style={{ aspectRatio: '16/9' }}>
+                    {activeVideo.id ? (
+                      <iframe
+                        key={activeVideo.id}
+                        src={`https://www.youtube.com/embed/${activeVideo.id}?autoplay=1&rel=0`}
+                        title={activeVideo.title}
+                        className="absolute inset-0 w-full h-full border-0"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowFullScreen
+                      />
+                    ) : (
+                      <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
+                        <div className="w-16 h-16 rounded-full bg-white/10 flex items-center justify-center">
+                          <svg className="w-8 h-8 text-white/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 10l4.553-2.069A1 1 0 0121 8.82v6.36a1 1 0 01-1.447.894L15 14M3 8a2 2 0 012-2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z"/>
+                          </svg>
+                        </div>
+                        <p className="text-white font-semibold">Coming Soon</p>
+                        <p className="text-white/50 text-sm">This tutorial is being prepared</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>,
+          document.body
         )}
 
         {/* Route-change progress bar */}
