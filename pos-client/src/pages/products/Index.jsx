@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+ifimport { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import JsBarcode from 'jsbarcode';
 import { Link } from 'react-router-dom';
 import { useSelector } from 'react-redux';
@@ -49,7 +49,7 @@ function printBarcode(product, qty = 1, shopName = '') {
   </head><body>
     ${shopName ? `<p class="shop">${shopName.replace(/</g,'&lt;')}</p>` : ''}
     ${svgHtml}
-    <p class="name">${product.name.replace(/</g,'&lt;')}</p>
+    <p class="name">${(product.name_si || product.name).replace(/</g,'&lt;')}</p>
     ${product.our_price
       ? `<p class="orig">Rs. ${Number(product.selling_price||0).toFixed(2)}</p>
          <p class="price">Rs. ${Number(product.our_price).toFixed(2)}</p>`
