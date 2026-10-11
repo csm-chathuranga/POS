@@ -43,6 +43,9 @@ function productToItem(p) {
         expiry_date:   b.expiry_date,
         received_at:   b.received_at,
       })),
+    discount_tiers: (p.discountTiers || [])
+      .sort((a, b) => parseFloat(a.min_qty) - parseFloat(b.min_qty))
+      .map(t => ({ id: t.id, min_qty: parseFloat(t.min_qty), discount: parseFloat(t.discount) })),
   };
 }
 
@@ -52,16 +55,32 @@ router.get('/all', auth, async (req, res) => {
   const cached   = cache.get(cacheKey);
   if (cached) return res.json(cached);
 
-  const { Product, ProductVariant, ProductBatch } = req.models;
-  const products = await Product.findAll({
-    where: { active: true },
-    include: [
-      { model: ProductVariant, as: 'variants' },
-      { model: ProductBatch,   as: 'batches', required: false,
-        where: { qty: { [Op.gt]: 0 } } },
-    ],
-    order: [['id', 'ASC']],
-  });
+  const { Product, ProductVariant, ProductBatch, ProductDiscountTier } = req.models;
+
+  // Try with discount tiers; fall back gracefully if table doesn't exist yet
+  let products;
+  try {
+    products = await Product.findAll({
+      where: { active: true },
+      include: [
+        { model: ProductVariant,      as: 'variants' },
+        { model: ProductBatch,        as: 'batches', required: false,
+          where: { qty: { [Op.gt]: 0 } } },
+        { model: ProductDiscountTier, as: 'discountTiers', required: false },
+      ],
+      order: [['id', 'ASC']],
+    });
+  } catch {
+    products = await Product.findAll({
+      where: { active: true },
+      include: [
+        { model: ProductVariant, as: 'variants' },
+        { model: ProductBatch,   as: 'batches', required: false,
+          where: { qty: { [Op.gt]: 0 } } },
+      ],
+      order: [['id', 'ASC']],
+    });
+  }
 
   const data = products.map(productToItem);
   cache.set(cacheKey, data);
@@ -274,13 +293,50 @@ router.post('/:id/batches', auth, role('admin', 'manager'), async (req, res) => 
   res.status(201).json(batch);
 });
 
+// GET /api/products/:id/discount-tiers
+router.get('/:id/discount-tiers', auth, async (req, res) => {
+  const { ProductDiscountTier } = req.models;
+  const tiers = await ProductDiscountTier.findAll({
+    where: { product_id: req.params.id },
+    order: [['min_qty', 'ASC']],
+  });
+  res.json(tiers);
+});
+
+// POST /api/products/:id/discount-tiers
+router.post('/:id/discount-tiers', auth, role('admin', 'manager'), async (req, res) => {
+  const { Product, ProductDiscountTier } = req.models;
+  const product = await Product.findByPk(req.params.id);
+  if (!product) return res.status(404).json({ error: 'Not found' });
+  const { min_qty, discount } = req.body;
+  if (!min_qty || discount == null) return res.status(400).json({ error: 'min_qty and discount are required' });
+  const tier = await ProductDiscountTier.create({
+    product_id: product.id,
+    min_qty:    parseFloat(min_qty),
+    discount:   parseFloat(discount),
+  });
+  cache.del(`${req.tenant}_products_all`);
+  res.status(201).json(tier);
+});
+
+// DELETE /api/products/:id/discount-tiers/:tierId
+router.delete('/:id/discount-tiers/:tierId', auth, role('admin', 'manager'), async (req, res) => {
+  const { ProductDiscountTier } = req.models;
+  const tier = await ProductDiscountTier.findOne({ where: { id: req.params.tierId, product_id: req.params.id } });
+  if (!tier) return res.status(404).json({ error: 'Not found' });
+  await tier.destroy();
+  cache.del(`${req.tenant}_products_all`);
+  res.json({ message: 'Deleted' });
+});
+
 // GET /api/products/:id
 router.get('/:id', auth, async (req, res) => {
-  const { Product, ProductVariant, Category } = req.models;
+  const { Product, ProductVariant, Category, ProductDiscountTier } = req.models;
   const product = await Product.findByPk(req.params.id, {
     include: [
-      { model: Category,       as: 'category' },
-      { model: ProductVariant, as: 'variants' },
+      { model: Category,            as: 'category' },
+      { model: ProductVariant,      as: 'variants' },
+      { model: ProductDiscountTier, as: 'discountTiers' },
     ],
   });
   if (!product) return res.status(404).json({ error: 'Not found' });

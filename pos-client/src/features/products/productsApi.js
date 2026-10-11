@@ -72,6 +72,25 @@ export const productsApi = api.injectEndpoints({
         try { await queryFulfilled; refreshProductCache(); } catch {}
       },
     }),
+    getDiscountTiers: build.query({
+      query: id => `/products/${id}/discount-tiers`,
+      keepUnusedDataFor: 0,
+      providesTags: (r, e, id) => [{ type: 'DiscountTiers', id }],
+    }),
+    createDiscountTier: build.mutation({
+      query: ({ id, ...body }) => ({ url: `/products/${id}/discount-tiers`, method: 'POST', body }),
+      invalidatesTags: (r, e, { id }) => [{ type: 'DiscountTiers', id }, { type: 'Products', id: 'LIST' }],
+      onQueryStarted: async (_, { queryFulfilled }) => {
+        try { await queryFulfilled; refreshProductCache(); } catch {}
+      },
+    }),
+    deleteDiscountTier: build.mutation({
+      query: ({ id, tierId }) => ({ url: `/products/${id}/discount-tiers/${tierId}`, method: 'DELETE' }),
+      invalidatesTags: (r, e, { id }) => [{ type: 'DiscountTiers', id }, { type: 'Products', id: 'LIST' }],
+      onQueryStarted: async (_, { queryFulfilled }) => {
+        try { await queryFulfilled; refreshProductCache(); } catch {}
+      },
+    }),
   }),
 });
 
@@ -88,4 +107,7 @@ export const {
   useLazyIntakeLookupQuery,
   useGetProductBatchesQuery,
   useCreateProductBatchMutation,
+  useGetDiscountTiersQuery,
+  useCreateDiscountTierMutation,
+  useDeleteDiscountTierMutation,
 } = productsApi;

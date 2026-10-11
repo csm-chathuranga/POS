@@ -197,6 +197,13 @@ function getModels(sequelize) {
     received_at:   { type: DataTypes.DATEONLY, allowNull: false },
   }, { tableName: 'product_batches', underscored: true });
 
+  const ProductDiscountTier = sequelize.define('ProductDiscountTier', {
+    id:         { type: DataTypes.BIGINT.UNSIGNED, primaryKey: true, autoIncrement: true },
+    product_id: { type: DataTypes.BIGINT.UNSIGNED, allowNull: false },
+    min_qty:    { type: DataTypes.DECIMAL(10, 3), allowNull: false },
+    discount:   { type: DataTypes.DECIMAL(10, 2), allowNull: false },
+  }, { tableName: 'product_discount_tiers', underscored: true });
+
   const Feature = sequelize.define('Feature', {
     id:         { type: DataTypes.BIGINT.UNSIGNED, primaryKey: true, autoIncrement: true },
     key:        { type: DataTypes.STRING(191), allowNull: false, unique: true },
@@ -217,6 +224,9 @@ function getModels(sequelize) {
   ProductVariant.belongsTo(Product, { foreignKey: 'product_id', as: 'product' });
   Product.hasMany(ProductBatch, { foreignKey: 'product_id', as: 'batches' });
   ProductBatch.belongsTo(Product, { foreignKey: 'product_id', as: 'product' });
+
+  Product.hasMany(ProductDiscountTier, { foreignKey: 'product_id', as: 'discountTiers' });
+  ProductDiscountTier.belongsTo(Product, { foreignKey: 'product_id', as: 'product' });
 
   Sale.belongsTo(User, { foreignKey: 'user_id', as: 'user' });
   Sale.belongsTo(Customer, { foreignKey: 'customer_id', as: 'customer' });
@@ -244,7 +254,7 @@ function getModels(sequelize) {
   Feature.belongsToMany(User, { through: 'user_features', foreignKey: 'feature_id', otherKey: 'user_id', as: 'DirectUsers', timestamps: false });
 
   return {
-    User, Role, Category, Product, ProductVariant, ProductBatch,
+    User, Role, Category, Product, ProductVariant, ProductBatch, ProductDiscountTier,
     Supplier, Customer, Sale, SaleItem, Payment, SaleReturn,
     Purchase, PurchaseItem, StockMovement, CreditPayment, SupplierPayment, Setting, Feature,
   };

@@ -32,6 +32,13 @@ function recalc(item) {
   return { ...item, total: Math.max(0, item.qty * item.unit_price - (item.discount || 0)) };
 }
 
+function applyTierDiscount(item) {
+  if (!item.discount_tiers?.length) return item;
+  const sorted = [...item.discount_tiers].sort((a, b) => b.min_qty - a.min_qty);
+  const matched = sorted.find(t => item.qty >= t.min_qty);
+  return { ...item, discount: matched ? matched.discount : 0 };
+}
+
 // ─── Icons ────────────────────────────────────────────────────────────────────
 const Icon = {
   search: <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z"/></svg>,
@@ -900,14 +907,14 @@ export default function SalesCreate() {
         const item = prev[idx];
         const newQ = Math.min(item.qty + 1, item.stock_qty > 0 ? item.stock_qty : Infinity);
         flash(key);
-        return prev.map((i, j) => j === idx ? recalc({ ...i, qty: newQ }) : i);
+        return prev.map((i, j) => j === idx ? recalc(applyTierDiscount({ ...i, qty: newQ })) : i);
       }
       const ws    = parseFloat(product.wholesale_price) || 0;
       const promo = (product.our_price ? parseFloat(product.our_price) : null) ?? (product.promo_price ? parseFloat(product.promo_price) : null);
       const base  = promo ?? (parseFloat(product.selling_price) || 0);
       const price = priceMode === 'wholesale' && ws > 0 ? ws : base;
       flash(key);
-      return [...prev, recalc({
+      return [...prev, recalc(applyTierDiscount({
         product_id: product.id, variant_id: variantId,
         name: product.name, name_si: product.name_si || '',
         barcode: product.barcode || '', qty: qty ?? 1, unit_price: price, default_price: price,
@@ -916,7 +923,8 @@ export default function SalesCreate() {
         unit: product.unit || 'pcs', stock_qty: product.stock_qty || 0,
         image: product.image || null,
         cost_price: parseFloat(product.cost_price || product.buying_price) || 0,
-      })];
+        discount_tiers: product.discount_tiers || [],
+      }))];
     });
     setQuery(''); setShowDrop(false); setActive(-1);
     if (focusQty) setTimeout(() => {
@@ -1432,7 +1440,11 @@ export default function SalesCreate() {
                       highlight={!!highlights[itemKey(item)]}
                       isSinhala={isSinhala}
                       showCostPrice={showCostPrice}
-                      onChange={changes => setCart(prev => prev.map((it, j) => j === i ? recalc({ ...it, ...changes }) : it))}
+                      onChange={changes => setCart(prev => prev.map((it, j) => {
+                        if (j !== i) return it;
+                        const merged = { ...it, ...changes };
+                        return recalc('qty' in changes ? applyTierDiscount(merged) : merged);
+                      }))}
                       onRemove={() => setCart(prev => prev.filter((_, j) => j !== i))}
                       onZoom={() => setZoomed({ item, idx: i })}
                       onEnter={() => scanRef.current?.focus()}
