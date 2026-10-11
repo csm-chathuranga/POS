@@ -1010,10 +1010,10 @@ export default function SalesCreate() {
         setQtyMultiplier(1); setQuery(''); setShowDrop(false); refocus(); return;
       }
       const items = dropdownItems;
-      if (activeIdx >= 0 && items[activeIdx]) { addToCart(items[activeIdx], qtyMultiplier); setQtyMultiplier(1); return; }
+      if (activeIdx >= 0 && items[activeIdx]) { fetchBatchesAndAdd(items[activeIdx], qtyMultiplier); setQtyMultiplier(1); return; }
       const q = query.trim().toLowerCase();
       const found = items.find(p => p.barcode?.toLowerCase() === q) || items[0];
-      if (found) { addToCart(found, qtyMultiplier); setQtyMultiplier(1); }
+      if (found) { fetchBatchesAndAdd(found, qtyMultiplier); setQtyMultiplier(1); }
     }
   }
 
@@ -1356,7 +1356,7 @@ export default function SalesCreate() {
                 />
                 {showDrop && (
                   <ProductDropdown items={dropdownItems} activeIdx={activeIdx}
-                    onSelect={p => { addToCart(p, qtyMultiplier); setQtyMultiplier(1); setShowDrop(false); }} />
+                    onSelect={p => { fetchBatchesAndAdd(p, qtyMultiplier); setQtyMultiplier(1); setShowDrop(false); }} />
                 )}
               </div>
               <div className="flex gap-1.5 shrink-0">

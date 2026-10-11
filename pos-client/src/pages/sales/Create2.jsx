@@ -1363,7 +1363,7 @@ export default function SalesCreate() {
                 />
                 {showDrop && (
                   <ProductDropdown items={dropdownItems} activeIdx={activeIdx}
-                    onSelect={p => { addToCart(p, qtyMultiplier); setQtyMultiplier(1); setShowDrop(false); }} />
+                    onSelect={p => { fetchBatchesAndAdd(p, qtyMultiplier); setQtyMultiplier(1); setShowDrop(false); }} />
                 )}
               </div>
               <div className="flex gap-1.5 shrink-0">
@@ -1695,7 +1695,7 @@ export default function SalesCreate() {
                   const inStock = (p.stock_qty ?? 0) > 0;
                   return (
                     <button key={p.id}
-                      onClick={() => { addToCart(p, null, false); }}
+                      onClick={() => { fetchBatchesAndAdd(p, null); }}
                       disabled={!inStock}
                       className={`flex flex-col items-center gap-1.5 p-2 rounded-xl border transition-all active:scale-95 text-left
                         ${inStock ? 'bg-white border-slate-100 hover:border-blue-300 hover:shadow-md' : 'bg-slate-50 border-slate-100 opacity-50 cursor-not-allowed'}`}>
