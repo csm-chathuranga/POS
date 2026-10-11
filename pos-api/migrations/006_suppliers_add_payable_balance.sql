@@ -1,0 +1,1 @@
+ALTER TABLE suppliers ADD COLUMN payable_balance DECIMAL(10,2) NOT NULL DEFAULT 0;
