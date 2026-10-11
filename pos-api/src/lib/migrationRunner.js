@@ -34,6 +34,7 @@ async function runMigrations(sequelize) {
 
     // Split on semicolons, run each non-empty statement
     const statements = sql.split(';').map(s => s.trim()).filter(Boolean);
+    let failed = null;
     for (const stmt of statements) {
       try {
         await sequelize.query(stmt);
@@ -41,8 +42,14 @@ async function runMigrations(sequelize) {
         const errno = err.original?.errno ?? err.parent?.errno;
         // 1060 = duplicate column, 1061 = duplicate key name — already exists, safe to skip
         if (errno === 1060 || errno === 1061) continue;
-        throw err;
+        failed = err.message;
+        break;
       }
+    }
+
+    if (failed) {
+      results.push({ file, status: 'failed', error: failed });
+      continue;
     }
 
     await sequelize.query('INSERT INTO _pos_migrations (name) VALUES (?)', {

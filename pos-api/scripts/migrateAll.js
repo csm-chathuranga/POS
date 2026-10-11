@@ -17,7 +17,7 @@ async function main() {
     });
     try {
       const results = await runMigrations(seq);
-      results.forEach(r => console.log(`  [${r.status}] ${r.file}`));
+      results.forEach(r => console.log(`  [${r.status}] ${r.file}${r.error ? ' — ' + r.error : ''}`));
     } catch (err) {
       console.error(`  FAILED: ${err.message}`);
     } finally {
