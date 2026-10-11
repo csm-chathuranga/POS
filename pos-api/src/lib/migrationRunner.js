@@ -38,8 +38,9 @@ async function runMigrations(sequelize) {
       try {
         await sequelize.query(stmt);
       } catch (err) {
-        // 1060 = duplicate column — column already exists, safe to skip
-        if (err.original?.errno === 1060 || err.parent?.errno === 1060) continue;
+        const errno = err.original?.errno ?? err.parent?.errno;
+        // 1060 = duplicate column, 1061 = duplicate key name — already exists, safe to skip
+        if (errno === 1060 || errno === 1061) continue;
         throw err;
       }
     }
