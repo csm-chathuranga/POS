@@ -54,7 +54,7 @@ router.get('/', auth, async (req, res) => {
 
 // POST /api/sales
 router.post('/', auth, async (req, res) => {
-  const { Sale, SaleItem, Payment, Product, Customer, StockMovement } = req.models;
+  const { Sale, SaleItem, Payment, Product, ProductBatch, Customer, StockMovement } = req.models;
   const { items = [], payments = [], customer_id, client_id, ...saleData } = req.body;
 
   // Idempotency: if this client_id was already synced, return the existing sale
@@ -81,6 +81,23 @@ router.post('/', auth, async (req, res) => {
       const before = parseFloat(product.stock_qty);
       const after  = Math.max(0, before - parseFloat(item.qty));
       await product.update({ stock_qty: after });
+
+      // FIFO batch deduction — deduct from oldest batches first
+      const activeBatches = await ProductBatch.findAll({
+        where: { product_id: product.id, qty: { [Op.gt]: 0 } },
+        order: [['received_at', 'ASC'], ['id', 'ASC']],
+      });
+      if (activeBatches.length > 0) {
+        let remaining = parseFloat(item.qty);
+        for (const batch of activeBatches) {
+          if (remaining <= 0) break;
+          const batchQty = parseFloat(batch.qty);
+          const deduct   = Math.min(batchQty, remaining);
+          await batch.update({ qty: Math.max(0, batchQty - deduct) });
+          remaining -= deduct;
+        }
+      }
+
       await StockMovement.create({
         product_id:   product.id,
         user_id:      req.user.id,
@@ -136,6 +153,45 @@ router.post('/hold', auth, async (req, res) => {
 });
 
 // GET /api/sales/:id
+// GET /api/sales/daily-print?date=YYYY-MM-DD  (defaults to today)
+router.get('/daily-print', auth, async (req, res) => {
+  const { Sale, SaleItem, Payment, User, Customer } = req.models;
+  const d = req.query.date || new Date().toISOString().slice(0, 10);
+  const rows = await Sale.findAll({
+    where: {
+      status: { [Op.ne]: 'held' },
+      created_at: { [Op.between]: [`${d} 00:00:00`, `${d} 23:59:59`] },
+    },
+    include: [
+      { model: User,     as: 'user',     attributes: ['id', 'name'] },
+      { model: Customer, as: 'customer', attributes: ['id', 'name'] },
+      { model: Payment,  as: 'payments' },
+      { model: SaleItem, as: 'items' },
+    ],
+    order: [['id', 'ASC']],
+  });
+
+  const summary = { total: 0, count: rows.length, methods: {} };
+  const itemMap = {};
+  rows.forEach(s => {
+    summary.total += parseFloat(s.total || 0);
+    (s.payments || []).forEach(p => {
+      const amt = parseFloat(p.amount || 0);
+      const m = p.method || 'other';
+      summary.methods[m] = (summary.methods[m] || 0) + amt;
+    });
+    (s.items || []).forEach(item => {
+      const key = item.product_name;
+      if (!itemMap[key]) itemMap[key] = { product_name: key, qty: 0, total: 0 };
+      itemMap[key].qty   += parseFloat(item.qty || 0);
+      itemMap[key].total += parseFloat(item.unit_price || 0) * parseFloat(item.qty || 0);
+    });
+  });
+
+  const itemSummary = Object.values(itemMap).sort((a, b) => b.total - a.total);
+  res.json({ date: d, sales: rows, summary, itemSummary });
+});
+
 router.get('/:id', auth, async (req, res) => {
   const { Sale, SaleItem, Payment, User, Customer } = req.models;
   const sale = await Sale.findByPk(req.params.id, {
@@ -150,11 +206,38 @@ router.get('/:id', auth, async (req, res) => {
   res.json(sale);
 });
 
-// DELETE /api/sales/:id
+// DELETE /api/sales/:id  — restores stock for every item before destroying
 router.delete('/:id', auth, role('admin', 'manager'), async (req, res) => {
-  const { Sale } = req.models;
-  const sale = await Sale.findByPk(req.params.id);
+  const { Sale, SaleItem, Product, ProductBatch, StockMovement } = req.models;
+  const sale = await Sale.findByPk(req.params.id, {
+    include: [{ model: SaleItem, as: 'items' }],
+  });
   if (!sale) return res.status(404).json({ error: 'Not found' });
+
+  for (const item of sale.items || []) {
+    const product = await Product.findByPk(item.product_id);
+    if (!product) continue;
+
+    const before = parseFloat(product.stock_qty);
+    const after  = before + parseFloat(item.qty);
+    await product.update({ stock_qty: after });
+
+    // Return qty to the most-recently-received batch
+    const latestBatch = await ProductBatch.findOne({
+      where: { product_id: product.id },
+      order: [['received_at', 'DESC'], ['id', 'DESC']],
+    });
+    if (latestBatch) {
+      await latestBatch.update({ qty: parseFloat(latestBatch.qty) + parseFloat(item.qty) });
+    }
+
+    await StockMovement.create({
+      product_id: product.id, user_id: req.user.id, type: 'void',
+      qty: item.qty, stock_before: before, stock_after: after,
+      reference: sale.invoice_no,
+    });
+  }
+
   await sale.destroy();
   res.json({ message: 'Deleted' });
 });
@@ -193,7 +276,7 @@ router.get('/:id/return', auth, async (req, res) => {
 
 // POST /api/sales/:id/return
 router.post('/:id/return', auth, async (req, res) => {
-  const { Sale, SaleReturn, Product, StockMovement } = req.models;
+  const { Sale, SaleReturn, Product, ProductBatch, StockMovement } = req.models;
   const sale = await Sale.findByPk(req.params.id);
   if (!sale) return res.status(404).json({ error: 'Not found' });
 
@@ -208,6 +291,16 @@ router.post('/:id/return', auth, async (req, res) => {
       const before = parseFloat(product.stock_qty);
       const after  = before + parseFloat(item.qty);
       await product.update({ stock_qty: after });
+
+      // Return qty back to the most-recently-received batch (if any exist)
+      const latestBatch = await ProductBatch.findOne({
+        where: { product_id: product.id },
+        order: [['received_at', 'DESC'], ['id', 'DESC']],
+      });
+      if (latestBatch) {
+        await latestBatch.update({ qty: parseFloat(latestBatch.qty) + parseFloat(item.qty) });
+      }
+
       await StockMovement.create({
         product_id: product.id, user_id: req.user.id, type: 'return',
         qty: item.qty, stock_before: before, stock_after: after, reference: return_no,

@@ -140,6 +140,98 @@ Sequelize `alter: true` adds new columns/tables without touching existing data.
 
 ---
 
+### Targeted migrations (all tenants at once)
+
+These scripts read every active tenant from `pos_master.tenants` and apply only the specific changes — nothing else is touched.
+
+#### Product Batches — same-barcode multi-price/expiry support (added 2026-10-06)
+
+Adds the `product_batches` table so multiple stock batches (each with its own price and expiry date) can exist under a single product/barcode. Stock is deducted FIFO at sale time. The Intake page detects price or expiry differences and offers a "Save as New Batch" prompt.
+
+```bash
+cd pos-api
+
+# Apply to all active tenants
+node scripts/add-product-batches.js
+```
+
+Or run the SQL manually on each tenant database:
+
+```sql
+CREATE TABLE IF NOT EXISTS `product_batches` (
+  `id`            BIGINT UNSIGNED  NOT NULL AUTO_INCREMENT,
+  `product_id`    BIGINT UNSIGNED  NOT NULL,
+  `batch_label`   VARCHAR(100)     DEFAULT NULL,
+  `qty`           DECIMAL(10,3)    NOT NULL DEFAULT 0,
+  `cost_price`    DECIMAL(10,2)    NOT NULL DEFAULT 0,
+  `selling_price` DECIMAL(10,2)    NOT NULL DEFAULT 0,
+  `expiry_date`   DATE             DEFAULT NULL,
+  `received_at`   DATE             NOT NULL,
+  `created_at`    DATETIME         NOT NULL,
+  `updated_at`    DATETIME         NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `product_batches_product_id` (`product_id`),
+  KEY `product_batches_received_at` (`received_at`),
+  CONSTRAINT `product_batches_product_fk`
+    FOREIGN KEY (`product_id`) REFERENCES `products` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+```
+
+Existing products are unaffected — the table starts empty and is only populated when you choose "Save as New Batch" during stock intake.
+
+---
+
+#### Supplier Credit (added 2026-10-05)
+
+Adds:
+- `suppliers.payable_balance` column
+- `supplier_payments` table
+- `supplier_credit` nav feature
+
+```bash
+cd pos-api
+
+# Preview — no changes made
+node scripts/add-supplier-credit.js --dry-run
+
+# Apply to all active tenants
+node scripts/add-supplier-credit.js
+```
+
+Each step is idempotent — safe to re-run if a tenant was skipped or failed the first time.
+
+Or run the SQL manually on each tenant database:
+
+```sql
+-- 1. Add due date column to purchases
+ALTER TABLE `purchases`
+  ADD COLUMN `due_date` DATE DEFAULT NULL;
+
+-- 2. Add payable balance column to suppliers
+ALTER TABLE `suppliers`
+  ADD COLUMN `payable_balance` DECIMAL(10,2) NOT NULL DEFAULT 0;
+
+-- 3. Create supplier payments table
+CREATE TABLE IF NOT EXISTS `supplier_payments` (
+  `id`          BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `ref_no`      VARCHAR(191)    DEFAULT NULL,
+  `supplier_id` BIGINT UNSIGNED NOT NULL,
+  `user_id`     BIGINT UNSIGNED NOT NULL,
+  `amount`      DECIMAL(10,2)   NOT NULL,
+  `note`        VARCHAR(191)    DEFAULT NULL,
+  `created_at`  DATETIME        NOT NULL,
+  `updated_at`  DATETIME        NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `supplier_payments_ref_no_unique` (`ref_no`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 4. Insert supplier_credit nav feature (skip if already exists)
+INSERT IGNORE INTO `features` (`key`, `label`, `path`, `group`, `sort_order`, `icon`, `offline_ok`)
+VALUES ('supplier_credit', 'Supplier Payables', '/supplier-credit', 'main', 11, 'credit', 0);
+```
+
+---
+
 ## Roles
 
 | Role      | Permissions |

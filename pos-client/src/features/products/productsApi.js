@@ -60,6 +60,18 @@ export const productsApi = api.injectEndpoints({
         try { await queryFulfilled; refreshProductCache(); } catch {}
       },
     }),
+    getProductBatches: build.query({
+      query: id => `/products/${id}/batches`,
+      keepUnusedDataFor: 0,
+      providesTags: (r, e, id) => [{ type: 'ProductBatches', id }],
+    }),
+    createProductBatch: build.mutation({
+      query: ({ id, ...body }) => ({ url: `/products/${id}/batches`, method: 'POST', body }),
+      invalidatesTags: (r, e, { id }) => [{ type: 'ProductBatches', id }, { type: 'Products', id: 'LIST' }],
+      onQueryStarted: async (_, { queryFulfilled }) => {
+        try { await queryFulfilled; refreshProductCache(); } catch {}
+      },
+    }),
   }),
 });
 
@@ -74,4 +86,6 @@ export const {
   useTruncateProductsMutation,
   useIntakeLookupQuery,
   useLazyIntakeLookupQuery,
+  useGetProductBatchesQuery,
+  useCreateProductBatchMutation,
 } = productsApi;

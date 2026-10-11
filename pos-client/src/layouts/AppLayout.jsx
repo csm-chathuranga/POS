@@ -74,6 +74,7 @@ const PAGE_TITLE_KEYS = {
   '/customers':        'page.customers',
   '/credit':           'nav.credit_book',
   '/suppliers':        'page.suppliers',
+  '/supplier-credit':  'Supplier Payables',
   '/categories':       'page.categories',
   '/users':            'page.users',
   '/settings':         'page.settings',
@@ -266,9 +267,10 @@ export default function AppLayout() {
   const NAV_END    = new Set(['products', 'sales', 'dashboard', 'settings', 'invoices']);
 
   function featureToNav(f) {
+    const navKey = `nav.${f.key}`;
     return {
       to:        f.path,
-      label:     f.label,
+      label:     t(navKey) !== navKey ? t(navKey) : f.label,
       icon:      Icons[f.icon] || Icons.dashboard,
       feature:   f.key,
       offlineOk: f.offline_ok || OFFLINE_OK.has(f.key),

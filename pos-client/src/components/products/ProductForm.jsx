@@ -1,8 +1,8 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { useSelector } from 'react-redux';
 import { selectToken } from '../../features/auth/authSlice';
-import { useGetCategoriesQuery } from '../../features/products/productsApi';
+import { useGetCategoriesQuery, useGetProductBatchesQuery, useCreateProductBatchMutation } from '../../features/products/productsApi';
 import { useLocale } from '../../contexts/LocaleContext';
 import { useConnectivity } from '../../contexts/ConnectivityContext';
 import { getLocalCategories } from '../../services/cacheSync';
@@ -28,6 +28,20 @@ function Toggle({ checked, onChange }) {
 export default function ProductForm({ initial = {}, onSubmit, isSaving }) {
   const { isOnline } = useConnectivity();
   const { data: serverCategories = [] } = useGetCategoriesQuery(undefined, { skip: !isOnline });
+  const { data: batches = [] } = useGetProductBatchesQuery(initial?.id, { skip: !initial?.id });
+  const [createBatch, { isLoading: creatingBatch }] = useCreateProductBatchMutation();
+  const [showBatchForm, setShowBatchForm] = useState(false);
+  const emptyBatch = { batch_label: '', qty: '', cost_price: '', selling_price: '', expiry_date: '', received_at: new Date().toISOString().slice(0,10) };
+  const [newBatch, setNewBatch] = useState(emptyBatch);
+  const [batchError, setBatchError] = useState('');
+
+  async function handleCreateBatch() {
+    if (!newBatch.qty || !newBatch.selling_price) { setBatchError('Qty and Sell Price are required.'); return; }
+    setBatchError('');
+    await createBatch({ id: initial.id, ...newBatch }).unwrap().catch(e => setBatchError(e?.data?.message || 'Failed'));
+    setNewBatch(emptyBatch);
+    setShowBatchForm(false);
+  }
   const [localCategories, setLocalCategories] = useState([]);
   const categories = isOnline ? serverCategories : localCategories;
 
@@ -452,69 +466,115 @@ export default function ProductForm({ initial = {}, onSubmit, isSaving }) {
         </div>
       </div>
 
-      {/* ── Sizes / Variants (Advanced) ───────────────────────────────────── */}
-      <div className="mb-5">
-        <button type="button" onClick={() => setShowVariants(v => !v)}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 text-sm font-semibold transition-colors w-full">
-          <svg className={`w-4 h-4 transition-transform ${showVariants ? 'rotate-90' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7"/></svg>
-          Advanced — {t('prod.sizes')}
-          {variants.length > 0 && <span className="ml-auto text-xs bg-blue-600 text-white px-2 py-0.5 rounded-full">{variants.length}</span>}
-        </button>
-
-        {showVariants && (
-          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 mt-2">
-            <div className="flex items-start justify-between mb-4">
-              <p className="text-xs text-slate-400">{t('prod.sizes_hint')}</p>
-              <button type="button" onClick={addVariant}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 transition-colors">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4"/></svg>
-                {t('prod.add_size')}
+      {/* ── Batch details (edit mode only) ───────────────────────────────── */}
+      {initial?.id && (
+        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden mb-5">
+          <div className="px-5 py-3 border-b border-slate-100 flex items-center justify-between">
+            <h3 className="font-semibold text-slate-700 flex items-center gap-2">
+              <svg className="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
+              </svg>
+              Stock Batches
+            </h3>
+            <div className="flex items-center gap-2">
+              {batches.length > 0 && <span className="text-xs bg-blue-100 text-blue-700 font-semibold px-2 py-0.5 rounded-full">{batches.length}</span>}
+              <button type="button" onClick={() => { setShowBatchForm(v => !v); setBatchError(''); }}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 text-white text-xs font-semibold hover:bg-blue-700 transition-colors">
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4"/></svg>
+                New Batch
               </button>
             </div>
+          </div>
 
-            {variants.length === 0 ? (
-              <div className="rounded-xl border-2 border-dashed border-slate-200 py-8 text-center text-sm text-slate-400">
-                {t('prod.no_sizes')}
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {variants.map((v, i) => (
-                  <div key={i} className="grid grid-cols-2 md:grid-cols-5 gap-3 p-3 rounded-xl bg-slate-50 border border-slate-100">
-                    {[
-                      [t('prod.size_label') + ' *', 'label',             'text',   'e.g. 500ml'],
-                      [t('prod.barcode'),            'barcode',           'text',   ''],
-                      [t('prod.sell_price'),         'selling_price',     'number', '0.00'],
-                      [t('prod.wholesale_price'),    'wholesale_price',   'number', '0.00'],
-                      [t('prod.conv_factor'),        'conversion_factor', 'number', '1'],
-                    ].map(([label, key, type, ph]) => (
-                      <div key={key}>
-                        <label className="text-xs font-semibold text-slate-500 mb-1 block">{label}</label>
-                        <input type={type} value={v[key]} placeholder={ph}
-                          onChange={e => setVariant(i, key, e.target.value)}
-                          onFocus={e => type === 'number' && e.target.select()}
-                          className="w-full rounded-lg border border-slate-200 px-2 py-2 text-sm outline-none focus:ring-1 focus:ring-blue-400 bg-white" />
-                      </div>
-                    ))}
-                    <div className="md:col-span-5 flex justify-end">
-                      <button type="button" onClick={() => removeVariant(i)}
-                        className="text-xs text-red-500 hover:text-red-700 font-medium">{t('prod.remove')}</button>
-                    </div>
+          {/* Inline create form */}
+          {showBatchForm && (
+            <div className="px-5 py-4 border-b border-slate-100 bg-blue-50">
+              <p className="text-xs font-bold text-blue-700 mb-3 uppercase tracking-wider">New Batch</p>
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
+                {[
+                  ['Batch Label', 'batch_label', 'text',   'e.g. Oct-2026'],
+                  ['Qty *',       'qty',         'number', '0'],
+                  ['Cost Price',  'cost_price',  'number', '0.00'],
+                  ['Sell Price *','selling_price','number', '0.00'],
+                  ['Expiry Date', 'expiry_date', 'date',   ''],
+                  ['Received',    'received_at', 'date',   ''],
+                ].map(([label, key, type, ph]) => (
+                  <div key={key}>
+                    <label className="text-xs font-semibold text-slate-600 mb-1 block">{label}</label>
+                    <input type={type} value={newBatch[key]} placeholder={ph}
+                      onChange={e => setNewBatch(b => ({ ...b, [key]: e.target.value }))}
+                      onFocus={e => type === 'number' && e.target.select()}
+                      className="w-full rounded-lg border border-slate-200 px-2.5 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-400 bg-white" />
                   </div>
                 ))}
               </div>
-            )}
-          </div>
-        )}
-      </div>
+              {batchError && <p className="text-xs text-red-600 mt-2">{batchError}</p>}
+              <div className="flex gap-2 mt-3">
+                <button type="button" onClick={handleCreateBatch} disabled={creatingBatch}
+                  className="px-4 py-1.5 rounded-lg bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 disabled:opacity-60 transition-colors">
+                  {creatingBatch ? 'Saving…' : 'Save Batch'}
+                </button>
+                <button type="button" onClick={() => { setShowBatchForm(false); setBatchError(''); setNewBatch(emptyBatch); }}
+                  className="px-4 py-1.5 rounded-lg bg-slate-200 text-slate-700 text-sm font-semibold hover:bg-slate-300 transition-colors">
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
 
-      {/* ── Save / Cancel ─────────────────────────────────────────────────── */}
-      <div className="flex items-center gap-3">
+          {batches.length === 0 ? (
+            <div className="px-5 py-8 text-center text-sm text-slate-400">No batches yet. Click "New Batch" to add one.</div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-slate-100 border-b border-slate-200">
+                    <th className="px-4 py-2.5 text-left text-xs font-bold text-slate-900 uppercase tracking-wider">Batch</th>
+                    <th className="px-4 py-2.5 text-right text-xs font-bold text-slate-900 uppercase tracking-wider">Qty</th>
+                    <th className="px-4 py-2.5 text-right text-xs font-bold text-slate-900 uppercase tracking-wider">Cost</th>
+                    <th className="px-4 py-2.5 text-right text-xs font-bold text-slate-900 uppercase tracking-wider">Sell Price</th>
+                    <th className="px-4 py-2.5 text-left text-xs font-bold text-slate-900 uppercase tracking-wider">Expiry</th>
+                    <th className="px-4 py-2.5 text-left text-xs font-bold text-slate-900 uppercase tracking-wider">Received</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {batches.map((b, i) => {
+                    const isExpired = b.expiry_date && new Date(b.expiry_date) < new Date();
+                    const isLow     = Number(b.qty) <= 0;
+                    return (
+                      <tr key={b.id ?? i} className={`transition-colors ${isLow ? 'bg-red-50' : isExpired ? 'bg-amber-50' : 'hover:bg-slate-50'}`}>
+                        <td className="px-4 py-2.5 font-medium text-slate-700">
+                          {b.batch_label || <span className="text-slate-400 italic">—</span>}
+                        </td>
+                        <td className={`px-4 py-2.5 text-right font-semibold ${isLow ? 'text-red-600' : 'text-slate-800'}`}>
+                          {Number(b.qty).toFixed(3)}
+                        </td>
+                        <td className="px-4 py-2.5 text-right text-slate-600">{Number(b.cost_price).toFixed(2)}</td>
+                        <td className="px-4 py-2.5 text-right font-semibold text-blue-700">{Number(b.selling_price).toFixed(2)}</td>
+                        <td className="px-4 py-2.5">
+                          {b.expiry_date
+                            ? <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${isExpired ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>{b.expiry_date}</span>
+                            : <span className="text-slate-400">—</span>}
+                        </td>
+                        <td className="px-4 py-2.5 text-slate-500 text-xs">{b.received_at || '—'}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── Action buttons ────────────────────────────────────────────────── */}
+      <div className="flex justify-end gap-4 mt-4">
         <button type="button" onClick={() => history.back()}
-          className="flex-1 py-3 rounded-xl bg-slate-200 text-slate-700 text-base font-semibold hover:bg-slate-300 transition-colors">
+          className="w-48 py-3 rounded-xl bg-red-500 text-white text-base font-semibold hover:bg-red-600 transition-colors shadow-sm">
           {t('btn.cancel')}
         </button>
         <button type="submit" disabled={uploading || saving || isSaving}
-          className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-blue-600 text-white text-base font-semibold hover:bg-blue-700 disabled:opacity-70 transition-colors shadow-sm">
+          className="flex items-center justify-center gap-2 w-48 py-3 rounded-xl bg-blue-600 text-white text-base font-semibold hover:bg-blue-700 disabled:opacity-70 transition-colors shadow-sm">
           {(uploading || saving || isSaving) && (
             <svg className="w-4 h-4 animate-spin shrink-0" fill="none" viewBox="0 0 24 24">
               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>

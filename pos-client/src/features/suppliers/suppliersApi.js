@@ -21,6 +21,18 @@ export const suppliersApi = api.injectEndpoints({
       query: id => ({ url: `/suppliers/${id}`, method: 'DELETE' }),
       invalidatesTags: [{ type: 'Suppliers', id: 'LIST' }],
     }),
+    getSupplierCreditHistory: build.query({
+      query: id => `/suppliers/${id}/credit-history`,
+      providesTags: (r, e, id) => [{ type: 'SupplierCredit', id }],
+    }),
+    settleSupplierCredit: build.mutation({
+      query: ({ id, ...body }) => ({ url: `/suppliers/${id}/settle-credit`, method: 'POST', body }),
+      invalidatesTags: (r, e, { id }) => [
+        { type: 'SupplierCredit', id },
+        { type: 'Suppliers', id: 'LIST' },
+        { type: 'Purchases', id: 'LIST' },
+      ],
+    }),
   }),
 });
 
@@ -29,4 +41,6 @@ export const {
   useCreateSupplierMutation,
   useUpdateSupplierMutation,
   useDeleteSupplierMutation,
+  useGetSupplierCreditHistoryQuery,
+  useSettleSupplierCreditMutation,
 } = suppliersApi;

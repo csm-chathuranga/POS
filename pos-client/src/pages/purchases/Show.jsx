@@ -54,8 +54,8 @@ export default function PurchaseShow() {
         {[
           { label: t('pur.supplier'),  value: purchase.supplier?.name || t('lbl.all') },
           { label: t('lbl.cashier'),   value: purchase.user?.name || '—' },
-          { label: t('th.invoice'),    value: purchase.invoice_no || '—' },
           { label: t('th.date'),       value: fmtDate(purchase.purchase_date) },
+          { label: t('pur.due_date'),  value: purchase.due_date ? fmtDate(purchase.due_date) : '—' },
         ].map(({ label, value }) => (
           <div key={label} className="bg-white rounded-xl border border-slate-100 shadow-sm px-4 py-3">
             <p className="text-xs text-slate-400 font-semibold uppercase tracking-wide mb-1">{label}</p>
@@ -122,6 +122,15 @@ export default function PurchaseShow() {
             <span>{fmt(balance)}</span>
           </div>
         )}
+        {purchase.due_date && balance > 0.005 && (() => {
+          const overdue = new Date(purchase.due_date) < new Date();
+          return (
+            <div className={`flex justify-between text-xs font-semibold pt-1 border-t border-slate-100 ${overdue ? 'text-red-500' : 'text-slate-500'}`}>
+              <span>{t('pur.due_date')}{overdue ? ' ⚠ Overdue' : ''}</span>
+              <span>{fmtDate(purchase.due_date)}</span>
+            </div>
+          );
+        })()}
         {purchase.notes && (
           <p className="text-xs text-slate-400 pt-2 border-t border-slate-100">{purchase.notes}</p>
         )}

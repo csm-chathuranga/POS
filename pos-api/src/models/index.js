@@ -58,13 +58,23 @@ function getModels(sequelize) {
   }, { tableName: 'product_variants' });
 
   const Supplier = sequelize.define('Supplier', {
-    id:      { type: DataTypes.BIGINT.UNSIGNED, primaryKey: true, autoIncrement: true },
-    name:    { type: DataTypes.STRING(191), allowNull: false },
-    phone:   { type: DataTypes.STRING(191), allowNull: true },
-    email:   { type: DataTypes.STRING(191), allowNull: true },
-    address: { type: DataTypes.TEXT, allowNull: true },
-    active:  { type: DataTypes.BOOLEAN, defaultValue: true },
+    id:              { type: DataTypes.BIGINT.UNSIGNED, primaryKey: true, autoIncrement: true },
+    name:            { type: DataTypes.STRING(191), allowNull: false },
+    phone:           { type: DataTypes.STRING(191), allowNull: true },
+    email:           { type: DataTypes.STRING(191), allowNull: true },
+    address:         { type: DataTypes.TEXT, allowNull: true },
+    active:          { type: DataTypes.BOOLEAN, defaultValue: true },
+    payable_balance: { type: DataTypes.DECIMAL(10, 2), defaultValue: 0 },
   }, { tableName: 'suppliers' });
+
+  const SupplierPayment = sequelize.define('SupplierPayment', {
+    id:          { type: DataTypes.BIGINT.UNSIGNED, primaryKey: true, autoIncrement: true },
+    ref_no:      { type: DataTypes.STRING(191), allowNull: true, unique: true },
+    supplier_id: { type: DataTypes.BIGINT.UNSIGNED, allowNull: false },
+    user_id:     { type: DataTypes.BIGINT.UNSIGNED, allowNull: false },
+    amount:      { type: DataTypes.DECIMAL(10, 2), allowNull: false },
+    note:        { type: DataTypes.STRING(191), allowNull: true },
+  }, { tableName: 'supplier_payments' });
 
   const Customer = sequelize.define('Customer', {
     id:             { type: DataTypes.BIGINT.UNSIGNED, primaryKey: true, autoIncrement: true },
@@ -135,6 +145,7 @@ function getModels(sequelize) {
     paid:          { type: DataTypes.DECIMAL(10, 2), defaultValue: 0 },
     status:        { type: DataTypes.ENUM('received', 'pending', 'partial'), defaultValue: 'received' },
     purchase_date: { type: DataTypes.DATEONLY, allowNull: false },
+    due_date:      { type: DataTypes.DATEONLY, allowNull: true },
     note:          { type: DataTypes.TEXT, allowNull: true },
   }, { tableName: 'purchases' });
 
@@ -175,6 +186,17 @@ function getModels(sequelize) {
     value: { type: DataTypes.TEXT('long'), allowNull: true },
   }, { tableName: 'settings' });
 
+  const ProductBatch = sequelize.define('ProductBatch', {
+    id:            { type: DataTypes.BIGINT.UNSIGNED, primaryKey: true, autoIncrement: true },
+    product_id:    { type: DataTypes.BIGINT.UNSIGNED, allowNull: false },
+    batch_label:   { type: DataTypes.STRING(100), allowNull: true },
+    qty:           { type: DataTypes.DECIMAL(10, 3), defaultValue: 0 },
+    cost_price:    { type: DataTypes.DECIMAL(10, 2), defaultValue: 0 },
+    selling_price: { type: DataTypes.DECIMAL(10, 2), defaultValue: 0 },
+    expiry_date:   { type: DataTypes.DATEONLY, allowNull: true },
+    received_at:   { type: DataTypes.DATEONLY, allowNull: false },
+  }, { tableName: 'product_batches', underscored: true });
+
   const Feature = sequelize.define('Feature', {
     id:         { type: DataTypes.BIGINT.UNSIGNED, primaryKey: true, autoIncrement: true },
     key:        { type: DataTypes.STRING(191), allowNull: false, unique: true },
@@ -193,6 +215,8 @@ function getModels(sequelize) {
   Product.belongsTo(Category, { foreignKey: 'category_id', as: 'category' });
   Product.hasMany(ProductVariant, { foreignKey: 'product_id', as: 'variants' });
   ProductVariant.belongsTo(Product, { foreignKey: 'product_id', as: 'product' });
+  Product.hasMany(ProductBatch, { foreignKey: 'product_id', as: 'batches' });
+  ProductBatch.belongsTo(Product, { foreignKey: 'product_id', as: 'product' });
 
   Sale.belongsTo(User, { foreignKey: 'user_id', as: 'user' });
   Sale.belongsTo(Customer, { foreignKey: 'customer_id', as: 'customer' });
@@ -203,6 +227,10 @@ function getModels(sequelize) {
   Purchase.belongsTo(Supplier, { foreignKey: 'supplier_id', as: 'supplier' });
   Purchase.belongsTo(User, { foreignKey: 'user_id', as: 'user' });
   Purchase.hasMany(PurchaseItem, { foreignKey: 'purchase_id', as: 'items' });
+
+  Supplier.hasMany(SupplierPayment, { foreignKey: 'supplier_id', as: 'payments' });
+  SupplierPayment.belongsTo(Supplier, { foreignKey: 'supplier_id', as: 'supplier' });
+  SupplierPayment.belongsTo(User, { foreignKey: 'user_id', as: 'user' });
 
   Customer.hasMany(CreditPayment, { foreignKey: 'customer_id', as: 'creditPayments' });
   Customer.hasMany(Sale, { foreignKey: 'customer_id', as: 'sales' });
@@ -216,9 +244,9 @@ function getModels(sequelize) {
   Feature.belongsToMany(User, { through: 'user_features', foreignKey: 'feature_id', otherKey: 'user_id', as: 'DirectUsers', timestamps: false });
 
   return {
-    User, Role, Category, Product, ProductVariant,
+    User, Role, Category, Product, ProductVariant, ProductBatch,
     Supplier, Customer, Sale, SaleItem, Payment, SaleReturn,
-    Purchase, PurchaseItem, StockMovement, CreditPayment, Setting, Feature,
+    Purchase, PurchaseItem, StockMovement, CreditPayment, SupplierPayment, Setting, Feature,
   };
 }
 

@@ -19,7 +19,7 @@ router.get('/', auth, async (req, res) => {
 });
 
 router.post('/', auth, role('admin', 'manager'), async (req, res) => {
-  const { Purchase, PurchaseItem, Product, StockMovement } = req.models;
+  const { Purchase, PurchaseItem, Product, StockMovement, Supplier } = req.models;
   const { items = [], ...data } = req.body;
 
   if (!data.supplier_id) return res.status(422).json({ error: 'Please select a supplier' });
@@ -48,6 +48,17 @@ router.post('/', auth, role('admin', 'manager'), async (req, res) => {
         product_id: product.id, user_id: req.user.id, type: 'in',
         qty: item.qty, stock_before: before, stock_after: after, reference: grn_no,
       });
+    }
+  }
+
+  // Update supplier payable balance with the unpaid portion
+  if (data.supplier_id) {
+    const supplier = await Supplier.findByPk(data.supplier_id);
+    if (supplier) {
+      const unpaid = parseFloat(data.total) - parseFloat(data.paid);
+      if (unpaid > 0) {
+        await supplier.update({ payable_balance: parseFloat(supplier.payable_balance || 0) + unpaid });
+      }
     }
   }
 

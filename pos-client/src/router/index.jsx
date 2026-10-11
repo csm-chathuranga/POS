@@ -20,6 +20,7 @@ import SalesCreate    from '../pages/sales/Create';
 import SalesCreate2   from '../pages/sales/Create2';
 import SalesCreate3   from '../pages/sales/Create3';
 import SalesShow      from '../pages/sales/Show';
+import DailyReport    from '../pages/sales/DailyReport';
 import CustomersIndex  from '../pages/customers/Index';
 import CustomerCredit  from '../pages/customers/Credit';
 import CreditIndex     from '../pages/credit/Index';
@@ -28,7 +29,9 @@ import PurchasesCreate from '../pages/purchases/Create';
 import PurchasesShow   from '../pages/purchases/Show';
 import Reports         from '../pages/reports/Index';
 import UsersIndex     from '../pages/users/Index';
-import SuppliersIndex   from '../pages/suppliers/Index';
+import SuppliersIndex      from '../pages/suppliers/Index';
+import SupplierCredit      from '../pages/suppliers/Credit';
+import SupplierCreditIndex from '../pages/supplier-credit/Index';
 import CategoriesIndex  from '../pages/categories/Index';
 import ImportDataPage    from '../pages/admin/ImportData';
 import ProvisionTenant  from '../pages/admin/ProvisionTenant';
@@ -101,6 +104,7 @@ export const router = createAppRouter([
         { path: 'dashboard',            element: <DashboardRoute /> },
         { path: 'sales',                element: <SalesIndex /> },
         { path: 'sales/create',         element: <POSRoute /> },
+        { path: 'sales/daily-report',   element: <DailyReport /> },
         { path: 'sales/:id',            element: <SalesShow /> },
         { path: 'products',             element: <ProductsIndex /> },
         { path: 'products/create',      element: <ProductCreate /> },
@@ -112,7 +116,9 @@ export const router = createAppRouter([
         { path: 'purchases',            element: <PurchasesIndex /> },
         { path: 'purchases/create',     element: <PurchasesCreate /> },
         { path: 'purchases/:id',        element: <PurchasesShow /> },
-        { path: 'suppliers',            element: <SuppliersIndex /> },
+        { path: 'suppliers',              element: <SuppliersIndex /> },
+        { path: 'suppliers/:id/credit',  element: <SupplierCredit /> },
+        { path: 'supplier-credit',        element: <SupplierCreditIndex /> },
         { path: 'categories',           element: <CategoriesIndex /> },
         {
           element: <AdminRoute />,

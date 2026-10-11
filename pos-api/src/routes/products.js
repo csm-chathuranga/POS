@@ -32,6 +32,17 @@ function productToItem(p) {
       price:             parseFloat(v.selling_price),
       conversion_factor: parseFloat(v.conversion_factor ?? 1),
     })),
+    batches: (p.batches || [])
+      .filter(b => parseFloat(b.qty) > 0)
+      .sort((a, b) => (a.received_at > b.received_at ? 1 : a.received_at < b.received_at ? -1 : a.id - b.id))
+      .map(b => ({
+        id:            b.id,
+        batch_label:   b.batch_label,
+        qty:           parseFloat(b.qty),
+        selling_price: parseFloat(b.selling_price),
+        expiry_date:   b.expiry_date,
+        received_at:   b.received_at,
+      })),
   };
 }
 
@@ -41,10 +52,14 @@ router.get('/all', auth, async (req, res) => {
   const cached   = cache.get(cacheKey);
   if (cached) return res.json(cached);
 
-  const { Product, ProductVariant } = req.models;
+  const { Product, ProductVariant, ProductBatch } = req.models;
   const products = await Product.findAll({
     where: { active: true },
-    include: [{ model: ProductVariant, as: 'variants' }],
+    include: [
+      { model: ProductVariant, as: 'variants' },
+      { model: ProductBatch,   as: 'batches', required: false,
+        where: { qty: { [Op.gt]: 0 } } },
+    ],
     order: [['id', 'ASC']],
   });
 
@@ -221,6 +236,42 @@ router.post('/', auth, role('admin', 'manager'), async (req, res) => {
 
   cache.del(`${req.tenant}_products_all`);
   res.status(201).json(product);
+});
+
+// GET /api/products/:id/batches — active batches for a product (qty > 0), oldest first
+router.get('/:id/batches', auth, async (req, res) => {
+  const { ProductBatch } = req.models;
+  const batches = await ProductBatch.findAll({
+    where: { product_id: req.params.id, qty: { [Op.gt]: 0 } },
+    order: [['received_at', 'ASC'], ['id', 'ASC']],
+  });
+  res.json(batches);
+});
+
+// POST /api/products/:id/batches — add a new batch and increment product stock
+router.post('/:id/batches', auth, role('admin', 'manager'), async (req, res) => {
+  const { Product, ProductBatch } = req.models;
+  const product = await Product.findByPk(req.params.id);
+  if (!product) return res.status(404).json({ error: 'Not found' });
+
+  const { batch_label, qty, cost_price, selling_price, expiry_date } = req.body;
+  const received_at = new Date().toISOString().slice(0, 10);
+
+  const batch = await ProductBatch.create({
+    product_id:    product.id,
+    batch_label:   batch_label || `Batch ${received_at}`,
+    qty:           parseFloat(qty) || 0,
+    cost_price:    parseFloat(cost_price) || 0,
+    selling_price: parseFloat(selling_price) || 0,
+    expiry_date:   expiry_date || null,
+    received_at,
+  });
+
+  const newQty = parseFloat(product.stock_qty) + (parseFloat(qty) || 0);
+  await product.update({ stock_qty: newQty, active: true });
+
+  cache.del(`${req.tenant}_products_all`);
+  res.status(201).json(batch);
 });
 
 // GET /api/products/:id

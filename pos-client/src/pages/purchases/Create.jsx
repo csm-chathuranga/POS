@@ -28,7 +28,7 @@ export default function PurchaseCreate() {
   const { data: suppliers = [] } = useGetSuppliersQuery();
 
   const [form, setForm] = useState({
-    supplier_id: '', purchase_date: today(), status: 'received', paid: '', note: '',
+    supplier_id: '', purchase_date: today(), status: 'received', paid: '', due_date: '', note: '',
   });
   const [items, setItems]     = useState([]);
   const [search, setSearch]   = useState('');
@@ -127,6 +127,11 @@ export default function PurchaseCreate() {
           <input type="number" min="0" step="0.01" value={form.paid} onChange={set('paid')} placeholder="0.00"
             className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500" />
         </div>
+        <div>
+          <label className="block text-xs font-semibold text-slate-600 mb-1">{t('pur.due_date')}</label>
+          <input type="date" value={form.due_date} onChange={set('due_date')}
+            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500" />
+        </div>
         <div className="col-span-2 md:col-span-4">
           <label className="block text-xs font-semibold text-slate-600 mb-1">{t('lbl.note')}</label>
           <input value={form.note} onChange={set('note')} placeholder={t('pur.optional_note')}
@@ -218,6 +223,20 @@ export default function PurchaseCreate() {
                   <td className="pt-3 text-right font-bold text-slate-800 pr-2">Rs. {fmt(total)}</td>
                   <td></td>
                 </tr>
+                {parseFloat(form.paid) > 0 && (
+                  <>
+                    <tr>
+                      <td colSpan={4} className="pt-1 text-right text-sm text-slate-500 pr-2">{t('th.paid')}</td>
+                      <td className="pt-1 text-right text-sm font-semibold text-green-600 pr-2">Rs. {fmt(form.paid)}</td>
+                      <td></td>
+                    </tr>
+                    <tr>
+                      <td colSpan={4} className="pt-1 text-right text-sm text-slate-500 pr-2">{t('lbl.balance')}</td>
+                      <td className="pt-1 text-right text-sm font-semibold text-red-500 pr-2">Rs. {fmt(Math.max(0, total - parseFloat(form.paid)))}</td>
+                      <td></td>
+                    </tr>
+                  </>
+                )}
               </tfoot>
             </table>
           </div>

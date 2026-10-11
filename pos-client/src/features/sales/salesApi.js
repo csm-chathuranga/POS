@@ -46,6 +46,10 @@ export const salesApi = api.injectEndpoints({
       query: id => ({ url: `/sales/${id}/mark-paid`, method: 'POST' }),
       invalidatesTags: (r, e, id) => [{ type: 'Sales', id }, { type: 'Sales', id: 'LIST' }, { type: 'Customers', id: 'LIST' }, 'Dashboard'],
     }),
+    getDailySalesPrint: build.query({
+      query: (date) => ({ url: '/sales/daily-print', params: date ? { date } : {} }),
+      keepUnusedDataFor: 0,
+    }),
   }),
 });
 
@@ -58,4 +62,5 @@ export const {
   useDeleteSaleMutation,
   useReturnSaleMutation,
   useMarkSalePaidMutation,
+  useGetDailySalesPrintQuery,
 } = salesApi;

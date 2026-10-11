@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useGetProductsQuery, useUpdateProductMutation, useCreateProductMutation } from '../../features/products/productsApi';
+import { useGetProductsQuery, useUpdateProductMutation, useCreateProductMutation, useCreateProductBatchMutation } from '../../features/products/productsApi';
 import { useSelector } from 'react-redux';
 import { selectToken } from '../../features/auth/authSlice';
 import { getApiUrl } from '../../config/runtimeConfig';
@@ -42,6 +43,9 @@ export default function ProductIntake() {
 
   const [updateProduct, { isLoading: saving }] = useUpdateProductMutation();
   const [createProduct, { isLoading: creating }] = useCreateProductMutation();
+  const [createProductBatch, { isLoading: savingBatch }] = useCreateProductBatchMutation();
+
+  const [batchPrompt, setBatchPrompt] = useState(false);
 
   const [qcOpen, setQcOpen] = useState(false);
   const EMPTY_QC = { name: '', name_si: '', barcode: '', cost_price: '', selling_price: '', our_price: '', stock_qty: '', unit: 'pcs' };
@@ -120,9 +124,23 @@ export default function ProductIntake() {
     if (e.key === 'Enter') lookup(barcode);
   }
 
+  function pricesDiffer() {
+    const priceDiff  = parseFloat(form.selling_price) !== parseFloat(product.selling_price);
+    const expiryDiff = (form.expiry_date || '') !== (product.expiry_date || '');
+    return priceDiff || expiryDiff;
+  }
+
   async function handleSave(e) {
     e.preventDefault();
     if (!product) return;
+    if (pricesDiffer()) {
+      setBatchPrompt(true);
+      return;
+    }
+    await doUpdateProduct();
+  }
+
+  async function doUpdateProduct() {
     await updateProduct({
       id:            product.id,
       stock_qty:     form.stock_qty,
@@ -136,6 +154,23 @@ export default function ProductIntake() {
     clearProductCache();
     setSavedCount(c => c + 1);
     setLastSaved(product.name);
+    reset();
+  }
+
+  async function handleSaveAsBatch() {
+    const today = new Date().toISOString().slice(0, 10);
+    await createProductBatch({
+      id:            product.id,
+      batch_label:   `Batch ${today}`,
+      qty:           form.stock_qty,
+      cost_price:    form.cost_price,
+      selling_price: form.selling_price,
+      expiry_date:   form.expiry_date || null,
+    }).unwrap();
+    clearProductCache();
+    setSavedCount(c => c + 1);
+    setLastSaved(product.name);
+    setBatchPrompt(false);
     reset();
   }
 
@@ -433,6 +468,113 @@ export default function ProductIntake() {
           </div>
         </div>
       )}
+
+      {/* Batch prompt modal — rendered via portal so fixed covers the full viewport */}
+      {batchPrompt && product && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+          onClick={e => { if (e.target === e.currentTarget) setBatchPrompt(false); }}>
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden">
+
+            {/* Header */}
+            <div className="bg-gradient-to-br from-amber-50 to-orange-50 px-6 pt-6 pb-5 border-b border-amber-100">
+              <div className="flex items-start gap-4">
+                <div className="shrink-0 w-12 h-12 rounded-2xl bg-amber-100 flex items-center justify-center">
+                  <svg className="w-6 h-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+                  </svg>
+                </div>
+                <div>
+                  <h2 className="text-lg font-bold text-slate-800 leading-snug">වෙනස් මිලක් හෝ කල් ඉකුත් දිනයක් හඳුනාගන්නා ලදී</h2>
+                  <p className="text-sm text-amber-700 mt-0.5 font-medium">Different price or expiry detected from current stock</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Product name */}
+            <div className="px-6 pt-4 pb-1">
+              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Product</p>
+              <p className="font-bold text-slate-800 text-base truncate">{product.name}</p>
+            </div>
+
+            {/* Comparison grid */}
+            <div className="px-6 py-4 grid grid-cols-2 gap-3">
+              {/* Current */}
+              <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100">
+                <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Current Stock</p>
+                <div className="space-y-2.5">
+                  <div>
+                    <p className="text-xs text-slate-400">Selling Price</p>
+                    <p className="text-xl font-bold text-slate-700">Rs. {parseFloat(product.selling_price).toFixed(2)}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-slate-400">Expiry</p>
+                    <p className="text-sm font-semibold text-slate-600">{product.expiry_date || '—'}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* New */}
+              <div className="bg-blue-50 rounded-2xl p-4 border border-blue-100">
+                <p className="text-xs font-semibold text-blue-500 uppercase tracking-wider mb-3">New Stock</p>
+                <div className="space-y-2.5">
+                  <div>
+                    <p className="text-xs text-blue-400">Selling Price</p>
+                    <p className={`text-xl font-bold ${parseFloat(form.selling_price) > parseFloat(product.selling_price) ? 'text-red-500' : 'text-green-600'}`}>
+                      Rs. {parseFloat(form.selling_price).toFixed(2)}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-blue-400">Expiry</p>
+                    <p className="text-sm font-semibold text-blue-700">{form.expiry_date || '—'}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Qty pill */}
+            <div className="px-6 pb-4">
+              <div className="flex items-center gap-3 bg-slate-50 rounded-2xl px-4 py-3 border border-slate-100">
+                <div className="w-8 h-8 rounded-xl bg-slate-200 flex items-center justify-center shrink-0">
+                  <svg className="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10"/>
+                  </svg>
+                </div>
+                <div>
+                  <p className="text-xs text-slate-400">Quantity being added</p>
+                  <p className="font-bold text-slate-700">{form.stock_qty} <span className="font-normal text-slate-400">{product.unit || 'pcs'}</span></p>
+                </div>
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="px-6 pb-6 flex flex-col gap-2.5">
+              <button
+                onClick={handleSaveAsBatch}
+                disabled={savingBatch}
+                className="w-full py-3.5 rounded-2xl bg-blue-600 text-white font-bold text-sm disabled:opacity-60 hover:bg-blue-700 active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-lg shadow-blue-200">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4"/>
+                </svg>
+                {savingBatch ? 'Saving…' : 'Save as New Batch — keep both prices on shelf'}
+              </button>
+              <button
+                onClick={async () => { setBatchPrompt(false); await doUpdateProduct(); }}
+                disabled={saving}
+                className="w-full py-3.5 rounded-2xl bg-green-600 text-white font-bold text-sm disabled:opacity-60 hover:bg-green-700 active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-lg shadow-green-200">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                </svg>
+                {saving ? 'Saving…' : 'Update Product — replace price & expiry'}
+              </button>
+              <button
+                onClick={() => setBatchPrompt(false)}
+                className="w-full py-3 rounded-2xl border border-slate-200 text-sm font-semibold text-slate-400 hover:bg-slate-50 hover:text-slate-600 active:scale-[0.98] transition-all">
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      , document.body)}
 
       {/* Browse modal */}
       {browseOpen && (

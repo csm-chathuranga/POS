@@ -104,8 +104,9 @@ async function main() {
     { key: 'purchases',     label: 'Purchases',    path: '/purchases',          group: 'main', sort_order: 7 },
     { key: 'customers',     label: 'Customers',    path: '/customers',          group: 'main', sort_order: 8 },
     { key: 'credit',        label: 'Credit Book',  path: '/credit',             group: 'main', sort_order: 9 },
-    { key: 'suppliers',     label: 'Suppliers',    path: '/suppliers',          group: 'main', sort_order: 10 },
-    { key: 'categories',    label: 'Categories',   path: '/categories',         group: 'main', sort_order: 11 },
+    { key: 'suppliers',        label: 'Suppliers',        path: '/suppliers',          group: 'main', sort_order: 10 },
+    { key: 'supplier_credit',  label: 'Supplier Payables',path: '/supplier-credit',    group: 'main', sort_order: 11, icon: 'credit' },
+    { key: 'categories',       label: 'Categories',       path: '/categories',         group: 'main', sort_order: 12 },
     { key: 'reports',       label: 'Reports',      path: '/reports',            group: 'mgmt', sort_order: 12 },
     { key: 'users',         label: 'Users',        path: '/users',              group: 'mgmt', sort_order: 13 },
     { key: 'settings',      label: 'Settings',     path: '/settings',           group: 'mgmt', sort_order: 14 },
@@ -114,7 +115,7 @@ async function main() {
   ];
 
   const ROLE_DEFAULTS = {
-    manager: ['dashboard','new_sale','sales','products','stock_intake','purchases','customers','credit','suppliers','categories','reports'],
+    manager: ['dashboard','new_sale','sales','products','stock_intake','purchases','customers','credit','suppliers','supplier_credit','categories','reports'],
     cashier:  ['dashboard','new_sale','sales','customers','credit'],
     custom:   ['dashboard','new_sale','sales'],
   };

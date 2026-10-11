@@ -152,9 +152,4 @@ When a sale is saved:
 
 ## Decision Needed Before Starting
 
-**Batch selection at POS:** Should the cashier always be prompted to pick a batch, or should the system silently use FIFO (oldest first)?
-
-- **FIFO auto-select** — zero cashier friction; works well when prices are close and staff don't need to choose.
-- **Manual picker** — cashier can match the physical item to the correct batch (useful when price differs and the receipt must show the right price).
-
-Recommend: **FIFO auto-select** with an override button for cashiers who want to pick manually.
+**Batch selection at POS:** Should the cashier always be prompted to pick a batch when there is more batches

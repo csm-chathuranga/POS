@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback, useMemo, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { logout, selectCurrentUser, selectRole, selectToken } from '../../features/auth/authSlice';
@@ -564,11 +565,14 @@ export default function SalesCreate() {
   const csPreBuf    = useRef([]);
   const csOrigVal   = useRef(null);
   const addToCartRef = useRef(null);
+  const fetchBatchesAndAddRef = useRef(null);
 
   // Cart
   const [cart, setCart]         = useState([]);
   const [highlights, setHl]     = useState({});
   const [sizePicker, setSizePicker] = useState(null);
+  const [batchPicker, setBatchPicker] = useState(null);
+  const [batchIdx, setBatchIdx]       = useState(0);
   const [priceMode, setPriceMode]   = useState('retail');
   const [billDiscount, setBillDisc] = useState('');
   const [discType, setDiscType]     = useState('amount');
@@ -767,7 +771,7 @@ export default function SalesCreate() {
         if (!isFast || bc.length < 4) return;
         e.preventDefault();
         const hit = products.find(p => p.barcode?.toLowerCase() === bc.toLowerCase());
-        if (hit) addToCartRef.current?.(hit, null, false);
+        if (hit) fetchBatchesAndAddRef.current?.(hit, null);
         else setScanNotFound(bc);
       }
     };
@@ -847,7 +851,7 @@ export default function SalesCreate() {
           el.dispatchEvent(new Event('input', { bubbles: true }));
 
           const hit = products.find(p => p.barcode?.toLowerCase() === buf.toLowerCase());
-          if (hit) addToCartRef.current?.(hit, null, false);
+          if (hit) fetchBatchesAndAddRef.current?.(hit, null);
           else setScanNotFound(buf);
         }
       }
@@ -875,7 +879,7 @@ export default function SalesCreate() {
     if (!bc || !ready || autoBarcodeDone.current) return;
     autoBarcodeDone.current = true;
     const hit = products.find(p => p.barcode?.toLowerCase() === bc.toLowerCase());
-    if (hit) addToCart(hit, null, false);
+    if (hit) fetchBatchesAndAddRef.current?.(hit, null);
     else setScanNotFound(bc);
     navigate(location.pathname, { replace: true, state: {} });
   }, [ready, location.state?.barcode]);
@@ -924,6 +928,47 @@ export default function SalesCreate() {
   }
   addToCartRef.current = addToCart;
 
+  function fetchBatchesAndAdd(product, qty = null) {
+    if (!product || product.sizes?.length > 0) { addToCart(product, qty, false); return; }
+    const batches = product.batches || [];
+    if (batches.length > 1) {
+      setBatchPicker({ product, batches });
+    } else if (batches.length === 1) {
+      addToCart({ ...product, selling_price: batches[0].selling_price }, qty, false);
+    } else {
+      addToCart(product, qty, false);
+    }
+  }
+  fetchBatchesAndAddRef.current = fetchBatchesAndAdd;
+
+  useEffect(() => { if (batchPicker) setBatchIdx(0); }, [!!batchPicker]);
+
+  useEffect(() => {
+    if (!batchPicker) return;
+    const handler = e => {
+      if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+        e.preventDefault(); e.stopPropagation();
+        setBatchIdx(i => Math.min(i + 1, batchPicker.batches.length - 1));
+      } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+        e.preventDefault(); e.stopPropagation();
+        setBatchIdx(i => Math.max(i - 1, 0));
+      } else if (e.key === 'Enter') {
+        e.preventDefault(); e.stopPropagation();
+        const batch = batchPicker.batches[batchIdx];
+        if (batch) {
+          setBatchPicker(null);
+          addToCart({ ...batchPicker.product, selling_price: batch.selling_price }, null, false);
+          refocus();
+        }
+      } else if (e.key === 'Escape') {
+        e.preventDefault(); e.stopPropagation();
+        setBatchPicker(null); refocus();
+      }
+    };
+    document.addEventListener('keydown', handler, true);
+    return () => document.removeEventListener('keydown', handler, true);
+  }, [batchPicker, batchIdx]);
+
   function onSizeSelect(size, qty) {
     const p = sizePicker.product;
     setSizePicker(null);
@@ -951,7 +996,7 @@ export default function SalesCreate() {
         const bc = query.trim();
         isScan.current = false; keyIntervals.current = []; lastKeyTime.current = 0;
         const hit = products.find(p => p.barcode?.toLowerCase() === bc.toLowerCase());
-        if (hit) addToCart(hit, qtyMultiplier, false);
+        if (hit) fetchBatchesAndAddRef.current?.(hit, qtyMultiplier);
         else setScanNotFound(bc);
         setQtyMultiplier(1); setQuery(''); setShowDrop(false); refocus(); return;
       }
@@ -1189,7 +1234,11 @@ export default function SalesCreate() {
       <div className="bg-white border-b border-slate-200 px-3 h-12 flex items-center justify-between shrink-0 gap-2">
         <div className="flex items-center gap-2 shrink-0">
           <button onClick={() => navigate('/sales')} className="text-slate-500 hover:text-slate-800 transition-colors">{Icon.back}</button>
-          <button onClick={() => navigate('/dashboard')} title="Home" className="text-slate-500 hover:text-slate-800 transition-colors">{Icon.home}</button>
+          <button onClick={() => navigate('/sales')} title="Home"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs transition-colors shadow-sm">
+            {Icon.home}
+            <span>Home</span>
+          </button>
           <h1 className="font-bold text-slate-800 text-sm hidden sm:block">{t('page.new_sale')}</h1>
         </div>
 
@@ -1275,7 +1324,7 @@ export default function SalesCreate() {
                       setScanVal('');
                       if (!bc) { scanRef.current?.focus(); return; }
                       const hit = products.find(p => p.barcode?.toLowerCase() === bc.toLowerCase());
-                      if (hit) addToCartRef.current?.(hit, null, true);
+                      if (hit) fetchBatchesAndAddRef.current?.(hit, null);
                       else { setScanNotFound(bc); setTimeout(() => scanRef.current?.focus(), 50); }
                     }
                   }}
@@ -1663,6 +1712,85 @@ export default function SalesCreate() {
         <SizePickerModal product={sizePicker.product} onSelect={onSizeSelect}
           onClose={() => { setSizePicker(null); refocus(); }} />
       )}
+
+      {batchPicker && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+          onClick={e => { if (e.target === e.currentTarget) { setBatchPicker(null); refocus(); } }}>
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden">
+            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 px-6 pt-5 pb-4 border-b border-blue-100">
+              <div className="flex items-center gap-3">
+                <div className="shrink-0 w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center">
+                  <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
+                  </svg>
+                </div>
+                <div>
+                  <h2 className="font-bold text-slate-800 text-lg">Select Batch</h2>
+                  <p className="text-sm text-slate-500 mt-0.5">{batchPicker.product.name}</p>
+                </div>
+              </div>
+            </div>
+            <p className="px-5 pt-4 pb-0 text-xs text-slate-400">Use <kbd className="px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 font-mono">←</kbd> <kbd className="px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 font-mono">→</kbd> to navigate, <kbd className="px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 font-mono">Enter</kbd> to select</p>
+
+            <div className="p-5 grid gap-3 max-h-[60vh] overflow-y-auto" style={{ gridTemplateColumns: `repeat(${Math.min(batchPicker.batches.length, 3)}, 1fr)` }}>
+              {batchPicker.batches.map((batch, i) => {
+                const today = new Date().toISOString().slice(0, 10);
+                const isExpired    = batch.expiry_date && batch.expiry_date < today;
+                const expiringSoon = !isExpired && batch.expiry_date &&
+                  (new Date(batch.expiry_date) - new Date()) < 30 * 24 * 60 * 60 * 1000;
+                const isSelected   = i === batchIdx;
+                return (
+                  <button key={batch.id} type="button"
+                    onClick={() => {
+                      setBatchPicker(null);
+                      addToCart({ ...batchPicker.product, selling_price: batch.selling_price }, null, false);
+                      refocus();
+                    }}
+                    className={`text-left rounded-2xl border-2 p-5 transition-all active:scale-95 hover:shadow-lg flex flex-col gap-3
+                      ${isSelected ? 'ring-4 ring-blue-400 ring-offset-2 shadow-lg scale-[1.02]' : ''}
+                      ${isExpired ? 'border-red-200 bg-red-50 hover:border-red-400'
+                        : expiringSoon ? 'border-amber-200 bg-amber-50 hover:border-amber-400'
+                        : isSelected ? 'border-blue-500 bg-blue-50'
+                        : 'border-slate-200 bg-slate-50 hover:border-blue-400 hover:bg-blue-50'}`}>
+                    <div className="flex flex-wrap gap-1.5">
+                      {i === 0 && <span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700 font-bold">Oldest</span>}
+                      {isExpired && <span className="text-xs px-2 py-0.5 rounded-full bg-red-100 text-red-600 font-bold">Expired</span>}
+                      {expiringSoon && <span className="text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 font-bold">Exp Soon</span>}
+                      {!isExpired && !expiringSoon && <span className="text-xs px-2 py-0.5 rounded-full bg-blue-100 text-blue-600 font-bold">In Stock</span>}
+                    </div>
+                    <div>
+                      <p className="text-xs text-slate-400 font-semibold uppercase tracking-wide mb-0.5">Selling Price</p>
+                      <p className="text-3xl font-black text-slate-800">Rs. {parseFloat(batch.selling_price).toFixed(2)}</p>
+                    </div>
+                    <div className="space-y-1.5 pt-2 border-t border-slate-200">
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-slate-400">Qty</span>
+                        <span className="font-bold text-slate-700">{parseFloat(batch.qty).toFixed(0)} <span className="font-normal text-slate-400">{batchPicker.product.unit || 'pcs'}</span></span>
+                      </div>
+                      {batch.expiry_date && (
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-slate-400">Expiry</span>
+                          <span className={`font-bold ${isExpired ? 'text-red-500' : expiringSoon ? 'text-amber-600' : 'text-slate-700'}`}>{batch.expiry_date}</span>
+                        </div>
+                      )}
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-slate-400">Label</span>
+                        <span className="font-semibold text-slate-500 text-xs">{batch.batch_label || `Batch ${i + 1}`}</span>
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+            <div className="px-5 pb-5">
+              <button onClick={() => { setBatchPicker(null); refocus(); }}
+                className="w-full py-3 rounded-2xl border border-slate-200 text-sm font-semibold text-slate-400 hover:bg-slate-50 transition-colors">
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      , document.body)}
 
       {receipt && (
         <Receipt

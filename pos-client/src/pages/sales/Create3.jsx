@@ -283,8 +283,10 @@ export default function SalesCreate3() {
 
       {/* ── Top bar ── */}
       <div className={`flex items-center gap-2 px-4 py-2.5 border-b shrink-0 ${T.topBar}`}>
-        <button onClick={() => navigate('/dashboard')} className={`p-2 rounded transition-colors ${T.topIcon}`} title="Dashboard">
-          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+        <button onClick={() => navigate('/sales')} title="Home"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs transition-colors shadow-sm">
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7m-9-9v9m0 0h9M5 10v9a1 1 0 0 0 1 1h3m5-10v9a1 1 0 0 0-1 1h-3m0-4h4"/></svg>
+          <span>Home</span>
         </button>
         <button onClick={() => { setShowProductModal(true); setProductModalSearch(''); setTimeout(() => productModalRef.current?.focus(), 50); }}
           className={`p-2 rounded transition-colors ${T.topIcon}`} title="Product list">
