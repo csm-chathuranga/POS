@@ -2,6 +2,7 @@ const router = require('express').Router();
 const { Op, fn, col, literal } = require('sequelize');
 const auth   = require('../middleware/auth');
 const role   = require('../middleware/role');
+const { postSale, postSaleReturn, postMarkPaid } = require('../helpers/accounting');
 
 function nextInvoiceNo(sequelize) {
   const d = new Date();
@@ -128,6 +129,10 @@ router.post('/', auth, async (req, res) => {
       { model: Payment,  as: 'payments' },
     ],
   });
+
+  // Post to accounting journal (no-op if module disabled or accounts not seeded)
+  postSale(req.models, { sale, payments, user_id: req.user.id });
+
   res.status(201).json(created);
 });
 
@@ -252,6 +257,7 @@ router.post('/:id/mark-paid', auth, async (req, res) => {
   if (balance <= 0) return res.status(400).json({ error: 'Invoice already paid' });
 
   await sale.update({ paid: parseFloat(sale.total), balance: 0 });
+  postMarkPaid(req.models, { invoice_no: sale.invoice_no, amount: balance, user_id: req.user.id });
 
   if (sale.customer_id) {
     const customer = await Customer.findByPk(sale.customer_id);
@@ -309,6 +315,7 @@ router.post('/:id/return', auth, async (req, res) => {
   }
 
   await sale.update({ status: 'returned' });
+  postSaleReturn(req.models, { return_no: ret.return_no, total: ret.total, user_id: req.user.id });
   res.status(201).json(ret);
 });
 

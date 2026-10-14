@@ -54,6 +54,8 @@ const Icons = {
   intake:    <svg className="w-6 h-6 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="3" y="4" width="2" height="16" rx="1" strokeWidth={2}/><rect x="7" y="4" width="1" height="16" rx="0.5" strokeWidth={2}/><rect x="10" y="4" width="3" height="16" rx="1" strokeWidth={2}/><rect x="15" y="4" width="1" height="16" rx="0.5" strokeWidth={2}/><rect x="18" y="4" width="3" height="16" rx="1" strokeWidth={2}/></svg>,
   credit:    <svg className="w-6 h-6 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2" strokeWidth={2}/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2 10h20M6 15h4"/></svg>,
   reports:   <svg className="w-6 h-6 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2zm0 0V9a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v10m-6 0a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2m0 0V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v14a2 2 0 0 0-2 2h-2a2 2 0 0 1-2-2z"/></svg>,
+  calculator: <svg className="w-6 h-6 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2z"/></svg>,
+  truck:      <svg className="w-6 h-6 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm10 0a2 2 0 1 1-4 0 2 2 0 0 1 4 0z"/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16V6a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h1m8-1h3m0 0h1a1 1 0 0 0 1-1v-5l-3-4H14a1 1 0 0 0-1 1v8m0 0H9"/></svg>,
   logout:    <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3V7a3 3 0 0 1 3-3h4a3 3 0 0 1 3 3v1"/></svg>,
   bell:      <svg className="w-6 h-6 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0 1 18 14.158V11a6.002 6.002 0 0 0-4-5.659V5a2 2 0 1 0-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 1 1-6 0v-1m6 0H9"/></svg>,
   chevronsRight: <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l7 7-7 7M6 5l7 7-7 7"/></svg>,
@@ -80,6 +82,10 @@ const PAGE_TITLE_KEYS = {
   '/settings':         'page.settings',
   '/admin/data-import':      'Data Import',
   '/admin/provision-tenant': 'Provision Tenant',
+  '/admin/modules':                          'Modules',
+  '/accounting':                'Accounting',
+  '/accounting/journal/create': 'New Journal Entry',
+  '/loading-sheets':            'Loading Sheets',
   '/reports':          'page.reports',
 };
 
@@ -287,6 +293,10 @@ export default function AppLayout() {
     .filter(f => f.group === 'mgmt' && canSee(f.key) && (!ADMIN_ONLY.has(f.key) || role === 'admin'))
     .map(featureToNav);
 
+  const financeNav = allFeatures
+    .filter(f => f.group === 'finance' && canSee(f.key))
+    .map(featureToNav);
+
   function toggleCollapse() {
     setCollapsed(c => {
       const next = !c;
@@ -436,16 +446,57 @@ export default function AppLayout() {
               })}
             </>
           )}
-          {/* Provision Tenant — super-admin only */}
+          {/* Finance nav (accounting, etc.) */}
+          {financeNav.length > 0 && (
+            <>
+              <div className={`pt-4 pb-1.5 ${displayCollapsed ? 'flex justify-center' : 'px-3'}`}>
+                {displayCollapsed
+                  ? <div className="w-5 border-t border-[#2a2a2a]" />
+                  : <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">Finance</p>
+                }
+              </div>
+              {financeNav.map(({ to, label, icon, offlineOk, end: endProp }) => {
+                const locked = !isOnline && !offlineOk;
+                if (locked) return (
+                  <div key={to} title={displayCollapsed ? label : undefined} className={navClsLocked()}>
+                    {icon}
+                    {!displayCollapsed && <span className="flex-1 truncate">{label}</span>}
+                  </div>
+                );
+                return (
+                  <NavLink key={to} to={to} end={!!endProp}
+                    title={displayCollapsed ? label : undefined}
+                    onClick={() => { setMobileOpen(false); expandSidebar(); }}
+                    className={({ isActive }) => navCls(isActive)}
+                  >
+                    {icon}
+                    {!displayCollapsed && <span className="flex-1 truncate">{label}</span>}
+                  </NavLink>
+                );
+              })}
+            </>
+          )}
+
+          {/* Admin-only links */}
           {isAdmin && (
-            <NavLink to="/admin/provision-tenant"
-              title={displayCollapsed ? 'Provision Tenant' : undefined}
-              onClick={() => { setMobileOpen(false); expandSidebar(); }}
-              className={({ isActive }) => navCls(isActive)}
-            >
-              <svg className="w-6 h-6 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 1 0 0 4m0-4a2 2 0 1 1 0 4m-6 8a2 2 0 1 0 0-4m0 4a2 2 0 1 1 0-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 1 0 0-4m0 4a2 2 0 1 1 0-4m0 4v2m0-6V4"/></svg>
-              {!displayCollapsed && <span className="flex-1 truncate">Provision Tenant</span>}
-            </NavLink>
+            <>
+              <NavLink to="/admin/modules"
+                title={displayCollapsed ? 'Modules' : undefined}
+                onClick={() => { setMobileOpen(false); expandSidebar(); }}
+                className={({ isActive }) => navCls(isActive)}
+              >
+                <svg className="w-6 h-6 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6zm10 0a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2a2 2 0 0 1-2 2h-2a2 2 0 0 1-2-2V6zM4 16a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-2zm10 0a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2a2 2 0 0 1-2 2h-2a2 2 0 0 1-2-2v-2z"/></svg>
+                {!displayCollapsed && <span className="flex-1 truncate">Modules</span>}
+              </NavLink>
+              <NavLink to="/admin/provision-tenant"
+                title={displayCollapsed ? 'Provision Tenant' : undefined}
+                onClick={() => { setMobileOpen(false); expandSidebar(); }}
+                className={({ isActive }) => navCls(isActive)}
+              >
+                <svg className="w-6 h-6 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 1 0 0 4m0-4a2 2 0 1 1 0 4m-6 8a2 2 0 1 0 0-4m0 4a2 2 0 1 1 0-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 1 0 0-4m0 4a2 2 0 1 1 0-4m0 4v2m0-6V4"/></svg>
+                {!displayCollapsed && <span className="flex-1 truncate">Provision Tenant</span>}
+              </NavLink>
+            </>
           )}
         </nav>
 
@@ -536,13 +587,43 @@ export default function AppLayout() {
                 })}
               </>
             )}
+            {financeNav.length > 0 && (
+              <>
+                <div className="px-3 pt-4 pb-1.5">
+                  <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">Finance</p>
+                </div>
+                {financeNav.map(({ to, label, icon, offlineOk, end: endProp }) => {
+                  const locked = !isOnline && !offlineOk;
+                  if (locked) return (
+                    <div key={to} className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium cursor-not-allowed opacity-40 text-white/40">
+                      {icon}<span className="flex-1 truncate">{label}</span>
+                    </div>
+                  );
+                  return (
+                    <NavLink key={to} to={to} end={!!endProp} onClick={() => setSidebarHover(false)}
+                      className={({ isActive }) => `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 whitespace-nowrap
+                        ${isActive ? 'bg-orange-500 text-white shadow-md shadow-orange-500/30' : 'text-white/80 hover:text-white hover:bg-white/10'}`}>
+                      {icon}<span className="flex-1 truncate">{label}</span>
+                    </NavLink>
+                  );
+                })}
+              </>
+            )}
             {isAdmin && (
-              <NavLink to="/admin/provision-tenant" onClick={() => setSidebarHover(false)}
-                className={({ isActive }) => `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 whitespace-nowrap
-                  ${isActive ? 'bg-orange-500 text-white shadow-md shadow-orange-500/30' : 'text-white/80 hover:text-white hover:bg-white/10'}`}>
-                <svg className="w-6 h-6 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 1 0 0 4m0-4a2 2 0 1 1 0 4m-6 8a2 2 0 1 0 0-4m0 4a2 2 0 1 1 0-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 1 0 0-4m0 4a2 2 0 1 1 0-4m0 4v2m0-6V4"/></svg>
-                <span className="flex-1 truncate">Provision Tenant</span>
-              </NavLink>
+              <>
+                <NavLink to="/admin/modules" onClick={() => setSidebarHover(false)}
+                  className={({ isActive }) => `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 whitespace-nowrap
+                    ${isActive ? 'bg-orange-500 text-white shadow-md shadow-orange-500/30' : 'text-white/80 hover:text-white hover:bg-white/10'}`}>
+                  <svg className="w-6 h-6 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6zm10 0a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2a2 2 0 0 1-2 2h-2a2 2 0 0 1-2-2V6zM4 16a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-2zm10 0a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2a2 2 0 0 1-2 2h-2a2 2 0 0 1-2-2v-2z"/></svg>
+                  <span className="flex-1 truncate">Modules</span>
+                </NavLink>
+                <NavLink to="/admin/provision-tenant" onClick={() => setSidebarHover(false)}
+                  className={({ isActive }) => `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 whitespace-nowrap
+                    ${isActive ? 'bg-orange-500 text-white shadow-md shadow-orange-500/30' : 'text-white/80 hover:text-white hover:bg-white/10'}`}>
+                  <svg className="w-6 h-6 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 1 0 0 4m0-4a2 2 0 1 1 0 4m-6 8a2 2 0 1 0 0-4m0 4a2 2 0 1 1 0-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 1 0 0-4m0 4a2 2 0 1 1 0-4m0 4v2m0-6V4"/></svg>
+                  <span className="flex-1 truncate">Provision Tenant</span>
+                </NavLink>
+              </>
             )}
           </nav>
           {/* Bottom */}

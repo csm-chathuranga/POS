@@ -1,6 +1,7 @@
 const router = require('express').Router();
 const auth   = require('../middleware/auth');
 const role   = require('../middleware/role');
+const { postPurchase } = require('../helpers/accounting');
 
 router.get('/', auth, async (req, res) => {
   const { Purchase, Supplier, User } = req.models;
@@ -25,7 +26,9 @@ router.post('/', auth, role('admin', 'manager'), async (req, res) => {
   if (!data.supplier_id) return res.status(422).json({ error: 'Please select a supplier' });
   if (!items.length)     return res.status(422).json({ error: 'Please add at least one item' });
 
-  data.paid = parseFloat(data.paid) || 0;
+  const totalAmt = parseFloat(data.total) || 0;
+  data.paid   = Math.min(parseFloat(data.paid) || 0, totalAmt);
+  data.status = data.paid >= totalAmt - 0.005 ? 'received' : data.paid > 0 ? 'partial' : 'pending';
   if (!data.supplier_id) data.supplier_id = null;
 
   const lastGrn = await Purchase.findOne({ order: [['id', 'DESC']], attributes: ['grn_no'] });
@@ -55,12 +58,15 @@ router.post('/', auth, role('admin', 'manager'), async (req, res) => {
   if (data.supplier_id) {
     const supplier = await Supplier.findByPk(data.supplier_id);
     if (supplier) {
-      const unpaid = parseFloat(data.total) - parseFloat(data.paid);
-      if (unpaid > 0) {
+      const unpaid = totalAmt - data.paid; // totalAmt and data.paid already clamped above
+      if (unpaid > 0.005) {
         await supplier.update({ payable_balance: parseFloat(supplier.payable_balance || 0) + unpaid });
       }
     }
   }
+
+  // Post to accounting journal (no-op if module disabled or accounts not seeded)
+  postPurchase(req.models, { purchase, total: totalAmt, paid: data.paid, user_id: req.user.id });
 
   res.status(201).json(purchase);
 });
@@ -79,7 +85,7 @@ router.get('/:id', auth, async (req, res) => {
 });
 
 router.delete('/:id', auth, role('admin', 'manager'), async (req, res) => {
-  const { Purchase, PurchaseItem, Product, StockMovement } = req.models;
+  const { Purchase, PurchaseItem, Product, StockMovement, Supplier } = req.models;
   const p = await Purchase.findByPk(req.params.id, {
     include: [{ model: PurchaseItem, as: 'items' }],
   });
@@ -100,6 +106,18 @@ router.delete('/:id', auth, role('admin', 'manager'), async (req, res) => {
         stock_after:  after,
         reference:    `DEL-${p.grn_no}`,
       });
+    }
+  }
+
+  // Reverse the unpaid portion from supplier payable balance
+  if (p.supplier_id) {
+    const unpaid = Math.max(0, parseFloat(p.total) - parseFloat(p.paid));
+    if (unpaid > 0) {
+      const supplier = await Supplier.findByPk(p.supplier_id);
+      if (supplier) {
+        const newBalance = Math.max(0, parseFloat(supplier.payable_balance) - unpaid);
+        await supplier.update({ payable_balance: newBalance });
+      }
     }
   }
 

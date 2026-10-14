@@ -204,6 +204,31 @@ function getModels(sequelize) {
     discount:   { type: DataTypes.DECIMAL(10, 2), allowNull: false },
   }, { tableName: 'product_discount_tiers', underscored: true });
 
+  const Account = sequelize.define('Account', {
+    id:        { type: DataTypes.BIGINT.UNSIGNED, primaryKey: true, autoIncrement: true },
+    code:      { type: DataTypes.STRING(20), allowNull: false, unique: true },
+    name:      { type: DataTypes.STRING(191), allowNull: false },
+    type:      { type: DataTypes.ENUM('asset', 'liability', 'equity', 'income', 'expense'), allowNull: false },
+    parent_id: { type: DataTypes.BIGINT.UNSIGNED, allowNull: true },
+  }, { tableName: 'accounts', timestamps: false });
+
+  const JournalEntry = sequelize.define('JournalEntry', {
+    id:          { type: DataTypes.BIGINT.UNSIGNED, primaryKey: true, autoIncrement: true },
+    ref_no:      { type: DataTypes.STRING(20), allowNull: false, unique: true },
+    date:        { type: DataTypes.DATEONLY, allowNull: false },
+    description: { type: DataTypes.TEXT, allowNull: true },
+    user_id:     { type: DataTypes.BIGINT.UNSIGNED, allowNull: false },
+  }, { tableName: 'journal_entries' });
+
+  const JournalLine = sequelize.define('JournalLine', {
+    id:         { type: DataTypes.BIGINT.UNSIGNED, primaryKey: true, autoIncrement: true },
+    entry_id:   { type: DataTypes.BIGINT.UNSIGNED, allowNull: false },
+    account_id: { type: DataTypes.BIGINT.UNSIGNED, allowNull: false },
+    debit:      { type: DataTypes.DECIMAL(12, 2), defaultValue: 0 },
+    credit:     { type: DataTypes.DECIMAL(12, 2), defaultValue: 0 },
+    note:       { type: DataTypes.STRING(191), allowNull: true },
+  }, { tableName: 'journal_lines', timestamps: false });
+
   const Feature = sequelize.define('Feature', {
     id:         { type: DataTypes.BIGINT.UNSIGNED, primaryKey: true, autoIncrement: true },
     key:        { type: DataTypes.STRING(191), allowNull: false, unique: true },
@@ -214,6 +239,43 @@ function getModels(sequelize) {
     icon:       { type: DataTypes.STRING(32), allowNull: true },
     offline_ok: { type: DataTypes.BOOLEAN, defaultValue: false },
   }, { tableName: 'features', timestamps: false });
+
+  const Employee = sequelize.define('Employee', {
+    id:           { type: DataTypes.BIGINT.UNSIGNED, primaryKey: true, autoIncrement: true },
+    name:         { type: DataTypes.STRING(191), allowNull: false },
+    position:     { type: DataTypes.STRING(191), allowNull: true },
+    phone:        { type: DataTypes.STRING(50),  allowNull: true },
+    address:      { type: DataTypes.TEXT,        allowNull: true },
+    basic_salary: { type: DataTypes.DECIMAL(10, 2), defaultValue: 0 },
+    hired_date:   { type: DataTypes.DATEONLY,    allowNull: true },
+    active:       { type: DataTypes.BOOLEAN,     defaultValue: true },
+  }, { tableName: 'employees' });
+
+  const SalaryPayment = sequelize.define('SalaryPayment', {
+    id:          { type: DataTypes.BIGINT.UNSIGNED, primaryKey: true, autoIncrement: true },
+    ref_no:      { type: DataTypes.STRING(191), allowNull: true, unique: true },
+    employee_id: { type: DataTypes.BIGINT.UNSIGNED, allowNull: false },
+    user_id:     { type: DataTypes.BIGINT.UNSIGNED, allowNull: false },
+    period:      { type: DataTypes.STRING(20),  allowNull: false }, // e.g. "2024-10"
+    amount:      { type: DataTypes.DECIMAL(10, 2), allowNull: false },
+    note:        { type: DataTypes.STRING(191), allowNull: true },
+  }, { tableName: 'salary_payments' });
+
+  const LoadingSheet = sequelize.define('LoadingSheet', {
+    id:           { type: DataTypes.BIGINT.UNSIGNED, primaryKey: true, autoIncrement: true },
+    sheet_no:     { type: DataTypes.STRING(50), allowNull: false, unique: true },
+    date:         { type: DataTypes.DATEONLY, allowNull: false },
+    note:         { type: DataTypes.TEXT, allowNull: true },
+    status:       { type: DataTypes.ENUM('open', 'delivered'), defaultValue: 'open' },
+    delivered_at: { type: DataTypes.DATE, allowNull: true },
+    created_by:   { type: DataTypes.BIGINT.UNSIGNED, allowNull: true },
+  }, { tableName: 'loading_sheets', underscored: true });
+
+  const LoadingSheetItem = sequelize.define('LoadingSheetItem', {
+    id:       { type: DataTypes.BIGINT.UNSIGNED, primaryKey: true, autoIncrement: true },
+    sheet_id: { type: DataTypes.BIGINT.UNSIGNED, allowNull: false },
+    sale_id:  { type: DataTypes.BIGINT.UNSIGNED, allowNull: false },
+  }, { tableName: 'loading_sheet_items', underscored: true, updatedAt: false });
 
   // ── Associations ────────────────────────────────────────────────────────────
   User.belongsToMany(Role, { through: 'user_role', foreignKey: 'user_id', otherKey: 'role_id', timestamps: false });
@@ -246,6 +308,17 @@ function getModels(sequelize) {
   Customer.hasMany(Sale, { foreignKey: 'customer_id', as: 'sales' });
   CreditPayment.belongsTo(User, { foreignKey: 'user_id', as: 'user' });
 
+  Account.hasMany(JournalLine, { foreignKey: 'account_id', as: 'lines' });
+  JournalLine.belongsTo(Account, { foreignKey: 'account_id', as: 'account' });
+
+  JournalEntry.hasMany(JournalLine, { foreignKey: 'entry_id', as: 'lines' });
+  JournalLine.belongsTo(JournalEntry, { foreignKey: 'entry_id', as: 'entry' });
+
+  JournalEntry.belongsTo(User, { foreignKey: 'user_id', as: 'user' });
+
+  Account.belongsTo(Account, { foreignKey: 'parent_id', as: 'parent' });
+  Account.hasMany(Account, { foreignKey: 'parent_id', as: 'children' });
+
   Role.belongsToMany(Feature, { through: 'role_features', foreignKey: 'role_id', otherKey: 'feature_id', timestamps: false });
   Feature.belongsToMany(Role, { through: 'role_features', foreignKey: 'feature_id', otherKey: 'role_id', timestamps: false });
 
@@ -253,10 +326,23 @@ function getModels(sequelize) {
   User.belongsToMany(Feature, { through: 'user_features', foreignKey: 'user_id', otherKey: 'feature_id', as: 'DirectFeatures', timestamps: false });
   Feature.belongsToMany(User, { through: 'user_features', foreignKey: 'feature_id', otherKey: 'user_id', as: 'DirectUsers', timestamps: false });
 
+  Employee.hasMany(SalaryPayment, { foreignKey: 'employee_id', as: 'salaryPayments' });
+  SalaryPayment.belongsTo(Employee, { foreignKey: 'employee_id', as: 'employee' });
+  SalaryPayment.belongsTo(User, { foreignKey: 'user_id', as: 'user' });
+
+  LoadingSheet.hasMany(LoadingSheetItem, { foreignKey: 'sheet_id', as: 'items' });
+  LoadingSheetItem.belongsTo(LoadingSheet, { foreignKey: 'sheet_id', as: 'sheet' });
+  LoadingSheetItem.belongsTo(Sale, { foreignKey: 'sale_id', as: 'sale' });
+  Sale.hasMany(LoadingSheetItem, { foreignKey: 'sale_id', as: 'loadingItems' });
+  LoadingSheet.belongsTo(User, { foreignKey: 'created_by', as: 'createdBy' });
+
   return {
     User, Role, Category, Product, ProductVariant, ProductBatch, ProductDiscountTier,
     Supplier, Customer, Sale, SaleItem, Payment, SaleReturn,
     Purchase, PurchaseItem, StockMovement, CreditPayment, SupplierPayment, Setting, Feature,
+    Account, JournalEntry, JournalLine,
+    Employee, SalaryPayment,
+    LoadingSheet, LoadingSheetItem,
   };
 }
 

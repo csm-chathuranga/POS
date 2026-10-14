@@ -1,6 +1,7 @@
 const router = require('express').Router();
 const { Op }  = require('sequelize');
 const auth    = require('../middleware/auth');
+const { postCreditSettle, postCreditAdjustment } = require('../helpers/accounting');
 
 router.get('/', auth, async (req, res) => {
   const { Customer } = req.models;
@@ -107,6 +108,10 @@ router.post('/:id/settle-credit', auth, async (req, res) => {
   await CreditPayment.create({ invoice_no, customer_id: customer.id, user_id: req.user.id, amount, note: req.body.note });
   const newBalance = Math.max(0, parseFloat(customer.credit_balance) - amount);
   await customer.update({ credit_balance: newBalance });
+
+  // Post to accounting journal (no-op if module disabled or accounts not seeded)
+  postCreditSettle(req.models, { invoice_no, amount, user_id: req.user.id });
+
   res.json({ message: 'Credit settled', credit_balance: newBalance });
 });
 
@@ -135,6 +140,10 @@ router.post('/:id/credit-adjustment', auth, async (req, res) => {
     note: req.body.note || `Manual ${type === 'add' ? 'credit added' : 'credit reduced'}`,
   });
   await customer.update({ credit_balance: newBalance });
+
+  // Post to accounting journal (no-op if module disabled or accounts not seeded)
+  postCreditAdjustment(req.models, { ref, amount, type, user_id: req.user.id });
+
   res.json({ message: 'Adjusted', credit_balance: newBalance });
 });
 

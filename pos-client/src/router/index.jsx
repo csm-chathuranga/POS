@@ -35,6 +35,12 @@ import SupplierCreditIndex from '../pages/supplier-credit/Index';
 import CategoriesIndex  from '../pages/categories/Index';
 import ImportDataPage    from '../pages/admin/ImportData';
 import ProvisionTenant  from '../pages/admin/ProvisionTenant';
+import ModulesPage      from '../pages/admin/Modules';
+import ChartOfAccounts      from '../pages/accounting/ChartOfAccounts';
+import LoadingSheetsIndex   from '../pages/loading-sheets/Index';
+import LoadingSheetShow     from '../pages/loading-sheets/Show';
+import JournalCreate    from '../pages/accounting/JournalCreate';
+import JournalShow      from '../pages/accounting/JournalShow';
 import Settings         from '../pages/Settings';
 import RolesPage        from '../pages/settings/Roles';
 import InvoicesIndex    from '../pages/invoices/Index';
@@ -139,6 +145,24 @@ export const router = createAppRouter([
               children: [
                 { path: 'admin/data-import',       element: <ImportDataPage /> },
                 { path: 'admin/provision-tenant',  element: <ProvisionTenant /> },
+                { path: 'admin/modules',           element: <ModulesPage /> },
+              ],
+            },
+            {
+              element: <FeatureRoute feature="accounting" />,
+              children: [
+                { path: 'accounting',                element: <ChartOfAccounts /> },
+                { path: 'accounting/accounts',       element: <Navigate to="/accounting" replace /> },
+                { path: 'accounting/journal',        element: <Navigate to="/accounting" replace /> },
+                { path: 'accounting/journal/create', element: <JournalCreate /> },
+                { path: 'accounting/journal/:id',    element: <JournalShow /> },
+              ],
+            },
+            {
+              element: <FeatureRoute feature="loading_sheet" />,
+              children: [
+                { path: 'loading-sheets',     element: <LoadingSheetsIndex /> },
+                { path: 'loading-sheets/:id', element: <LoadingSheetShow /> },
               ],
             },
           ],
