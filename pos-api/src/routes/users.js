@@ -11,7 +11,9 @@ router.get('/', auth, role('admin', 'manager'), async (req, res) => {
     attributes: { exclude: ['password'] },
     order: [['name', 'ASC']],
   });
-  res.json(users.map(u => ({ ...u.toJSON(), role: u.Roles?.[0]?.name ?? 'cashier' })));
+  const mapped = users.map(u => ({ ...u.toJSON(), role: u.Roles?.[0]?.name ?? 'cashier' }));
+  const isAdmin = req.user.role === 'admin';
+  res.json(isAdmin ? mapped : mapped.filter(u => u.role !== 'admin'));
 });
 
 // POST /api/users
