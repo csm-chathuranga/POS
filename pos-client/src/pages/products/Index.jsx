@@ -97,7 +97,7 @@ export default function ProductsIndex() {
   const [shopName, setShopName] = useState('');
 
   useEffect(() => {
-    fetch(`${getApiUrl()}/settings/public`).then(r => r.json()).then(d => setShopName(d.shop_name || '')).catch(() => {});
+    fetch(`${getApiUrl()}/api/settings/public`).then(r => r.json()).then(d => setShopName(d.shop_name || '')).catch(() => {});
   }, []);
 
   async function handleExport() {
