@@ -12,15 +12,31 @@ export default function PurchasesIndex() {
   const { t } = useLocale();
   const { isOnline } = useConnectivity();
   const [page, setPage] = useState(1);
+  const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [offlinePurchases, setOfflinePurchases] = useState([]);
+
   useEffect(() => {
     if (!isOnline) getLocalPurchases().then(setOfflinePurchases);
   }, [isOnline]);
 
-  const { data, isLoading } = useGetPurchasesQuery({ page }, { skip: !isOnline });
+  useEffect(() => {
+    const t = setTimeout(() => { setDebouncedSearch(search); setPage(1); }, 400);
+    return () => clearTimeout(t);
+  }, [search]);
+
+  const { data, isLoading } = useGetPurchasesQuery(
+    { page, ...(debouncedSearch && { search: debouncedSearch }) },
+    { skip: !isOnline }
+  );
   const [del] = useDeletePurchaseMutation();
 
-  const rows = isOnline ? (data?.data || []) : offlinePurchases;
+  const allRows = isOnline ? (data?.data || []) : offlinePurchases;
+  const rows = isOnline ? allRows : allRows.filter(p =>
+    !debouncedSearch ||
+    p.grn_no?.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+    p.supplier?.name?.toLowerCase().includes(debouncedSearch.toLowerCase())
+  );
 
   const fmt = n => 'Rs. ' + Number(n || 0).toLocaleString('en-LK', { minimumFractionDigits: 2 });
   const fmtDate = s => new Date(s).toLocaleDateString('en-LK');
@@ -48,6 +64,25 @@ export default function PurchasesIndex() {
           <span className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 border border-amber-200 rounded-lg text-amber-700 text-xs font-medium">
             <span className="w-1.5 h-1.5 rounded-full bg-amber-500" /> Offline – read only
           </span>
+        )}
+      </div>
+
+      {/* Search bar */}
+      <div className="relative max-w-sm">
+        <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z"/>
+        </svg>
+        <input
+          type="text"
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          placeholder="GRN number or supplier..."
+          className="w-full pl-9 pr-9 py-2 text-sm border border-slate-200 rounded-lg bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent placeholder:text-slate-400"
+        />
+        {search && (
+          <button onClick={() => setSearch('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12"/></svg>
+          </button>
         )}
       </div>
 

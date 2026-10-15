@@ -21,6 +21,7 @@ export default function SuppliersIndex() {
   const [offlineSuppliers, setOfflineSuppliers] = useState([]);
   const [pendingSuppliers, setPendingSuppliers] = useState([]);
   const [confirmDelete, setConfirmDelete] = useState(null);
+  const [search, setSearch] = useState('');
 
   const { register, handleSubmit: rhfSubmit, formState: { errors }, reset } = useForm({ defaultValues: empty });
 
@@ -33,7 +34,15 @@ export default function SuppliersIndex() {
 
   const { data: serverSuppliers = [], isLoading, refetch } = useGetSuppliersQuery(undefined, { skip: !isOnline });
   const baseSuppliers = isOnline ? serverSuppliers : offlineSuppliers;
-  const suppliers = [...pendingSuppliers, ...baseSuppliers.filter(s => !pendingSuppliers.some(p => p.id === s.id))];
+  const allSuppliers = [...pendingSuppliers, ...baseSuppliers.filter(s => !pendingSuppliers.some(p => p.id === s.id))];
+  const q = search.toLowerCase();
+  const suppliers = q
+    ? allSuppliers.filter(s =>
+        s.name?.toLowerCase().includes(q) ||
+        s.phone?.toLowerCase().includes(q) ||
+        s.email?.toLowerCase().includes(q)
+      )
+    : allSuppliers;
   const [create, { isLoading: creating }] = useCreateSupplierMutation();
   const [update, { isLoading: updating }] = useUpdateSupplierMutation();
   const [del]                             = useDeleteSupplierMutation();
@@ -91,6 +100,25 @@ export default function SuppliersIndex() {
             {t('btn.add')} {t('pur.supplier')}
           </button>
         </div>
+      </div>
+
+      {/* Search bar */}
+      <div className="relative max-w-sm">
+        <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z"/>
+        </svg>
+        <input
+          type="text"
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          placeholder="Search by name, phone or email..."
+          className="w-full pl-9 pr-9 py-2 text-sm border border-slate-200 rounded-lg bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent placeholder:text-slate-400"
+        />
+        {search && (
+          <button onClick={() => setSearch('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12"/></svg>
+          </button>
+        )}
       </div>
 
       {/* Mobile cards */}

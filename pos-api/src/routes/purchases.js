@@ -1,13 +1,24 @@
 const router = require('express').Router();
+const { Op }  = require('sequelize');
 const auth   = require('../middleware/auth');
 const role   = require('../middleware/role');
 const { postPurchase } = require('../helpers/accounting');
 
 router.get('/', auth, async (req, res) => {
   const { Purchase, Supplier, User } = req.models;
-  const page  = parseInt(req.query.page || '1');
-  const limit = 20;
+  const page   = parseInt(req.query.page || '1');
+  const limit  = 20;
+  const search = (req.query.search || '').trim();
+
+  const where = search
+    ? { [Op.or]: [
+        { grn_no: { [Op.like]: `%${search}%` } },
+        { '$supplier.name$': { [Op.like]: `%${search}%` } },
+      ] }
+    : {};
+
   const { count, rows } = await Purchase.findAndCountAll({
+    where,
     include: [
       { model: Supplier, as: 'supplier', attributes: ['id', 'name'] },
       { model: User,     as: 'user',     attributes: ['id', 'name'] },
@@ -15,6 +26,7 @@ router.get('/', auth, async (req, res) => {
     order: [['id', 'DESC']],
     limit,
     offset: (page - 1) * limit,
+    subQuery: false,
   });
   res.json({ data: rows, total: count, page, last_page: Math.ceil(count / limit) });
 });
