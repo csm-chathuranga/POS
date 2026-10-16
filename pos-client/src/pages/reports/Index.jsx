@@ -104,8 +104,9 @@ function SalesToday() {
       `<div class="row"><span>${methodLabel(r.method, locale)} (${r.count})</span><span>${fmt(r.total)}</span></div>`
     ).join('');
 
+    const n = v => Number(v||0).toLocaleString('en-LK', { minimumFractionDigits: 2 });
     const saleLines = sales.map((s, i) =>
-      `<div class="sale-row"><span class="num">${i+1}</span><span class="inv">${s.invoice_no}</span><span class="amt">${fmt(s.total)}${parseFloat(s.balance)>0?` B:${fmt(s.balance)}`:''}` +
+      `<div class="sale-row"><span class="num">${i+1}</span><span class="inv">${s.invoice_no}</span><span class="amt">${n(s.total)}${parseFloat(s.balance)>0?` B:${n(s.balance)}`:''}` +
       `</span></div>`
     ).join('');
 
