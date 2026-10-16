@@ -1,10 +1,14 @@
-import { useParams, useNavigate } from 'react-router-dom';
-import { useGetPurchaseQuery } from '../../features/purchases/purchasesApi';
+import { useState, useEffect, useRef } from 'react';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
+import { useGetPurchaseQuery, useReturnPurchaseMutation } from '../../features/purchases/purchasesApi';
+import { useSelector } from 'react-redux';
+import { selectRole } from '../../features/auth/authSlice';
 import { useLocale } from '../../contexts/LocaleContext';
 
 const fmt     = n => 'Rs. ' + Number(n || 0).toLocaleString('en-LK', { minimumFractionDigits: 2 });
-const fmtDate = s => new Date(s).toLocaleDateString('en-LK', { day: '2-digit', month: 'short', year: 'numeric' });
-const fmtNum  = n => Number(n || 0).toLocaleString('en-LK', { minimumFractionDigits: 2 });
+const fmtDate = s => { const d = new Date(s); return isNaN(d) ? '—' : d.toLocaleDateString('en-LK', { day: '2-digit', month: 'short', year: 'numeric' }); };
+const fmtNum  = n => { const v = Number(n || 0); return v % 1 === 0 ? v.toLocaleString('en-LK') : v.toLocaleString('en-LK', { minimumFractionDigits: 2 }); };
+const fmtRaw  = n => Number(n || 0).toLocaleString('en-LK', { minimumFractionDigits: 2 });
 
 const statusBadge = s => {
   const cls = {
@@ -22,14 +26,141 @@ const statusBadge = s => {
 export default function PurchaseShow() {
   const { id }   = useParams();
   const navigate = useNavigate();
+  const [params] = useSearchParams();
   const { t }    = useLocale();
+  const role     = useSelector(selectRole);
   const { data: purchase, isLoading } = useGetPurchaseQuery(id);
+  const [returnPurchase, { isLoading: returning }] = useReturnPurchaseMutation();
+
+  const [printing,      setPrinting]      = useState(false);
+  const [returnModal,   setReturnModal]   = useState(false);
+  const [returnItems,   setReturnItems]   = useState([]);
+  const [returnReason,  setReturnReason]  = useState('');
+  const [returnErr,     setReturnErr]     = useState('');
+  const autoPrintFiredRef = useRef(false);
+
+  useEffect(() => {
+    if (!purchase) return;
+    if (params.get('print') !== '1') return;
+    if (autoPrintFiredRef.current) return;
+    autoPrintFiredRef.current = true;
+    handlePrint();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [purchase, params]);
+
+  function openReturn() {
+    setReturnItems((purchase.items || []).map(i => ({ ...i, return_qty: '' })));
+    setReturnReason('');
+    setReturnErr('');
+    setReturnModal(true);
+  }
+
+  async function handleReturn(e) {
+    e.preventDefault();
+    setReturnErr('');
+    const itemsToReturn = returnItems
+      .filter(i => parseFloat(i.return_qty) > 0)
+      .map(i => ({
+        product_id:   i.product_id,
+        product_name: i.product_name,
+        qty:          parseFloat(i.return_qty),
+        cost_price:   parseFloat(i.cost_price),
+      }));
+    if (!itemsToReturn.length) { setReturnErr('Enter a return quantity for at least one item.'); return; }
+    const total = itemsToReturn.reduce((s, i) => s + i.qty * i.cost_price, 0);
+    try {
+      await returnPurchase({ id, items: itemsToReturn, reason: returnReason, total }).unwrap();
+      setReturnModal(false);
+    } catch (err) {
+      setReturnErr(err?.data?.error || 'Return failed');
+    }
+  }
+
+  async function handlePrint() {
+    if (!purchase || printing) return;
+    setPrinting(true);
+
+    const currency = 'Rs.';
+    const items    = purchase.items || [];
+    const balance  = parseFloat(purchase.total || 0) - parseFloat(purchase.paid || 0);
+
+    const itemsHtml = items.map((item, idx) => `
+      <div class="item-row">
+        <div class="item-name">${idx + 1}) ${item.product_name}</div>
+      </div>
+      <div class="item-data">
+        <span class="qty-col">${fmtNum(item.qty)}</span>
+        <span class="our-col">${fmtRaw(item.cost_price)}</span>
+        <span class="line-col">${fmtRaw(item.total)}</span>
+      </div>
+    `).join('');
+
+    const html = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>${purchase.grn_no}</title>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    html, body { font-family:'Courier New',Courier,monospace; font-size:13px; font-weight:900; width:72mm; max-width:72mm; color:#000; word-break:break-word; overflow-wrap:break-word; }
+    body { padding:5mm 4mm; }
+    .title { font-size:14px; font-weight:900; text-align:center; text-transform:uppercase; letter-spacing:0.08em; margin-bottom:6px; }
+    .divider { border:none; border-top:2px solid #000; margin:8px 0; }
+    .row { display:flex; justify-content:space-between; gap:6px; padding:2px 0; font-size:12px; }
+    .row .label { font-weight:900; flex-shrink:0; }
+    .row .value { font-weight:900; text-align:right; min-width:0; word-break:break-word; }
+    .col-header { display:grid; grid-template-columns:1fr 1fr 1fr; gap:4px; font-weight:900; padding:4px 0 3px; border-top:2px solid #000; border-bottom:2px solid #000; margin:6px 0; font-size:11px; text-align:right; }
+    .col-header span:first-child { text-align:left; }
+    .item-row { display:flex; font-weight:900; padding-top:5px; font-size:13px; }
+    .item-name { flex:1; min-width:0; word-break:break-word; }
+    .item-data { display:grid; grid-template-columns:1fr 1fr 1fr; gap:4px; padding:2px 0 5px; font-size:11px; font-weight:900; }
+    .qty-col { text-align:left; white-space:nowrap; }
+    .our-col, .line-col { text-align:right; white-space:nowrap; }
+    .total-row { display:flex; justify-content:space-between; gap:6px; font-weight:900; font-size:15px; padding:6px 0 4px; border-top:2px solid #000; margin-top:4px; }
+    .paid-row { display:flex; justify-content:space-between; gap:6px; padding:2px 0; font-weight:900; font-size:12px; }
+    .balance-row { display:flex; justify-content:space-between; gap:6px; font-weight:900; font-size:13px; padding:2px 0; }
+    .status-row { display:flex; justify-content:space-between; gap:6px; padding:4px 0 0; font-size:12px; font-weight:900; border-top:1px dashed #000; margin-top:4px; }
+    @media print { html,body{overflow:visible!important;height:auto!important;} @page{margin:0;size:72mm auto;} body{padding:3mm 4mm;width:72mm!important;} }
+  </style>
+</head>
+<body>
+  <div class="title">Purchase Receipt</div>
+  <hr class="divider">
+  <div class="row"><span class="label">GRN</span><span class="value">${purchase.grn_no}</span></div>
+  <div class="row"><span class="label">Date</span><span class="value">${fmtDate(purchase.purchase_date)}</span></div>
+  <div class="row"><span class="label">Supplier</span><span class="value">${purchase.supplier?.name || '—'}</span></div>
+  <div class="row"><span class="label">Cashier</span><span class="value">${purchase.user?.name || '—'}</span></div>
+  <div class="col-header"><span>QTY</span><span>UNIT PRICE</span><span>TOTAL</span></div>
+  ${itemsHtml}
+  <hr class="divider">
+  ${parseFloat(purchase.discount || 0) > 0 ? `<div class="paid-row"><span>Subtotal</span><span>${fmtRaw(purchase.subtotal ?? purchase.total)}</span></div><div class="paid-row"><span>Discount</span><span>- ${fmtRaw(purchase.discount)}</span></div>` : ''}
+  <div class="total-row"><span>Grand Total</span><span>${currency} ${fmtRaw(purchase.total)}</span></div>
+  <div class="paid-row"><span>Paid</span><span>${fmtRaw(purchase.paid)}</span></div>
+  ${balance > 0.005 ? `<div class="balance-row"><span>Balance</span><span>${fmtRaw(balance)}</span></div>` : ''}
+  <div class="status-row"><span>Status</span><span style="text-transform:uppercase;">${purchase.status}</span></div>
+</body>
+</html>`;
+
+    try {
+      if (window.electronAPI?.printReceiptHtml) {
+        await window.electronAPI.printReceiptHtml(html, { paperSize: '72mm' });
+      } else {
+        const win = window.open('', '_blank', 'width=400,height=700,scrollbars=yes');
+        if (win) { win.document.write(html); win.document.close(); win.onload = () => win.print(); }
+      }
+    } catch (err) {
+      alert('Print error: ' + err.message);
+    } finally {
+      setPrinting(false);
+    }
+  }
 
   if (isLoading) return <div className="p-8 text-center text-slate-400">{t('lbl.loading')}</div>;
   if (!purchase) return <div className="p-8 text-center text-slate-400">{t('pur.grn')} not found</div>;
 
-  const items    = purchase.items || [];
-  const balance  = parseFloat(purchase.total || 0) - parseFloat(purchase.paid || 0);
+  const items   = purchase.items || [];
+  const balance = parseFloat(purchase.total || 0) - parseFloat(purchase.paid || 0);
+  const canReturn = (role === 'admin' || role === 'manager') && items.length > 0;
 
   return (
     <div className="p-3 sm:p-6 space-y-5">
@@ -46,7 +177,26 @@ export default function PurchaseShow() {
           <h1 className="text-xl font-bold text-slate-800">{purchase.grn_no}</h1>
           <p className="text-sm text-slate-400">{fmtDate(purchase.purchase_date)}</p>
         </div>
-        <div className="ml-auto">{statusBadge(purchase.status)}</div>
+        <div className="ml-auto flex items-center gap-2">
+          {statusBadge(purchase.status)}
+          {canReturn && (
+            <button onClick={openReturn}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-red-500 hover:bg-red-600 rounded-lg transition-colors">
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 0 1 8 8v2M3 10l6 6m-6-6l6-6"/>
+              </svg>
+              Return
+            </button>
+          )}
+          <button onClick={handlePrint} disabled={printing}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-slate-700 hover:bg-slate-800 disabled:opacity-60 rounded-lg transition-colors">
+            {printing
+              ? <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+              : <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+            }
+            {printing ? 'Printing…' : 'Print'}
+          </button>
+        </div>
       </div>
 
       {/* Meta cards */}
@@ -135,6 +285,72 @@ export default function PurchaseShow() {
           <p className="text-xs text-slate-400 pt-2 border-t border-slate-100">{purchase.notes}</p>
         )}
       </div>
+
+      {/* Return Modal */}
+      {returnModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col">
+            <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b border-slate-100 shrink-0">
+              <div>
+                <h2 className="text-base font-bold text-slate-800">Return Items</h2>
+                <p className="text-xs text-slate-400 mt-0.5">{purchase.grn_no}</p>
+              </div>
+              <button onClick={() => setReturnModal(false)} className="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100 text-lg leading-none">&times;</button>
+            </div>
+            <form onSubmit={handleReturn} className="flex flex-col overflow-hidden">
+              <div className="px-6 py-4 overflow-y-auto space-y-3">
+                {returnErr && <p className="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">{returnErr}</p>}
+                <p className="text-xs text-slate-500">Enter the quantity to return for each item (leave blank or 0 to skip).</p>
+                {returnItems.map((item, i) => (
+                  <div key={item.id} className="flex items-center gap-3 bg-slate-50 rounded-xl px-4 py-3">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-slate-800 truncate">{item.product_name}</p>
+                      <p className="text-xs text-slate-400 mt-0.5">
+                        Original: {fmtNum(item.qty)} × {fmt(item.cost_price)}
+                      </p>
+                    </div>
+                    <div className="shrink-0 w-28">
+                      <label className="block text-xs text-slate-500 mb-1 text-right">Return Qty</label>
+                      <input
+                        type="number"
+                        min="0"
+                        max={item.qty}
+                        step="0.001"
+                        value={item.return_qty}
+                        onChange={e => setReturnItems(prev =>
+                          prev.map((it, idx) => idx === i ? { ...it, return_qty: e.target.value } : it)
+                        )}
+                        onFocus={e => e.target.select()}
+                        className="w-full rounded-lg border border-slate-200 px-3 py-1.5 text-sm text-right font-semibold outline-none focus:ring-2 focus:ring-red-400 focus:border-red-400"
+                      />
+                    </div>
+                  </div>
+                ))}
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1.5">Reason</label>
+                  <input
+                    type="text"
+                    value={returnReason}
+                    onChange={e => setReturnReason(e.target.value)}
+                    placeholder="Optional"
+                    className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-red-400 focus:border-red-400"
+                  />
+                </div>
+              </div>
+              <div className="flex gap-2 px-6 pb-5 pt-3 border-t border-slate-100 shrink-0">
+                <button type="button" onClick={() => setReturnModal(false)}
+                  className="flex-1 py-2.5 rounded-xl border border-slate-200 text-sm font-semibold text-slate-600 hover:bg-slate-50 transition-colors">
+                  Cancel
+                </button>
+                <button type="submit" disabled={returning}
+                  className="flex-1 py-2.5 rounded-xl bg-red-500 text-white text-sm font-bold disabled:opacity-60 hover:bg-red-600 transition-colors">
+                  {returning ? 'Processing…' : 'Confirm Return'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

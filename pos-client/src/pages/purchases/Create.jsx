@@ -28,7 +28,7 @@ export default function PurchaseCreate() {
   const { data: suppliers = [] } = useGetSuppliersQuery();
 
   const [form, setForm] = useState({
-    supplier_id: '', purchase_date: today(), status: 'received', paid: '', due_date: '', note: '',
+    supplier_id: '', purchase_date: today(), status: 'received', paid: '', due_date: '', note: '', discount: '',
   });
   const [items, setItems]     = useState([]);
   const [search, setSearch]   = useState('');
@@ -77,7 +77,9 @@ export default function PurchaseCreate() {
     setItems(prev => prev.map((item, idx) => idx === i ? { ...item, [field]: value } : item));
   }
 
-  const total = items.reduce((sum, i) => sum + (parseFloat(i.cost_price) || 0) * (parseFloat(i.qty) || 0), 0);
+  const subtotal   = items.reduce((sum, i) => sum + (parseFloat(i.cost_price) || 0) * (parseFloat(i.qty) || 0), 0);
+  const discount   = Math.min(parseFloat(form.discount || 0), subtotal);
+  const grandTotal = Math.max(0, subtotal - discount);
   const fmt = n => Number(n || 0).toLocaleString('en-LK', { minimumFractionDigits: 2 });
 
   async function handleSubmit(e) {
@@ -86,7 +88,7 @@ export default function PurchaseCreate() {
     if (!form.supplier_id) return setErr('Please select a supplier');
     if (!items.length) return setErr(t('pur.add_row'));
     try {
-      await create({ ...form, total, items }).unwrap();
+      await create({ ...form, subtotal, discount, total: grandTotal, items }).unwrap();
       navigate('/purchases');
     } catch (e) { setErr(e?.data?.error || t('lbl.error')); }
   }
@@ -219,8 +221,23 @@ export default function PurchaseCreate() {
               </tbody>
               <tfoot>
                 <tr className="border-t-2 border-slate-200">
-                  <td colSpan={4} className="pt-3 text-right font-bold text-slate-700 pr-2">{t('pur.grand_total')}</td>
-                  <td className="pt-3 text-right font-bold text-slate-800 pr-2">Rs. {fmt(total)}</td>
+                  <td colSpan={4} className="pt-3 text-right text-sm text-slate-500 pr-2">{t('lbl.subtotal')}</td>
+                  <td className="pt-3 text-right text-sm font-semibold text-slate-700 pr-2">Rs. {fmt(subtotal)}</td>
+                  <td></td>
+                </tr>
+                <tr>
+                  <td colSpan={4} className="pt-1 text-right text-sm text-slate-500 pr-2">Discount</td>
+                  <td className="pt-1 pr-2">
+                    <input type="number" min="0" step="0.01" value={form.discount}
+                      onChange={set('discount')} placeholder="0.00"
+                      onFocus={e => e.target.select()}
+                      className="w-full rounded border border-slate-200 px-2 py-1 text-sm text-right outline-none focus:ring-1 focus:ring-blue-500" />
+                  </td>
+                  <td></td>
+                </tr>
+                <tr>
+                  <td colSpan={4} className="pt-2 text-right font-bold text-slate-700 pr-2">{t('pur.grand_total')}</td>
+                  <td className="pt-2 text-right font-bold text-slate-800 pr-2">Rs. {fmt(grandTotal)}</td>
                   <td></td>
                 </tr>
                 {parseFloat(form.paid) > 0 && (
@@ -232,7 +249,7 @@ export default function PurchaseCreate() {
                     </tr>
                     <tr>
                       <td colSpan={4} className="pt-1 text-right text-sm text-slate-500 pr-2">{t('lbl.balance')}</td>
-                      <td className="pt-1 text-right text-sm font-semibold text-red-500 pr-2">Rs. {fmt(Math.max(0, total - parseFloat(form.paid)))}</td>
+                      <td className="pt-1 text-right text-sm font-semibold text-red-500 pr-2">Rs. {fmt(Math.max(0, grandTotal - parseFloat(form.paid)))}</td>
                       <td></td>
                     </tr>
                   </>

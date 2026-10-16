@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useGetPurchasesQuery, useDeletePurchaseMutation } from '../../features/purchases/purchasesApi';
 import { useSelector } from 'react-redux';
 import { selectRole } from '../../features/auth/authSlice';
@@ -9,6 +9,7 @@ import { getLocalPurchases } from '../../services/cacheSync';
 
 export default function PurchasesIndex() {
   const role = useSelector(selectRole);
+  const navigate = useNavigate();
   const { t } = useLocale();
   const { isOnline } = useConnectivity();
   const [page, setPage] = useState(1);
@@ -97,7 +98,12 @@ export default function PurchasesIndex() {
             className="block bg-white rounded-xl border border-slate-100 shadow-sm p-4 hover:border-blue-200 hover:shadow-md transition-all active:scale-[0.99]">
             <div className="flex items-center justify-between mb-2">
               <span className="font-mono text-blue-600 font-bold text-sm">{p.grn_no}</span>
-              {statusBadge(p.status)}
+              <div className="flex items-center gap-1.5">
+                {statusBadge(p.status)}
+                {p.returns?.length > 0 && (
+                  <span className="text-xs px-2 py-0.5 rounded-full font-semibold bg-orange-100 text-orange-700">Return</span>
+                )}
+              </div>
             </div>
             <div className="flex items-center justify-between mb-2">
               <div>
@@ -110,7 +116,12 @@ export default function PurchasesIndex() {
               </div>
             </div>
             {(role === 'admin' || role === 'manager') && isOnline && (
-              <div className="pt-2 border-t border-slate-50 flex justify-end">
+              <div className="pt-2 border-t border-slate-50 flex justify-end gap-2">
+                <button onClick={e => { e.preventDefault(); e.stopPropagation(); navigate(`/purchases/${p.id}?print=1`); }}
+                  className="text-xs text-slate-500 hover:text-slate-700 font-medium px-2 py-0.5 hover:bg-slate-100 rounded transition-colors flex items-center gap-1">
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+                  Print
+                </button>
                 <button onClick={e => { e.preventDefault(); e.stopPropagation(); handleDelete(p); }}
                   className="text-xs text-red-400 hover:text-red-600 font-medium px-2 py-0.5 hover:bg-red-50 rounded transition-colors">
                   {t('btn.delete')}
@@ -158,13 +169,29 @@ export default function PurchasesIndex() {
                   <td className="px-4 py-3 text-slate-500">{p.user?.name}</td>
                   <td className="px-4 py-3 text-right font-semibold text-slate-800">{fmt(p.total)}</td>
                   <td className="px-4 py-3 text-right text-slate-600">{fmt(p.paid)}</td>
-                  <td className="px-4 py-3 text-center">{statusBadge(p.status)}</td>
+                  <td className="px-4 py-3 text-center">
+                    <div className="inline-flex items-center gap-1.5">
+                      {statusBadge(p.status)}
+                      {p.returns?.length > 0 && (
+                        <span className="text-xs px-2 py-0.5 rounded-full font-semibold bg-orange-100 text-orange-700">
+                          Return
+                        </span>
+                      )}
+                    </div>
+                  </td>
                   {(role === 'admin' || role === 'manager') && isOnline && (
                     <td className="px-4 py-3 text-right">
-                      <button onClick={() => handleDelete(p)} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-red-600 text-white text-xs font-medium hover:bg-red-700 transition-colors">
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0 1 16.138 21H7.862a2 2 0 0 1-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v3M4 7h16"/></svg>
-                        {t('btn.delete')}
-                      </button>
+                      <div className="inline-flex items-center gap-1.5">
+                        <button onClick={() => navigate(`/purchases/${p.id}?print=1`)}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-slate-600 text-white text-xs font-medium hover:bg-slate-700 transition-colors">
+                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+                          Print
+                        </button>
+                        <button onClick={() => handleDelete(p)} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-red-600 text-white text-xs font-medium hover:bg-red-700 transition-colors">
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0 1 16.138 21H7.862a2 2 0 0 1-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v3M4 7h16"/></svg>
+                          {t('btn.delete')}
+                        </button>
+                      </div>
                     </td>
                   )}
                 </tr>

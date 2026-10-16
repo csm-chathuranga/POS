@@ -17,7 +17,7 @@ export const salesApi = api.injectEndpoints({
     }),
     createSale: build.mutation({
       query: body => ({ url: '/sales', method: 'POST', body }),
-      invalidatesTags: [{ type: 'Sales', id: 'LIST' }, { type: 'Products', id: 'LIST' }],
+      invalidatesTags: [{ type: 'Sales', id: 'LIST' }, { type: 'Products', id: 'LIST' }, { type: 'Customers', id: 'LIST' }],
       onQueryStarted: async (body, { queryFulfilled }) => {
         try { await queryFulfilled; deductStockFromCache(body.items || []); } catch {}
       },

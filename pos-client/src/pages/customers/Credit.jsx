@@ -1,9 +1,74 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useGetCreditHistoryQuery, useSettleCreditMutation } from '../../features/customers/customersApi';
+import { getApiUrl } from '../../config/runtimeConfig';
+
+const API = getApiUrl();
 
 const fmt = n => Number(n || 0).toLocaleString('en-LK', { minimumFractionDigits: 2 });
 const fmtDate = d => d ? new Date(d).toLocaleDateString('en-LK', { year: 'numeric', month: 'short', day: 'numeric' }) : '—';
+
+function printPaymentReceipt({ customer, payment, balanceBefore, shopInfo = {} }) {
+  const balanceAfter = Math.max(0, balanceBefore - parseFloat(payment.amount || 0));
+  const html = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Payment Receipt</title>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    html, body { font-family:'Courier New',Courier,monospace; font-size:13px; font-weight:900; width:72mm; max-width:72mm; color:#000; word-break:break-word; }
+    body { padding:5mm 4mm; }
+    .logo { width:72px; height:72px; object-fit:contain; margin:0 auto 6px; display:block; border-radius:50%; }
+    .shop-name { font-size:15px; font-weight:900; text-align:center; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:2px; }
+    .shop-meta { font-size:11px; font-weight:900; text-align:center; line-height:1.6; }
+    .title { font-size:13px; font-weight:900; text-align:center; text-transform:uppercase; letter-spacing:0.08em; margin:6px 0 4px; }
+    .divider { border:none; border-top:2px solid #000; margin:8px 0; }
+    .dashed { border:none; border-top:1px dashed #000; margin:6px 0; }
+    .row { display:flex; justify-content:space-between; gap:6px; padding:2px 0; font-size:12px; }
+    .row .label { font-weight:900; flex-shrink:0; }
+    .row .value { font-weight:900; text-align:right; min-width:0; word-break:break-word; }
+    .total-row { display:flex; justify-content:space-between; gap:6px; font-weight:900; font-size:15px; padding:6px 0 4px; border-top:2px solid #000; margin-top:4px; }
+    .balance-row { display:flex; justify-content:space-between; gap:6px; padding:2px 0; font-size:12px; font-weight:900; }
+    .footer { text-align:center; margin-top:10px; font-size:11px; font-weight:900; line-height:1.8; }
+    @media print {
+      html, body { overflow:visible !important; height:auto !important; }
+      @page { margin:0; size:72mm auto; }
+      body { padding:3mm 4mm; width:72mm !important; }
+    }
+  </style>
+</head>
+<body>
+  ${shopInfo.shop_logo ? `<img class="logo" src="${shopInfo.shop_logo}" alt="logo">` : ''}
+  <div class="shop-name">${shopInfo.shop_name || 'LMUC POS'}</div>
+  <div class="shop-meta">
+    ${shopInfo.address ? shopInfo.address + '<br>' : ''}
+    ${shopInfo.phone || ''}
+  </div>
+  <div class="title">Payment Receipt</div>
+  <hr class="divider">
+  <div class="row"><span class="label">Customer</span><span class="value">${customer?.name || '—'}</span></div>
+  <div class="row"><span class="label">Date</span><span class="value">${fmtDate(payment.created_at || new Date().toISOString())}</span></div>
+  ${payment.ref_no ? `<div class="row"><span class="label">Ref No</span><span class="value">${payment.ref_no}</span></div>` : ''}
+  ${payment.note ? `<div class="row"><span class="label">Note</span><span class="value">${payment.note}</span></div>` : ''}
+  <hr class="dashed">
+  <div class="total-row"><span>Amount Paid</span><span>Rs. ${fmt(payment.amount)}</span></div>
+  <div class="balance-row"><span>Outstanding</span><span>Rs. ${fmt(balanceAfter)}</span></div>
+  <hr class="divider">
+  <div class="footer">
+    ${shopInfo.receipt_footer || 'Thank you!'}
+    <br>lumac.lk
+  </div>
+</body>
+</html>`;
+
+  if (window.electronAPI?.printReceiptHtml) {
+    window.electronAPI.printReceiptHtml(html, { paperSize: '72mm' });
+  } else {
+    const win = window.open('', '_blank', 'width=380,height=500,scrollbars=yes');
+    if (win) { win.document.write(html); win.document.close(); win.onload = () => win.print(); }
+  }
+}
 
 export default function CustomerCredit() {
   const { id } = useParams();
@@ -16,16 +81,37 @@ export default function CustomerCredit() {
   const [note, setNote] = useState('');
   const [err, setErr] = useState('');
   const [tab, setTab] = useState('payments');
+  const [shopInfo, setShopInfo] = useState({});
+  const shouldPrintRef = useRef(false);
 
-  async function handleSettle(e) {
+  useEffect(() => {
+    fetch(`${API}/api/settings/public`)
+      .then(r => r.json())
+      .then(setShopInfo)
+      .catch(() => {});
+  }, []);
+
+  async function handleSettle(e, withPrint = false) {
     e.preventDefault();
     setErr('');
+    shouldPrintRef.current = withPrint;
+    const amountVal       = parseFloat(amount);
+    const noteVal         = note;
+    const balanceSnapshot = balance;
     try {
-      await settle({ id, amount: parseFloat(amount), note }).unwrap();
+      const payment = await settle({ id, amount: amountVal, note: noteVal }).unwrap();
       setModal(false);
       setAmount('');
       setNote('');
       refetch();
+      if (shouldPrintRef.current) {
+        printPaymentReceipt({
+          customer,
+          payment: { ...payment, amount: amountVal, note: noteVal },
+          balanceBefore: balanceSnapshot,
+          shopInfo,
+        });
+      }
     } catch (e) { setErr(e?.data?.error || 'Failed'); }
   }
 
@@ -57,7 +143,6 @@ export default function CustomerCredit() {
 
       {/* ── Summary banner ── */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        {/* Balance card */}
         <div className="sm:col-span-2 bg-gradient-to-br from-red-500 to-rose-600 rounded-2xl p-5 text-white shadow-lg shadow-red-500/20 flex flex-col justify-between">
           <div className="flex items-start justify-between">
             <div>
@@ -87,7 +172,6 @@ export default function CustomerCredit() {
           )}
         </div>
 
-        {/* Stats sidebar */}
         <div className="flex flex-col gap-3">
           <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-4 flex-1">
             <p className="text-xs text-slate-400 mb-1">Total Repaid</p>
@@ -152,7 +236,7 @@ export default function CustomerCredit() {
               <tbody className="divide-y divide-slate-50">
                 {payments.map(p => {
                   const amt     = parseFloat(p.amount);
-                  const isDebit = amt < 0;        // negative = credit added (debit to balance)
+                  const isDebit = amt < 0;
                   const absAmt  = Math.abs(amt);
                   return (
                     <tr key={p.id} className="hover:bg-slate-50 transition-colors">
@@ -229,7 +313,7 @@ export default function CustomerCredit() {
       {/* ── Record Payment Modal ── */}
       {modal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg">
             <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b border-slate-100">
               <div>
                 <h2 className="text-base font-bold text-slate-800">Record Payment</h2>
@@ -242,7 +326,7 @@ export default function CustomerCredit() {
                 <span className="text-xs text-slate-500">Outstanding</span>
                 <span className="font-bold text-red-600">Rs. {fmt(balance)}</span>
               </div>
-              <form onSubmit={handleSettle} className="space-y-3">
+              <form onSubmit={e => handleSettle(e, false)} className="space-y-3">
                 {err && <p className="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">{err}</p>}
                 <div>
                   <label className="block text-xs font-semibold text-slate-600 mb-1.5">Amount *</label>
@@ -263,7 +347,14 @@ export default function CustomerCredit() {
                   </button>
                   <button type="submit" disabled={settling}
                     className="flex-1 py-2.5 rounded-xl bg-red-500 text-white text-sm font-bold disabled:opacity-60 hover:bg-red-600 transition-colors">
-                    {settling ? 'Saving…' : 'Save Payment'}
+                    {settling ? 'Saving…' : 'Save'}
+                  </button>
+                  <button type="button" disabled={settling} onClick={e => handleSettle(e, true)}
+                    className="flex-1 py-2.5 rounded-xl bg-slate-700 text-white text-sm font-bold disabled:opacity-60 hover:bg-slate-800 transition-colors flex items-center justify-center gap-1.5">
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/>
+                    </svg>
+                    {settling ? '…' : 'Save & Print'}
                   </button>
                 </div>
               </form>

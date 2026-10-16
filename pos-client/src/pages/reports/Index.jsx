@@ -77,12 +77,92 @@ function Th({ children, right }) {
 function SalesToday() {
   const { t, locale } = useLocale();
   const [date, setDate] = useState(todayStr());
+  const [printing, setPrinting] = useState(false);
   const { data, isLoading } = useGetReportDayEndQuery(date);
   const { summary = {}, byPayment = [], sales = [] } = data || {};
   const isToday = date === todayStr();
+
+  function handlePrint() {
+    if (!data || printing) return;
+    setPrinting(true);
+
+    const paymentRows = byPayment.map(r =>
+      `<tr><td>${methodLabel(r.method, locale)}</td><td class="num">${r.count}</td><td class="num">${fmt(r.total)}</td></tr>`
+    ).join('') || '<tr><td colspan="3" class="center">No data</td></tr>';
+
+    const saleRows = sales.map(s =>
+      `<tr>
+        <td class="mono">${s.invoice_no}</td>
+        <td>${s.user_name || '—'}</td>
+        <td class="num">${fmt(s.total)}</td>
+        <td class="num">${fmt(s.paid)}</td>
+        <td class="num ${parseFloat(s.balance) > 0 ? 'red' : ''}">${parseFloat(s.balance) > 0 ? fmt(s.balance) : '—'}</td>
+      </tr>`
+    ).join('') || '<tr><td colspan="5" class="center">No sales</td></tr>';
+
+    const paymentLines = byPayment.map(r =>
+      `<div class="row"><span>${methodLabel(r.method, locale)} (${r.count})</span><span>${fmt(r.total)}</span></div>`
+    ).join('');
+
+    const saleLines = sales.map((s, i) =>
+      `<div class="sale-row"><span class="num">${i+1}</span><span class="inv">${s.invoice_no}</span><span class="amt">${fmt(s.total)}${parseFloat(s.balance)>0?` B:${fmt(s.balance)}`:''}` +
+      `</span></div>`
+    ).join('');
+
+    const html = `<!DOCTYPE html><html><head><meta charset="UTF-8">
+<title>Daily Sales – ${fmtDate(date)}</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html,body { font-family:'Courier New',Courier,monospace; font-size:13px; font-weight:900; width:72mm; max-width:72mm; color:#000; word-break:break-word; }
+  body { padding:5mm 4mm; }
+  .title { font-size:15px; font-weight:900; text-align:center; text-transform:uppercase; letter-spacing:.06em; margin-bottom:2px; }
+  .center { text-align:center; font-size:11px; margin-bottom:2px; }
+  .divider { border:none; border-top:2px solid #000; margin:6px 0; }
+  .dashed  { border:none; border-top:1px dashed #000; margin:5px 0; }
+  .section { font-size:11px; font-weight:900; text-transform:uppercase; letter-spacing:.06em; margin:6px 0 3px; }
+  .row { display:flex; justify-content:space-between; gap:4px; padding:2px 0; font-size:12px; font-weight:900; }
+  .row span:last-child { text-align:right; white-space:nowrap; }
+  .summary-row { display:flex; justify-content:space-between; gap:4px; padding:2px 0; font-size:13px; font-weight:900; }
+  .summary-row span:last-child { text-align:right; }
+  .total-row { display:flex; justify-content:space-between; font-size:15px; font-weight:900; padding:4px 0; border-top:2px solid #000; margin-top:4px; }
+  .sale-row { display:flex; align-items:baseline; gap:3px; padding:1px 0; font-size:10px; font-weight:700; }
+  .sale-row .num { width:12px; flex-shrink:0; color:#777; font-size:9px; }
+  .sale-row .inv { flex:1; min-width:0; font-size:10px; }
+  .sale-row .amt { white-space:nowrap; text-align:right; font-size:10px; }
+  @media print { html,body{overflow:visible!important;height:auto!important;} @page{margin:0;size:72mm auto;} body{padding:3mm 4mm;width:72mm!important;} }
+</style></head><body>
+  <div class="title">Daily Sales</div>
+  <div class="center">${fmtDate(date)}</div>
+  <div class="center" style="font-size:10px;">Printed: ${new Date().toLocaleTimeString('en-LK')}</div>
+  <hr class="divider">
+  <div class="summary-row"><span>Total Bills</span><span>${summary.total_bills ?? 0}</span></div>
+  <div class="summary-row"><span>Revenue</span><span>${fmt(summary.total_revenue)}</span></div>
+  ${parseFloat(summary.total_discount) > 0 ? `<div class="summary-row"><span>Discount</span><span>${fmt(summary.total_discount)}</span></div>` : ''}
+  ${parseFloat(summary.total_balance) > 0 ? `<div class="summary-row"><span>Balance</span><span>${fmt(summary.total_balance)}</span></div>` : ''}
+  <hr class="dashed">
+  <div class="section">By Payment</div>
+  ${paymentLines || '<div class="row"><span>No data</span></div>'}
+  <hr class="dashed">
+  <div class="section">Sales (${sales.length})</div>
+  ${saleLines || '<div style="text-align:center;font-size:11px;padding:6px 0;">No sales</div>'}
+  <hr class="divider">
+  <div class="total-row"><span>Total Revenue</span><span>${fmt(summary.total_revenue)}</span></div>
+</body></html>`;
+
+    try {
+      if (window.electronAPI?.printReceiptHtml) {
+        window.electronAPI.printReceiptHtml(html, { paperSize: 'A4' }).finally(() => setPrinting(false));
+      } else {
+        const win = window.open('', '_blank', 'width=900,height=700,scrollbars=yes');
+        if (win) { win.document.write(html); win.document.close(); win.onload = () => { win.print(); setPrinting(false); }; }
+        else setPrinting(false);
+      }
+    } catch { setPrinting(false); }
+  }
+
   return (
     <div className="space-y-4">
-      {/* Date picker */}
+      {/* Date picker + Print */}
       <div className="flex items-center gap-3 flex-wrap">
         <input type="date" value={date} max={todayStr()} onChange={e => setDate(e.target.value)}
           className="px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
@@ -94,6 +174,16 @@ function SalesToday() {
         )}
         {!isToday && (
           <span className="text-xs text-slate-400">{fmtDate(date)}</span>
+        )}
+        {!isLoading && data && (
+          <button onClick={handlePrint} disabled={printing}
+            className="ml-auto flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-slate-700 hover:bg-slate-800 disabled:opacity-60 rounded-lg transition-colors">
+            {printing
+              ? <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+              : <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+            }
+            {printing ? 'Printing…' : 'Print'}
+          </button>
         )}
       </div>
 

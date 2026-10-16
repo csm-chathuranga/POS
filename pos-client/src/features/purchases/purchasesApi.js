@@ -16,11 +16,20 @@ export const purchasesApi = api.injectEndpoints({
     }),
     createPurchase: build.mutation({
       query: body => ({ url: '/purchases', method: 'POST', body }),
-      invalidatesTags: [{ type: 'Purchases', id: 'LIST' }],
+      invalidatesTags: [{ type: 'Purchases', id: 'LIST' }, { type: 'Suppliers', id: 'LIST' }],
     }),
     deletePurchase: build.mutation({
       query: id => ({ url: `/purchases/${id}`, method: 'DELETE' }),
       invalidatesTags: [{ type: 'Purchases', id: 'LIST' }],
+    }),
+    returnPurchase: build.mutation({
+      query: ({ id, ...body }) => ({ url: `/purchases/${id}/return`, method: 'POST', body }),
+      invalidatesTags: (r, e, { id }) => [
+        { type: 'Purchases', id },
+        { type: 'Purchases', id: 'LIST' },
+        { type: 'Suppliers', id: 'LIST' },
+        { type: 'Products',  id: 'LIST' },
+      ],
     }),
   }),
 });
@@ -30,4 +39,5 @@ export const {
   useGetPurchaseQuery,
   useCreatePurchaseMutation,
   useDeletePurchaseMutation,
+  useReturnPurchaseMutation,
 } = purchasesApi;

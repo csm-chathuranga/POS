@@ -256,6 +256,40 @@ async function postSupplierPayment(models, { ref_no: sourceRef, amount, user_id 
 }
 
 /**
+ * Post a purchase return to the journal.
+ * DR: 2010 Accounts Payable (reduces liability — we owe less)
+ * CR: 5000 COGS (reduces cost of goods)
+ */
+async function postPurchaseReturn(models, { return_no, total, user_id }) {
+  try {
+    if (!await isEnabled(models)) return;
+    const [apAcc, cogsAcc] = await Promise.all([
+      byCode(models, '2010'),
+      byCode(models, '5000'),
+    ]);
+    if (!apAcc || !cogsAcc) {
+      console.warn('[accounting] postPurchaseReturn: accounts 2010 or 5000 not found');
+      return;
+    }
+    const amt = parseFloat(total) || 0;
+    if (amt <= 0) return;
+    const date   = new Date().toISOString().slice(0, 10);
+    const ref_no = await nextRef(models, 'PRN');
+    await createEntry(models, {
+      ref_no, date,
+      description: `Purchase return ${return_no}`,
+      user_id,
+      lines: [
+        { account_id: apAcc.id,   debit: amt, credit: 0   },
+        { account_id: cogsAcc.id, debit: 0,   credit: amt },
+      ],
+    });
+  } catch (e) {
+    console.error('[accounting] postPurchaseReturn error:', e.message);
+  }
+}
+
+/**
  * Post a sale return to the journal.
  * DR: 4010 Sales Revenue (reduces revenue)
  * CR: 1010 Cash (cash refunded)
@@ -354,4 +388,4 @@ async function postSalaryPayment(models, { ref_no: sourceRef, amount, employee_n
   }
 }
 
-module.exports = { postSale, postPurchase, postCreditSettle, postCreditAdjustment, postSupplierPayment, postSaleReturn, postMarkPaid, postSalaryPayment };
+module.exports = { postSale, postPurchase, postCreditSettle, postCreditAdjustment, postSupplierPayment, postSaleReturn, postPurchaseReturn, postMarkPaid, postSalaryPayment };

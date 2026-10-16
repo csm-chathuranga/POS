@@ -136,11 +136,23 @@ function getModels(sequelize) {
     items:     { type: DataTypes.JSON, allowNull: false },
   }, { tableName: 'sale_returns' });
 
+  const PurchaseReturn = sequelize.define('PurchaseReturn', {
+    id:          { type: DataTypes.BIGINT.UNSIGNED, primaryKey: true, autoIncrement: true },
+    purchase_id: { type: DataTypes.BIGINT.UNSIGNED, allowNull: false },
+    user_id:     { type: DataTypes.BIGINT.UNSIGNED, allowNull: false },
+    return_no:   { type: DataTypes.STRING(191), allowNull: false, unique: true },
+    reason:      { type: DataTypes.TEXT, allowNull: true },
+    total:       { type: DataTypes.DECIMAL(12, 2), defaultValue: 0 },
+    items:       { type: DataTypes.JSON, allowNull: false },
+  }, { tableName: 'purchase_returns' });
+
   const Purchase = sequelize.define('Purchase', {
     id:            { type: DataTypes.BIGINT.UNSIGNED, primaryKey: true, autoIncrement: true },
     grn_no:        { type: DataTypes.STRING(191), allowNull: false, unique: true },
     supplier_id:   { type: DataTypes.BIGINT.UNSIGNED, allowNull: true },
     user_id:       { type: DataTypes.BIGINT.UNSIGNED, allowNull: false },
+    subtotal:      { type: DataTypes.DECIMAL(10, 2), defaultValue: 0 },
+    discount:      { type: DataTypes.DECIMAL(10, 2), defaultValue: 0 },
     total:         { type: DataTypes.DECIMAL(10, 2), defaultValue: 0 },
     paid:          { type: DataTypes.DECIMAL(10, 2), defaultValue: 0 },
     status:        { type: DataTypes.ENUM('received', 'pending', 'partial'), defaultValue: 'received' },
@@ -299,6 +311,7 @@ function getModels(sequelize) {
   Purchase.belongsTo(Supplier, { foreignKey: 'supplier_id', as: 'supplier' });
   Purchase.belongsTo(User, { foreignKey: 'user_id', as: 'user' });
   Purchase.hasMany(PurchaseItem, { foreignKey: 'purchase_id', as: 'items' });
+  Purchase.hasMany(PurchaseReturn, { foreignKey: 'purchase_id', as: 'returns' });
 
   Supplier.hasMany(SupplierPayment, { foreignKey: 'supplier_id', as: 'payments' });
   SupplierPayment.belongsTo(Supplier, { foreignKey: 'supplier_id', as: 'supplier' });
@@ -339,7 +352,7 @@ function getModels(sequelize) {
   return {
     User, Role, Category, Product, ProductVariant, ProductBatch, ProductDiscountTier,
     Supplier, Customer, Sale, SaleItem, Payment, SaleReturn,
-    Purchase, PurchaseItem, StockMovement, CreditPayment, SupplierPayment, Setting, Feature,
+    Purchase, PurchaseItem, PurchaseReturn, StockMovement, CreditPayment, SupplierPayment, Setting, Feature,
     Account, JournalEntry, JournalLine,
     Employee, SalaryPayment,
     LoadingSheet, LoadingSheetItem,
