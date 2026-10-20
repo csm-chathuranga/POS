@@ -139,7 +139,7 @@ export default function UsersIndex() {
   const { data: rawUsers = [], isLoading } = useGetUsersQuery();
   const { data: rolesData = [] }           = useGetRolesQuery();
   const users    = isAdmin ? rawUsers : rawUsers.filter(u => u.role !== 'admin');
-  const roleNames = rolesData.map(r => r.name).filter(r => r !== 'admin');
+  const roleNames = rolesData.map(r => r.name).filter(r => isAdmin || r !== 'admin');
   const [create, { isLoading: creating }] = useCreateUserMutation();
   const [update, { isLoading: updating }] = useUpdateUserMutation();
   const [del] = useDeleteUserMutation();
