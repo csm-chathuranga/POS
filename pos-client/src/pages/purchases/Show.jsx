@@ -220,7 +220,7 @@ export default function PurchaseShow() {
           <h2 className="font-bold text-slate-700 text-sm">{t('pur.items_title')}</h2>
         </div>
         <div className="overflow-x-auto"><table className="w-full text-sm">
-          <thead className="bg-slate-50 text-xs text-slate-500 uppercase tracking-wider">
+          <thead className="bg-slate-800 text-xs text-white uppercase tracking-wider">
             <tr>
               <th className="px-5 py-3 text-left font-semibold">#</th>
               <th className="px-5 py-3 text-left font-semibold">{t('th.product')}</th>
@@ -242,6 +242,18 @@ export default function PurchaseShow() {
             {items.length === 0 && (
               <tr><td colSpan={5} className="px-5 py-8 text-center text-slate-400">{t('lbl.no_data')}</td></tr>
             )}
+            {items.length > 0 && (() => {
+              const totalQty  = items.reduce((s, i) => s + parseFloat(i.qty || 0), 0);
+              const totalCost = items.reduce((s, i) => s + parseFloat(i.total || 0), 0);
+              return (
+                <tr className="bg-slate-100 border-t-2 border-slate-300 font-bold text-slate-800">
+                  <td colSpan={2} className="px-5 py-3 text-right text-xs uppercase tracking-wide text-slate-500">Totals</td>
+                  <td className="px-5 py-3 text-right">{fmtNum(totalQty)}</td>
+                  <td className="px-5 py-3" />
+                  <td className="px-5 py-3 text-right">{fmt(totalCost)}</td>
+                </tr>
+              );
+            })()}
           </tbody>
         </table></div>
       </div>
