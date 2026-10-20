@@ -10,13 +10,16 @@ router.get('/public', async (req, res) => {
   const rows = await Setting.findAll();
   const result = {};
   rows.forEach(s => { if (PUBLIC_KEYS.has(s.key)) result[s.key] = s.value; });
+  if (!result.receipt_footer && result.receipt_note) result.receipt_footer = result.receipt_note;
   res.json(result);
 });
 
 router.get('/', auth, async (req, res) => {
   const { Setting } = req.models;
   const settings = await Setting.findAll();
-  res.json(Object.fromEntries(settings.map(s => [s.key, s.value])));
+  const obj = Object.fromEntries(settings.map(s => [s.key, s.value]));
+  if (!obj.receipt_footer && obj.receipt_note) obj.receipt_footer = obj.receipt_note;
+  res.json(obj);
 });
 
 router.post('/', auth, role('admin', 'manager'), async (req, res) => {

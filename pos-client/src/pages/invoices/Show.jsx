@@ -195,7 +195,7 @@ export default function InvoiceShow() {
 
           {/* Footer */}
           <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '5mm', textAlign: 'center', fontSize: '8.5pt', color: '#94a3b8' }}>
-            {rawSettings?.receipt_note || 'Thank you for your business!'}
+            {rawSettings?.receipt_footer || 'Thank you for your business!'}
           </div>
         </div>
       </div>

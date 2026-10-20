@@ -141,7 +141,7 @@ export default function Settings() {
         use_manager_dashboard:  'false',
         currency:               'Rs.',
         tax_rate:               '0',
-        receipt_note:           '',
+        receipt_footer:         '',
         shop_logo:              '',
         demo_mode:              'false',
         interface_language:     'en',
@@ -388,7 +388,7 @@ export default function Settings() {
                     </Field>
                   </div>
                   <Field label={t('set.receipt_footer')}>
-                    <textarea value={form.receipt_note ?? ''} onChange={e => set('receipt_note', e.target.value)} rows={3}
+                    <textarea value={form.receipt_footer ?? ''} onChange={e => set('receipt_footer', e.target.value)} rows={3}
                       placeholder="Thank you for shopping with us!" className={inputCls + ' resize-none'} />
                   </Field>
                 </div>
