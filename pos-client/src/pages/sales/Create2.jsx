@@ -1064,7 +1064,7 @@ export default function SalesCreate() {
       product_id: i.product_id, variant_id: i.variant_id || null,
       product_name: isSinhala && i.name_si ? i.name_si : i.name, unit_price: i.unit_price,
       original_price: i.promo_price ? i.selling_price : 0,
-      cost_price: 0, qty: i.qty, discount: i.discount || 0, total: i.total,
+      cost_price: i.cost_price || 0, qty: i.qty, discount: i.discount || 0, total: i.total,
     }));
     const salePayload = {
       items, payments, customer_id: customer?.id || null,
