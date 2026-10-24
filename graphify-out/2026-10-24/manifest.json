@@ -85,8 +85,8 @@
     "semantic_hash": ""
   },
   "pos-api/src/routes/sales.js": {
-    "mtime": 1792824188.545331,
-    "ast_hash": "7e963a5218f666aad5f7ffa96a1738f5",
+    "mtime": 1792824667.0738227,
+    "ast_hash": "fd40ecc986188e9992f5c47d4ee84357",
     "semantic_hash": ""
   },
   "pos-api/src/routes/settings.js": {
@@ -290,8 +290,8 @@
     "semantic_hash": ""
   },
   "pos-client/src/pages/products/Index.jsx": {
-    "mtime": 1792080730.4743054,
-    "ast_hash": "58fb5b2396aa6d3bc3abeef1c11a4d32",
+    "mtime": 1792831800.552351,
+    "ast_hash": "9f9f925bf92dfa30728b17de6e0cb375",
     "semantic_hash": ""
   },
   "pos-client/src/pages/purchases/Create.jsx": {
@@ -325,8 +325,8 @@
     "semantic_hash": ""
   },
   "pos-client/src/pages/sales/Index.jsx": {
-    "mtime": 1792824188.4663332,
-    "ast_hash": "e67513468ed5f709a2b61f40ed664802",
+    "mtime": 1792824309.4901872,
+    "ast_hash": "53053f4df05d3a83a15224092c14b707",
     "semantic_hash": ""
   },
   "pos-client/src/pages/sales/Show.jsx": {
@@ -755,8 +755,8 @@
     "semantic_hash": ""
   },
   "pos-api/src/helpers/accounting.js": {
-    "mtime": 1792177253.0538063,
-    "ast_hash": "2e5ae67a4a2d5b0b7349465f16d6f2da",
+    "mtime": 1792824667.1831791,
+    "ast_hash": "31d09f7a6eae5914e22a2e74fdb7047d",
     "semantic_hash": ""
   },
   "pos-api/src/lib/migrationRunner.js": {

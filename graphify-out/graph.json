@@ -2433,7 +2433,7 @@
       "_origin": "ast",
       "id": "pos_api_scripts_setup_tenant",
       "community": 77,
-      "community_name": "setup-tenant.js",
+      "community_name": "index.js",
       "norm_label": "setup-tenant.js"
     },
     {
@@ -2444,7 +2444,7 @@
       "_origin": "ast",
       "id": "pos_api_scripts_setup_tenant_bcrypt",
       "community": 77,
-      "community_name": "setup-tenant.js",
+      "community_name": "index.js",
       "norm_label": "bcrypt"
     },
     {
@@ -2455,7 +2455,7 @@
       "_origin": "ast",
       "id": "pos_api_scripts_setup_tenant_sequelize",
       "community": 77,
-      "community_name": "setup-tenant.js",
+      "community_name": "index.js",
       "norm_label": "{ sequelize }"
     },
     {
@@ -2466,7 +2466,7 @@
       "_origin": "ast",
       "id": "pos_api_scripts_setup_tenant_getmodels",
       "community": 77,
-      "community_name": "setup-tenant.js",
+      "community_name": "index.js",
       "norm_label": "getmodels"
     },
     {
@@ -2477,7 +2477,7 @@
       "_origin": "ast",
       "id": "pos_api_scripts_setup_tenant_tenants",
       "community": 77,
-      "community_name": "setup-tenant.js",
+      "community_name": "index.js",
       "norm_label": "tenants"
     },
     {
@@ -2488,7 +2488,7 @@
       "_origin": "ast",
       "id": "pos_api_scripts_setup_tenant_run",
       "community": 77,
-      "community_name": "setup-tenant.js",
+      "community_name": "index.js",
       "norm_label": "run()"
     },
     {
@@ -2531,8 +2531,8 @@
       "source_location": "L9",
       "_origin": "ast",
       "id": "pos_api_src_app_tenant",
-      "community": 9,
-      "community_name": "tenant.js",
+      "community": 55,
+      "community_name": "getMasterDb",
       "norm_label": "tenant"
     },
     {
@@ -2921,10 +2921,32 @@
       "norm_label": "postsalevoid()"
     },
     {
+      "label": "postPurchaseVoid()",
+      "file_type": "code",
+      "source_file": "pos-api/src/helpers/accounting.js",
+      "source_location": "L369",
+      "_origin": "ast",
+      "id": "pos_api_src_helpers_accounting_postpurchasevoid",
+      "community": 34,
+      "community_name": "helpers/accounting.js",
+      "norm_label": "postpurchasevoid()"
+    },
+    {
+      "label": "voidEntries()",
+      "file_type": "code",
+      "source_file": "pos-api/src/helpers/accounting.js",
+      "source_location": "L373",
+      "_origin": "ast",
+      "id": "pos_api_src_helpers_accounting_voidentries",
+      "community": 34,
+      "community_name": "helpers/accounting.js",
+      "norm_label": "voidentries()"
+    },
+    {
       "label": "postSalaryPayment()",
       "file_type": "code",
       "source_file": "pos-api/src/helpers/accounting.js",
-      "source_location": "L394",
+      "source_location": "L406",
       "_origin": "ast",
       "id": "pos_api_src_helpers_accounting_postsalarypayment",
       "community": 34,
@@ -2982,8 +3004,8 @@
       "source_location": "L6",
       "_origin": "ast",
       "id": "pos_api_src_lib_migrationrunner_runmigrations",
-      "community": 55,
-      "community_name": "getMasterDb",
+      "community": 46,
+      "community_name": "tenants.js",
       "norm_label": "runmigrations()"
     },
     {
@@ -3092,7 +3114,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "pos_api_src_models_index",
-      "community": 105,
+      "community": 77,
       "community_name": "index.js",
       "norm_label": "index.js"
     },
@@ -3103,7 +3125,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "pos_api_src_models_index_datatypes",
-      "community": 105,
+      "community": 77,
       "community_name": "index.js",
       "norm_label": "{ datatypes }"
     },
@@ -3114,7 +3136,7 @@
       "source_location": "L3",
       "_origin": "ast",
       "id": "pos_api_src_models_index_getmodels",
-      "community": 105,
+      "community": 77,
       "community_name": "index.js",
       "norm_label": "getmodels()"
     },
@@ -3867,15 +3889,15 @@
       "norm_label": "role"
     },
     {
-      "label": "{ postPurchase, postPurchaseReturn }",
+      "label": "{ postPurchase, postPurchaseReturn, postPurchaseVoid }",
       "file_type": "code",
       "source_file": "pos-api/src/routes/purchases.js",
       "source_location": "L5",
       "_origin": "ast",
-      "id": "pos_api_src_routes_purchases_postpurchase_postpurchasereturn",
+      "id": "pos_api_src_routes_purchases_postpurchase_postpurchasereturn_postpurchasevoid",
       "community": 80,
       "community_name": "purchases.js",
-      "norm_label": "{ postpurchase, postpurchasereturn }"
+      "norm_label": "{ postpurchase, postpurchasereturn, postpurchasevoid }"
     },
     {
       "label": "reports.js",
@@ -3884,8 +3906,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "pos_api_src_routes_reports",
-      "community": 101,
-      "community_name": "reports.js",
+      "community": 12,
+      "community_name": "middleware/auth.js",
       "norm_label": "reports.js"
     },
     {
@@ -3895,8 +3917,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "pos_api_src_routes_reports_router",
-      "community": 101,
-      "community_name": "reports.js",
+      "community": 12,
+      "community_name": "middleware/auth.js",
       "norm_label": "router"
     },
     {
@@ -3906,8 +3928,8 @@
       "source_location": "L2",
       "_origin": "ast",
       "id": "pos_api_src_routes_reports_op",
-      "community": 101,
-      "community_name": "reports.js",
+      "community": 12,
+      "community_name": "middleware/auth.js",
       "norm_label": "{ op }"
     },
     {
@@ -3917,8 +3939,8 @@
       "source_location": "L3",
       "_origin": "ast",
       "id": "pos_api_src_routes_reports_auth",
-      "community": 101,
-      "community_name": "reports.js",
+      "community": 12,
+      "community_name": "middleware/auth.js",
       "norm_label": "auth"
     },
     {
@@ -3928,8 +3950,8 @@
       "source_location": "L5",
       "_origin": "ast",
       "id": "pos_api_src_routes_reports_daterange",
-      "community": 101,
-      "community_name": "reports.js",
+      "community": 12,
+      "community_name": "middleware/auth.js",
       "norm_label": "daterange()"
     },
     {
@@ -4005,8 +4027,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "pos_api_src_routes_sales",
-      "community": 12,
-      "community_name": "middleware/auth.js",
+      "community": 106,
+      "community_name": "sales.js",
       "norm_label": "sales.js"
     },
     {
@@ -4016,8 +4038,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "pos_api_src_routes_sales_router",
-      "community": 12,
-      "community_name": "middleware/auth.js",
+      "community": 106,
+      "community_name": "sales.js",
       "norm_label": "router"
     },
     {
@@ -4027,8 +4049,8 @@
       "source_location": "L2",
       "_origin": "ast",
       "id": "pos_api_src_routes_sales_op_fn_col_literal",
-      "community": 12,
-      "community_name": "middleware/auth.js",
+      "community": 106,
+      "community_name": "sales.js",
       "norm_label": "{ op, fn, col, literal }"
     },
     {
@@ -4038,8 +4060,8 @@
       "source_location": "L3",
       "_origin": "ast",
       "id": "pos_api_src_routes_sales_auth",
-      "community": 12,
-      "community_name": "middleware/auth.js",
+      "community": 106,
+      "community_name": "sales.js",
       "norm_label": "auth"
     },
     {
@@ -4049,8 +4071,8 @@
       "source_location": "L4",
       "_origin": "ast",
       "id": "pos_api_src_routes_sales_postsale_postsalereturn_postmarkpaid_postsalevoid",
-      "community": 12,
-      "community_name": "middleware/auth.js",
+      "community": 106,
+      "community_name": "sales.js",
       "norm_label": "{ postsale, postsalereturn, postmarkpaid, postsalevoid }"
     },
     {
@@ -4060,8 +4082,8 @@
       "source_location": "L6",
       "_origin": "ast",
       "id": "pos_api_src_routes_sales_nextinvoiceno",
-      "community": 12,
-      "community_name": "middleware/auth.js",
+      "community": 106,
+      "community_name": "sales.js",
       "norm_label": "nextinvoiceno()"
     },
     {
@@ -4599,8 +4621,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "pos_client_package",
-      "community": 2,
-      "community_name": "dependencies",
+      "community": 107,
+      "community_name": "pos-client/package.json",
       "norm_label": "pos-client/package.json"
     },
     {
@@ -4610,8 +4632,8 @@
       "source_location": "L2",
       "_origin": "ast",
       "id": "pos_client_package_name",
-      "community": 2,
-      "community_name": "dependencies",
+      "community": 107,
+      "community_name": "pos-client/package.json",
       "norm_label": "name"
     },
     {
@@ -4621,8 +4643,8 @@
       "source_location": "L3",
       "_origin": "ast",
       "id": "pos_client_package_private",
-      "community": 2,
-      "community_name": "dependencies",
+      "community": 107,
+      "community_name": "pos-client/package.json",
       "norm_label": "private"
     },
     {
@@ -4632,8 +4654,8 @@
       "source_location": "L4",
       "_origin": "ast",
       "id": "pos_client_package_version",
-      "community": 2,
-      "community_name": "dependencies",
+      "community": 107,
+      "community_name": "pos-client/package.json",
       "norm_label": "version"
     },
     {
@@ -4643,8 +4665,8 @@
       "source_location": "L5",
       "_origin": "ast",
       "id": "pos_client_package_main",
-      "community": 2,
-      "community_name": "dependencies",
+      "community": 107,
+      "community_name": "pos-client/package.json",
       "norm_label": "main"
     },
     {
@@ -4654,8 +4676,8 @@
       "source_location": "L6",
       "_origin": "ast",
       "id": "pos_client_package_scripts",
-      "community": 2,
-      "community_name": "dependencies",
+      "community": 100,
+      "community_name": "scripts",
       "norm_label": "scripts"
     },
     {
@@ -4665,8 +4687,8 @@
       "source_location": "L7",
       "_origin": "ast",
       "id": "pos_client_package_scripts_dev",
-      "community": 2,
-      "community_name": "dependencies",
+      "community": 100,
+      "community_name": "scripts",
       "norm_label": "dev"
     },
     {
@@ -4676,8 +4698,8 @@
       "source_location": "L8",
       "_origin": "ast",
       "id": "pos_client_package_scripts_build",
-      "community": 2,
-      "community_name": "dependencies",
+      "community": 100,
+      "community_name": "scripts",
       "norm_label": "build"
     },
     {
@@ -4687,8 +4709,8 @@
       "source_location": "L9",
       "_origin": "ast",
       "id": "pos_client_package_scripts_lint",
-      "community": 2,
-      "community_name": "dependencies",
+      "community": 100,
+      "community_name": "scripts",
       "norm_label": "lint"
     },
     {
@@ -4698,8 +4720,8 @@
       "source_location": "L10",
       "_origin": "ast",
       "id": "pos_client_package_scripts_preview",
-      "community": 2,
-      "community_name": "dependencies",
+      "community": 100,
+      "community_name": "scripts",
       "norm_label": "preview"
     },
     {
@@ -4709,8 +4731,8 @@
       "source_location": "L11",
       "_origin": "ast",
       "id": "pos_client_package_scripts_dev_electron",
-      "community": 2,
-      "community_name": "dependencies",
+      "community": 100,
+      "community_name": "scripts",
       "norm_label": "dev:electron"
     },
     {
@@ -4720,8 +4742,8 @@
       "source_location": "L12",
       "_origin": "ast",
       "id": "pos_client_package_scripts_build_electron",
-      "community": 2,
-      "community_name": "dependencies",
+      "community": 100,
+      "community_name": "scripts",
       "norm_label": "build:electron"
     },
     {
@@ -4731,8 +4753,8 @@
       "source_location": "L13",
       "_origin": "ast",
       "id": "pos_client_package_scripts_dist",
-      "community": 2,
-      "community_name": "dependencies",
+      "community": 100,
+      "community_name": "scripts",
       "norm_label": "dist"
     },
     {
@@ -4742,8 +4764,8 @@
       "source_location": "L15",
       "_origin": "ast",
       "id": "pos_client_package_build",
-      "community": 2,
-      "community_name": "dependencies",
+      "community": 64,
+      "community_name": "build",
       "norm_label": "build"
     },
     {
@@ -4753,8 +4775,8 @@
       "source_location": "L16",
       "_origin": "ast",
       "id": "pos_client_package_build_appid",
-      "community": 2,
-      "community_name": "dependencies",
+      "community": 64,
+      "community_name": "build",
       "norm_label": "appid"
     },
     {
@@ -4764,8 +4786,8 @@
       "source_location": "L17",
       "_origin": "ast",
       "id": "pos_client_package_build_productname",
-      "community": 2,
-      "community_name": "dependencies",
+      "community": 64,
+      "community_name": "build",
       "norm_label": "productname"
     },
     {
@@ -4775,8 +4797,8 @@
       "source_location": "L18",
       "_origin": "ast",
       "id": "pos_client_package_build_directories",
-      "community": 2,
-      "community_name": "dependencies",
+      "community": 64,
+      "community_name": "build",
       "norm_label": "directories"
     },
     {
@@ -4786,8 +4808,8 @@
       "source_location": "L19",
       "_origin": "ast",
       "id": "pos_client_package_directories_output",
-      "community": 2,
-      "community_name": "dependencies",
+      "community": 64,
+      "community_name": "build",
       "norm_label": "output"
     },
     {
@@ -4797,8 +4819,8 @@
       "source_location": "L21",
       "_origin": "ast",
       "id": "pos_client_package_build_files",
-      "community": 2,
-      "community_name": "dependencies",
+      "community": 64,
+      "community_name": "build",
       "norm_label": "files"
     },
     {
@@ -4808,8 +4830,8 @@
       "source_location": "L21",
       "_origin": "ast",
       "id": "ref_dist",
-      "community": 2,
-      "community_name": "dependencies",
+      "community": 64,
+      "community_name": "build",
       "norm_label": "dist/**/*"
     },
     {
@@ -4819,8 +4841,8 @@
       "source_location": "L21",
       "_origin": "ast",
       "id": "ref_dist_electron",
-      "community": 2,
-      "community_name": "dependencies",
+      "community": 64,
+      "community_name": "build",
       "norm_label": "dist-electron/**/*"
     },
     {
@@ -4830,8 +4852,8 @@
       "source_location": "L25",
       "_origin": "ast",
       "id": "pos_client_package_build_win",
-      "community": 2,
-      "community_name": "dependencies",
+      "community": 64,
+      "community_name": "build",
       "norm_label": "win"
     },
     {
@@ -4841,8 +4863,8 @@
       "source_location": "L26",
       "_origin": "ast",
       "id": "pos_client_package_win_target",
-      "community": 2,
-      "community_name": "dependencies",
+      "community": 64,
+      "community_name": "build",
       "norm_label": "target"
     },
     {
@@ -4852,8 +4874,8 @@
       "source_location": "L28",
       "_origin": "ast",
       "id": "pos_client_package_build_nsis",
-      "community": 2,
-      "community_name": "dependencies",
+      "community": 64,
+      "community_name": "build",
       "norm_label": "nsis"
     },
     {
@@ -4863,8 +4885,8 @@
       "source_location": "L29",
       "_origin": "ast",
       "id": "pos_client_package_nsis_oneclick",
-      "community": 2,
-      "community_name": "dependencies",
+      "community": 64,
+      "community_name": "build",
       "norm_label": "oneclick"
     },
     {
@@ -4874,8 +4896,8 @@
       "source_location": "L30",
       "_origin": "ast",
       "id": "pos_client_package_nsis_allowtochangeinstallationdirectory",
-      "community": 2,
-      "community_name": "dependencies",
+      "community": 64,
+      "community_name": "build",
       "norm_label": "allowtochangeinstallationdirectory"
     },
     {
@@ -4885,8 +4907,8 @@
       "source_location": "L31",
       "_origin": "ast",
       "id": "pos_client_package_nsis_shortcutname",
-      "community": 2,
-      "community_name": "dependencies",
+      "community": 64,
+      "community_name": "build",
       "norm_label": "shortcutname"
     },
     {
@@ -5116,8 +5138,8 @@
       "source_location": "L46",
       "_origin": "ast",
       "id": "pos_client_package_devdependencies_types_react",
-      "community": 6,
-      "community_name": "devDependencies",
+      "community": 112,
+      "community_name": "@types/react",
       "norm_label": "@types/react"
     },
     {
@@ -5127,8 +5149,8 @@
       "source_location": "L46",
       "_origin": "ast",
       "id": "types_react",
-      "community": 6,
-      "community_name": "devDependencies",
+      "community": 112,
+      "community_name": "@types/react",
       "norm_label": "@types/react"
     },
     {
@@ -5138,8 +5160,8 @@
       "source_location": "L47",
       "_origin": "ast",
       "id": "pos_client_package_devdependencies_types_react_dom",
-      "community": 6,
-      "community_name": "devDependencies",
+      "community": 113,
+      "community_name": "@types/react-dom",
       "norm_label": "@types/react-dom"
     },
     {
@@ -5149,8 +5171,8 @@
       "source_location": "L47",
       "_origin": "ast",
       "id": "types_react_dom",
-      "community": 6,
-      "community_name": "devDependencies",
+      "community": 113,
+      "community_name": "@types/react-dom",
       "norm_label": "@types/react-dom"
     },
     {
@@ -5160,8 +5182,8 @@
       "source_location": "L48",
       "_origin": "ast",
       "id": "pos_client_package_devdependencies_vitejs_plugin_react",
-      "community": 6,
-      "community_name": "devDependencies",
+      "community": 116,
+      "community_name": "@vitejs/plugin-react",
       "norm_label": "@vitejs/plugin-react"
     },
     {
@@ -5171,8 +5193,8 @@
       "source_location": "L48",
       "_origin": "ast",
       "id": "vitejs_plugin_react",
-      "community": 6,
-      "community_name": "devDependencies",
+      "community": 116,
+      "community_name": "@vitejs/plugin-react",
       "norm_label": "@vitejs/plugin-react"
     },
     {
@@ -5248,8 +5270,8 @@
       "source_location": "L52",
       "_origin": "ast",
       "id": "pos_client_package_devdependencies_electron_builder",
-      "community": 6,
-      "community_name": "devDependencies",
+      "community": 110,
+      "community_name": "electron-builder",
       "norm_label": "electron-builder"
     },
     {
@@ -5259,8 +5281,8 @@
       "source_location": "L52",
       "_origin": "ast",
       "id": "pos_client_package_json_electron_builder",
-      "community": 6,
-      "community_name": "devDependencies",
+      "community": 110,
+      "community_name": "electron-builder",
       "norm_label": "electron-builder"
     },
     {
@@ -5358,8 +5380,8 @@
       "source_location": "L57",
       "_origin": "ast",
       "id": "pos_client_package_devdependencies_tailwindcss",
-      "community": 6,
-      "community_name": "devDependencies",
+      "community": 111,
+      "community_name": "tailwindcss",
       "norm_label": "tailwindcss"
     },
     {
@@ -5369,8 +5391,8 @@
       "source_location": "L57",
       "_origin": "ast",
       "id": "tailwindcss",
-      "community": 6,
-      "community_name": "devDependencies",
+      "community": 111,
+      "community_name": "tailwindcss",
       "norm_label": "tailwindcss"
     },
     {
@@ -5380,8 +5402,8 @@
       "source_location": "L58",
       "_origin": "ast",
       "id": "pos_client_package_devdependencies_vite",
-      "community": 6,
-      "community_name": "devDependencies",
+      "community": 114,
+      "community_name": "vite",
       "norm_label": "vite"
     },
     {
@@ -5391,8 +5413,8 @@
       "source_location": "L58",
       "_origin": "ast",
       "id": "vite",
-      "community": 6,
-      "community_name": "devDependencies",
+      "community": 114,
+      "community_name": "vite",
       "norm_label": "vite"
     },
     {
@@ -5424,8 +5446,8 @@
       "source_location": "L60",
       "_origin": "ast",
       "id": "pos_client_package_devdependencies_vite_plugin_pwa",
-      "community": 6,
-      "community_name": "devDependencies",
+      "community": 115,
+      "community_name": "vite-plugin-pwa",
       "norm_label": "vite-plugin-pwa"
     },
     {
@@ -5435,8 +5457,8 @@
       "source_location": "L60",
       "_origin": "ast",
       "id": "vite_plugin_pwa",
-      "community": 6,
-      "community_name": "devDependencies",
+      "community": 115,
+      "community_name": "vite-plugin-pwa",
       "norm_label": "vite-plugin-pwa"
     },
     {
@@ -5446,8 +5468,8 @@
       "source_location": "L62",
       "_origin": "ast",
       "id": "pos_client_package_type",
-      "community": 2,
-      "community_name": "dependencies",
+      "community": 107,
+      "community_name": "pos-client/package.json",
       "norm_label": "type"
     },
     {
@@ -5557,7 +5579,7 @@
       "_origin": "ast",
       "id": "pos_client_src_components_confirmmodal",
       "community": 18,
-      "community_name": "AppLayout.jsx",
+      "community_name": "offlineQueue.js",
       "norm_label": "confirmmodal.jsx"
     },
     {
@@ -5568,7 +5590,7 @@
       "_origin": "ast",
       "id": "pos_client_src_components_confirmmodal_confirmmodal",
       "community": 18,
-      "community_name": "AppLayout.jsx",
+      "community_name": "offlineQueue.js",
       "norm_label": "confirmmodal()"
     },
     {
@@ -5578,8 +5600,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "pos_client_src_components_dailyconnectiongate",
-      "community": 18,
-      "community_name": "AppLayout.jsx",
+      "community": 11,
+      "community_name": "cacheSync.js",
       "norm_label": "dailyconnectiongate.jsx"
     },
     {
@@ -5589,8 +5611,8 @@
       "source_location": "L18",
       "_origin": "ast",
       "id": "pos_client_src_components_dailyconnectiongate_dailyconnectiongate",
-      "community": 18,
-      "community_name": "AppLayout.jsx",
+      "community": 11,
+      "community_name": "cacheSync.js",
       "norm_label": "dailyconnectiongate()"
     },
     {
@@ -5600,7 +5622,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "pos_client_src_components_installpwa",
-      "community": 18,
+      "community": 28,
       "community_name": "AppLayout.jsx",
       "norm_label": "installpwa.jsx"
     },
@@ -5611,7 +5633,7 @@
       "source_location": "L3",
       "_origin": "ast",
       "id": "pos_client_src_components_installpwa_installpwa",
-      "community": 18,
+      "community": 28,
       "community_name": "AppLayout.jsx",
       "norm_label": "installpwa()"
     },
@@ -5622,7 +5644,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "pos_client_src_components_notificationdrawer",
-      "community": 18,
+      "community": 28,
       "community_name": "AppLayout.jsx",
       "norm_label": "notificationdrawer.jsx"
     },
@@ -5633,7 +5655,7 @@
       "source_location": "L7",
       "_origin": "ast",
       "id": "pos_client_src_components_notificationdrawer_api",
-      "community": 18,
+      "community": 28,
       "community_name": "AppLayout.jsx",
       "norm_label": "api"
     },
@@ -5644,7 +5666,7 @@
       "source_location": "L9",
       "_origin": "ast",
       "id": "pos_client_src_components_notificationdrawer_timeago",
-      "community": 18,
+      "community": 28,
       "community_name": "AppLayout.jsx",
       "norm_label": "timeago()"
     },
@@ -5655,7 +5677,7 @@
       "source_location": "L17",
       "_origin": "ast",
       "id": "pos_client_src_components_notificationdrawer_fmt",
-      "community": 18,
+      "community": 28,
       "community_name": "AppLayout.jsx",
       "norm_label": "fmt()"
     },
@@ -5666,7 +5688,7 @@
       "source_location": "L21",
       "_origin": "ast",
       "id": "pos_client_src_components_notificationdrawer_notificationdrawer",
-      "community": 18,
+      "community": 28,
       "community_name": "AppLayout.jsx",
       "norm_label": "notificationdrawer()"
     },
@@ -5677,7 +5699,7 @@
       "source_location": "L189",
       "_origin": "ast",
       "id": "pos_client_src_components_notificationdrawer_usenotifbadge",
-      "community": 18,
+      "community": 28,
       "community_name": "AppLayout.jsx",
       "norm_label": "usenotifbadge()"
     },
@@ -5688,8 +5710,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "pos_client_src_components_offlineinvoicesdrawer",
-      "community": 18,
-      "community_name": "AppLayout.jsx",
+      "community": 85,
+      "community_name": "OfflineInvoicesDrawer.jsx",
       "norm_label": "offlineinvoicesdrawer.jsx"
     },
     {
@@ -5699,8 +5721,8 @@
       "source_location": "L4",
       "_origin": "ast",
       "id": "pos_client_src_components_offlineinvoicesdrawer_fmt",
-      "community": 18,
-      "community_name": "AppLayout.jsx",
+      "community": 85,
+      "community_name": "OfflineInvoicesDrawer.jsx",
       "norm_label": "fmt()"
     },
     {
@@ -5710,8 +5732,8 @@
       "source_location": "L8",
       "_origin": "ast",
       "id": "pos_client_src_components_offlineinvoicesdrawer_fmtdatetime",
-      "community": 18,
-      "community_name": "AppLayout.jsx",
+      "community": 85,
+      "community_name": "OfflineInvoicesDrawer.jsx",
       "norm_label": "fmtdatetime()"
     },
     {
@@ -5721,8 +5743,8 @@
       "source_location": "L14",
       "_origin": "ast",
       "id": "pos_client_src_components_offlineinvoicesdrawer_status_styles",
-      "community": 18,
-      "community_name": "AppLayout.jsx",
+      "community": 85,
+      "community_name": "OfflineInvoicesDrawer.jsx",
       "norm_label": "status_styles"
     },
     {
@@ -5732,8 +5754,8 @@
       "source_location": "L20",
       "_origin": "ast",
       "id": "pos_client_src_components_offlineinvoicesdrawer_invoiceno",
-      "community": 18,
-      "community_name": "AppLayout.jsx",
+      "community": 85,
+      "community_name": "OfflineInvoicesDrawer.jsx",
       "norm_label": "invoiceno()"
     },
     {
@@ -5743,8 +5765,8 @@
       "source_location": "L24",
       "_origin": "ast",
       "id": "pos_client_src_components_offlineinvoicesdrawer_buildprinthtml",
-      "community": 18,
-      "community_name": "AppLayout.jsx",
+      "community": 85,
+      "community_name": "OfflineInvoicesDrawer.jsx",
       "norm_label": "buildprinthtml()"
     },
     {
@@ -5754,8 +5776,8 @@
       "source_location": "L81",
       "_origin": "ast",
       "id": "pos_client_src_components_offlineinvoicesdrawer_offlineinvoicesdrawer",
-      "community": 18,
-      "community_name": "AppLayout.jsx",
+      "community": 85,
+      "community_name": "OfflineInvoicesDrawer.jsx",
       "norm_label": "offlineinvoicesdrawer()"
     },
     {
@@ -5765,7 +5787,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "pos_client_src_components_syncblocker",
-      "community": 18,
+      "community": 28,
       "community_name": "AppLayout.jsx",
       "norm_label": "syncblocker.jsx"
     },
@@ -5776,7 +5798,7 @@
       "source_location": "L4",
       "_origin": "ast",
       "id": "pos_client_src_components_syncblocker_syncblocker",
-      "community": 18,
+      "community": 28,
       "community_name": "AppLayout.jsx",
       "norm_label": "syncblocker()"
     },
@@ -5875,7 +5897,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "pos_client_src_config_runtimeconfig",
-      "community": 86,
+      "community": 19,
       "community_name": "LocaleContext.jsx",
       "norm_label": "runtimeconfig.js"
     },
@@ -5886,7 +5908,7 @@
       "source_location": "L10",
       "_origin": "ast",
       "id": "pos_client_src_config_runtimeconfig_getapiurl",
-      "community": 86,
+      "community": 19,
       "community_name": "LocaleContext.jsx",
       "norm_label": "getapiurl()"
     },
@@ -5963,7 +5985,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "pos_client_src_contexts_localecontext",
-      "community": 86,
+      "community": 19,
       "community_name": "LocaleContext.jsx",
       "norm_label": "localecontext.jsx"
     },
@@ -5974,7 +5996,7 @@
       "source_location": "L5",
       "_origin": "ast",
       "id": "pos_client_src_contexts_localecontext_locales",
-      "community": 86,
+      "community": 19,
       "community_name": "LocaleContext.jsx",
       "norm_label": "locales"
     },
@@ -5985,7 +6007,7 @@
       "source_location": "L7",
       "_origin": "ast",
       "id": "pos_client_src_contexts_localecontext_localecontext",
-      "community": 86,
+      "community": 19,
       "community_name": "LocaleContext.jsx",
       "norm_label": "localecontext"
     },
@@ -5996,7 +6018,7 @@
       "source_location": "L9",
       "_origin": "ast",
       "id": "pos_client_src_contexts_localecontext_getstoredlocale",
-      "community": 86,
+      "community": 19,
       "community_name": "LocaleContext.jsx",
       "norm_label": "getstoredlocale()"
     },
@@ -6007,7 +6029,7 @@
       "source_location": "L14",
       "_origin": "ast",
       "id": "pos_client_src_contexts_localecontext_localeprovider",
-      "community": 86,
+      "community": 19,
       "community_name": "LocaleContext.jsx",
       "norm_label": "localeprovider()"
     },
@@ -6029,8 +6051,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "pos_client_src_contexts_themecontext",
-      "community": 10,
-      "community_name": "Dashboard.jsx",
+      "community": 0,
+      "community_name": "react",
       "norm_label": "themecontext.jsx"
     },
     {
@@ -6040,8 +6062,8 @@
       "source_location": "L3",
       "_origin": "ast",
       "id": "pos_client_src_contexts_themecontext_themecontext",
-      "community": 10,
-      "community_name": "Dashboard.jsx",
+      "community": 0,
+      "community_name": "react",
       "norm_label": "themecontext"
     },
     {
@@ -6051,8 +6073,8 @@
       "source_location": "L5",
       "_origin": "ast",
       "id": "pos_client_src_contexts_themecontext_themeprovider",
-      "community": 10,
-      "community_name": "Dashboard.jsx",
+      "community": 0,
+      "community_name": "react",
       "norm_label": "themeprovider()"
     },
     {
@@ -6062,8 +6084,8 @@
       "source_location": "L33",
       "_origin": "ast",
       "id": "pos_client_src_contexts_themecontext_usetheme",
-      "community": 10,
-      "community_name": "Dashboard.jsx",
+      "community": 102,
+      "community_name": "useTheme",
       "norm_label": "usetheme()"
     },
     {
@@ -6073,8 +6095,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "pos_client_src_db_localdb",
-      "community": 18,
-      "community_name": "AppLayout.jsx",
+      "community": 11,
+      "community_name": "cacheSync.js",
       "norm_label": "localdb.js"
     },
     {
@@ -6084,8 +6106,8 @@
       "source_location": "L3",
       "_origin": "ast",
       "id": "pos_client_src_db_localdb_db",
-      "community": 18,
-      "community_name": "AppLayout.jsx",
+      "community": 11,
+      "community_name": "cacheSync.js",
       "norm_label": "db"
     },
     {
@@ -6095,7 +6117,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "pos_client_src_features_accounting_accountingapi",
-      "community": 68,
+      "community": 83,
       "community_name": "accountingApi.js",
       "norm_label": "accountingapi.js"
     },
@@ -6106,7 +6128,7 @@
       "source_location": "L3",
       "_origin": "ast",
       "id": "pos_client_src_features_accounting_accountingapi_accountingapi",
-      "community": 68,
+      "community": 83,
       "community_name": "accountingApi.js",
       "norm_label": "accountingapi"
     },
@@ -6139,7 +6161,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "pos_client_src_features_auth_authslice",
-      "community": 42,
+      "community": 86,
       "community_name": "authSlice.js",
       "norm_label": "authslice.js"
     },
@@ -6150,7 +6172,7 @@
       "source_location": "L3",
       "_origin": "ast",
       "id": "pos_client_src_features_auth_authslice_stored",
-      "community": 42,
+      "community": 86,
       "community_name": "authSlice.js",
       "norm_label": "stored"
     },
@@ -6161,7 +6183,7 @@
       "source_location": "L5",
       "_origin": "ast",
       "id": "pos_client_src_features_auth_authslice_authslice",
-      "community": 42,
+      "community": 86,
       "community_name": "authSlice.js",
       "norm_label": "authslice"
     },
@@ -6173,7 +6195,7 @@
       "_origin": "ast",
       "id": "pos_client_src_features_auth_authslice_selectcurrentuser",
       "community": 42,
-      "community_name": "authSlice.js",
+      "community_name": "selectCurrentUser",
       "norm_label": "selectcurrentuser()"
     },
     {
@@ -6183,8 +6205,8 @@
       "source_location": "L38",
       "_origin": "ast",
       "id": "pos_client_src_features_auth_authslice_selecttoken",
-      "community": 19,
-      "community_name": "selectToken",
+      "community": 86,
+      "community_name": "authSlice.js",
       "norm_label": "selecttoken()"
     },
     {
@@ -6194,7 +6216,7 @@
       "source_location": "L39",
       "_origin": "ast",
       "id": "pos_client_src_features_auth_authslice_selectsettings",
-      "community": 42,
+      "community": 86,
       "community_name": "authSlice.js",
       "norm_label": "selectsettings()"
     },
@@ -6205,8 +6227,8 @@
       "source_location": "L40",
       "_origin": "ast",
       "id": "pos_client_src_features_auth_authslice_selectrole",
-      "community": 21,
-      "community_name": "index.jsx",
+      "community": 82,
+      "community_name": "selectRole",
       "norm_label": "selectrole()"
     },
     {
@@ -6227,7 +6249,7 @@
       "source_location": "L42",
       "_origin": "ast",
       "id": "pos_client_src_features_auth_authslice_selectallfeatures",
-      "community": 42,
+      "community": 86,
       "community_name": "authSlice.js",
       "norm_label": "selectallfeatures()"
     },
@@ -6238,8 +6260,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "pos_client_src_features_categories_categoriesapi",
-      "community": 3,
-      "community_name": "baseApi.js",
+      "community": 76,
+      "community_name": "productsApi.js",
       "norm_label": "categoriesapi.js"
     },
     {
@@ -6249,8 +6271,8 @@
       "source_location": "L3",
       "_origin": "ast",
       "id": "pos_client_src_features_categories_categoriesapi_categoriesapi",
-      "community": 3,
-      "community_name": "baseApi.js",
+      "community": 76,
+      "community_name": "productsApi.js",
       "norm_label": "categoriesapi"
     },
     {
@@ -6348,8 +6370,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "pos_client_src_features_modules_modulesapi",
-      "community": 1,
-      "community_name": "Modules.jsx",
+      "community": 3,
+      "community_name": "baseApi.js",
       "norm_label": "modulesapi.js"
     },
     {
@@ -6359,8 +6381,8 @@
       "source_location": "L3",
       "_origin": "ast",
       "id": "pos_client_src_features_modules_modulesapi_modulesapi",
-      "community": 1,
-      "community_name": "Modules.jsx",
+      "community": 3,
+      "community_name": "baseApi.js",
       "norm_label": "modulesapi"
     },
     {
@@ -6370,8 +6392,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "pos_client_src_features_products_productsapi",
-      "community": 22,
-      "community_name": "useConnectivity",
+      "community": 76,
+      "community_name": "productsApi.js",
       "norm_label": "productsapi.js"
     },
     {
@@ -6381,8 +6403,8 @@
       "source_location": "L4",
       "_origin": "ast",
       "id": "pos_client_src_features_products_productsapi_productsapi",
-      "community": 22,
-      "community_name": "useConnectivity",
+      "community": 76,
+      "community_name": "productsApi.js",
       "norm_label": "productsapi"
     },
     {
@@ -6590,8 +6612,8 @@
       "source_location": "L132",
       "_origin": "ast",
       "id": "pos_client_src_hooks_useproductcache_refreshproductcache",
-      "community": 18,
-      "community_name": "AppLayout.jsx",
+      "community": 76,
+      "community_name": "productsApi.js",
       "norm_label": "refreshproductcache()"
     },
     {
@@ -6634,8 +6656,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "pos_client_src_i18n_translations",
-      "community": 7,
-      "community_name": "useLocale",
+      "community": 19,
+      "community_name": "LocaleContext.jsx",
       "norm_label": "translations.js"
     },
     {
@@ -6645,8 +6667,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "pos_client_src_i18n_translations_translations",
-      "community": 7,
-      "community_name": "useLocale",
+      "community": 19,
+      "community_name": "LocaleContext.jsx",
       "norm_label": "translations"
     },
     {
@@ -6656,7 +6678,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "pos_client_src_layouts_applayout",
-      "community": 18,
+      "community": 28,
       "community_name": "AppLayout.jsx",
       "norm_label": "applayout.jsx"
     },
@@ -6667,7 +6689,7 @@
       "source_location": "L23",
       "_origin": "ast",
       "id": "pos_client_src_layouts_applayout_settingsapi",
-      "community": 18,
+      "community": 28,
       "community_name": "AppLayout.jsx",
       "norm_label": "settingsapi"
     },
@@ -6678,7 +6700,7 @@
       "source_location": "L30",
       "_origin": "ast",
       "id": "pos_client_src_layouts_applayout_api",
-      "community": 18,
+      "community": 28,
       "community_name": "AppLayout.jsx",
       "norm_label": "api"
     },
@@ -6689,7 +6711,7 @@
       "source_location": "L32",
       "_origin": "ast",
       "id": "pos_client_src_layouts_applayout_tutorials",
-      "community": 18,
+      "community": 28,
       "community_name": "AppLayout.jsx",
       "norm_label": "tutorials"
     },
@@ -6700,7 +6722,7 @@
       "source_location": "L42",
       "_origin": "ast",
       "id": "pos_client_src_layouts_applayout_icons",
-      "community": 18,
+      "community": 28,
       "community_name": "AppLayout.jsx",
       "norm_label": "icons"
     },
@@ -6711,7 +6733,7 @@
       "source_location": "L65",
       "_origin": "ast",
       "id": "pos_client_src_layouts_applayout_page_title_keys",
-      "community": 18,
+      "community": 28,
       "community_name": "AppLayout.jsx",
       "norm_label": "page_title_keys"
     },
@@ -6722,7 +6744,7 @@
       "source_location": "L92",
       "_origin": "ast",
       "id": "pos_client_src_layouts_applayout_rolecolor",
-      "community": 18,
+      "community": 28,
       "community_name": "AppLayout.jsx",
       "norm_label": "rolecolor"
     },
@@ -6733,8 +6755,8 @@
       "source_location": "L94",
       "_origin": "ast",
       "id": "pos_client_src_layouts_applayout_applayout",
-      "community": 21,
-      "community_name": "index.jsx",
+      "community": 86,
+      "community_name": "authSlice.js",
       "norm_label": "applayout()"
     },
     {
@@ -6745,7 +6767,7 @@
       "_origin": "ast",
       "id": "pos_client_src_layouts_cashierlayout",
       "community": 86,
-      "community_name": "LocaleContext.jsx",
+      "community_name": "authSlice.js",
       "norm_label": "cashierlayout.jsx"
     },
     {
@@ -6756,7 +6778,7 @@
       "_origin": "ast",
       "id": "pos_client_src_layouts_cashierlayout_settingsapi",
       "community": 86,
-      "community_name": "LocaleContext.jsx",
+      "community_name": "authSlice.js",
       "norm_label": "settingsapi"
     },
     {
@@ -6767,7 +6789,7 @@
       "_origin": "ast",
       "id": "pos_client_src_layouts_cashierlayout_api",
       "community": 86,
-      "community_name": "LocaleContext.jsx",
+      "community_name": "authSlice.js",
       "norm_label": "api"
     },
     {
@@ -6777,8 +6799,8 @@
       "source_location": "L26",
       "_origin": "ast",
       "id": "pos_client_src_layouts_cashierlayout_cashierlayout",
-      "community": 21,
-      "community_name": "index.jsx",
+      "community": 86,
+      "community_name": "authSlice.js",
       "norm_label": "cashierlayout()"
     },
     {
@@ -6788,8 +6810,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "pos_client_src_layouts_guestlayout",
-      "community": 10,
-      "community_name": "Dashboard.jsx",
+      "community": 102,
+      "community_name": "useTheme",
       "norm_label": "guestlayout.jsx"
     },
     {
@@ -6799,8 +6821,8 @@
       "source_location": "L6",
       "_origin": "ast",
       "id": "pos_client_src_layouts_guestlayout_tutorials",
-      "community": 10,
-      "community_name": "Dashboard.jsx",
+      "community": 102,
+      "community_name": "useTheme",
       "norm_label": "tutorials"
     },
     {
@@ -6810,8 +6832,8 @@
       "source_location": "L15",
       "_origin": "ast",
       "id": "pos_client_src_layouts_guestlayout_taglines",
-      "community": 10,
-      "community_name": "Dashboard.jsx",
+      "community": 102,
+      "community_name": "useTheme",
       "norm_label": "taglines"
     },
     {
@@ -6821,8 +6843,8 @@
       "source_location": "L24",
       "_origin": "ast",
       "id": "pos_client_src_layouts_guestlayout_typewriter",
-      "community": 10,
-      "community_name": "Dashboard.jsx",
+      "community": 102,
+      "community_name": "useTheme",
       "norm_label": "typewriter()"
     },
     {
@@ -6832,8 +6854,8 @@
       "source_location": "L58",
       "_origin": "ast",
       "id": "pos_client_src_layouts_guestlayout_videomodal",
-      "community": 10,
-      "community_name": "Dashboard.jsx",
+      "community": 102,
+      "community_name": "useTheme",
       "norm_label": "videomodal()"
     },
     {
@@ -6843,8 +6865,8 @@
       "source_location": "L120",
       "_origin": "ast",
       "id": "pos_client_src_layouts_guestlayout_guestlayout",
-      "community": 10,
-      "community_name": "Dashboard.jsx",
+      "community": 102,
+      "community_name": "useTheme",
       "norm_label": "guestlayout()"
     },
     {
@@ -7096,8 +7118,8 @@
       "source_location": "L419",
       "_origin": "ast",
       "id": "pos_client_src_pages_dashboard_dashboard",
-      "community": 21,
-      "community_name": "index.jsx",
+      "community": 82,
+      "community_name": "selectRole",
       "norm_label": "dashboard()"
     },
     {
@@ -7107,8 +7129,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "pos_client_src_pages_login",
-      "community": 10,
-      "community_name": "Dashboard.jsx",
+      "community": 105,
+      "community_name": "Login.jsx",
       "norm_label": "login.jsx"
     },
     {
@@ -7118,8 +7140,8 @@
       "source_location": "L9",
       "_origin": "ast",
       "id": "pos_client_src_pages_login_api",
-      "community": 10,
-      "community_name": "Dashboard.jsx",
+      "community": 105,
+      "community_name": "Login.jsx",
       "norm_label": "api"
     },
     {
@@ -7129,8 +7151,8 @@
       "source_location": "L12",
       "_origin": "ast",
       "id": "pos_client_src_pages_login_hashcreds",
-      "community": 10,
-      "community_name": "Dashboard.jsx",
+      "community": 105,
+      "community_name": "Login.jsx",
       "norm_label": "hashcreds()"
     },
     {
@@ -7140,8 +7162,8 @@
       "source_location": "L18",
       "_origin": "ast",
       "id": "pos_client_src_pages_login_saveofflinecreds",
-      "community": 10,
-      "community_name": "Dashboard.jsx",
+      "community": 105,
+      "community_name": "Login.jsx",
       "norm_label": "saveofflinecreds()"
     },
     {
@@ -7151,8 +7173,8 @@
       "source_location": "L24",
       "_origin": "ast",
       "id": "pos_client_src_pages_login_loadofflinecreds",
-      "community": 10,
-      "community_name": "Dashboard.jsx",
+      "community": 105,
+      "community_name": "Login.jsx",
       "norm_label": "loadofflinecreds()"
     },
     {
@@ -7162,8 +7184,8 @@
       "source_location": "L28",
       "_origin": "ast",
       "id": "pos_client_src_pages_login_demo",
-      "community": 10,
-      "community_name": "Dashboard.jsx",
+      "community": 105,
+      "community_name": "Login.jsx",
       "norm_label": "demo"
     },
     {
@@ -7173,8 +7195,8 @@
       "source_location": "L55",
       "_origin": "ast",
       "id": "pos_client_src_pages_login_login",
-      "community": 10,
-      "community_name": "Dashboard.jsx",
+      "community": 105,
+      "community_name": "Login.jsx",
       "norm_label": "login()"
     },
     {
@@ -7250,8 +7272,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "pos_client_src_pages_settings",
-      "community": 28,
-      "community_name": "Settings.jsx",
+      "community": 19,
+      "community_name": "LocaleContext.jsx",
       "norm_label": "settings.jsx"
     },
     {
@@ -7261,8 +7283,8 @@
       "source_location": "L8",
       "_origin": "ast",
       "id": "pos_client_src_pages_settings_settingsapi",
-      "community": 28,
-      "community_name": "Settings.jsx",
+      "community": 19,
+      "community_name": "LocaleContext.jsx",
       "norm_label": "settingsapi"
     },
     {
@@ -7272,8 +7294,8 @@
       "source_location": "L19",
       "_origin": "ast",
       "id": "pos_client_src_pages_settings_toggle",
-      "community": 28,
-      "community_name": "Settings.jsx",
+      "community": 19,
+      "community_name": "LocaleContext.jsx",
       "norm_label": "toggle()"
     },
     {
@@ -7283,8 +7305,8 @@
       "source_location": "L28",
       "_origin": "ast",
       "id": "pos_client_src_pages_settings_card",
-      "community": 28,
-      "community_name": "Settings.jsx",
+      "community": 19,
+      "community_name": "LocaleContext.jsx",
       "norm_label": "card()"
     },
     {
@@ -7294,8 +7316,8 @@
       "source_location": "L43",
       "_origin": "ast",
       "id": "pos_client_src_pages_settings_field",
-      "community": 28,
-      "community_name": "Settings.jsx",
+      "community": 19,
+      "community_name": "LocaleContext.jsx",
       "norm_label": "field()"
     },
     {
@@ -7305,8 +7327,8 @@
       "source_location": "L54",
       "_origin": "ast",
       "id": "pos_client_src_pages_settings_sidebar_themes",
-      "community": 28,
-      "community_name": "Settings.jsx",
+      "community": 19,
+      "community_name": "LocaleContext.jsx",
       "norm_label": "sidebar_themes"
     },
     {
@@ -7316,8 +7338,8 @@
       "source_location": "L63",
       "_origin": "ast",
       "id": "pos_client_src_pages_settings_primary_colors",
-      "community": 28,
-      "community_name": "Settings.jsx",
+      "community": 19,
+      "community_name": "LocaleContext.jsx",
       "norm_label": "primary_colors"
     },
     {
@@ -7327,8 +7349,8 @@
       "source_location": "L72",
       "_origin": "ast",
       "id": "pos_client_src_pages_settings_langs",
-      "community": 28,
-      "community_name": "Settings.jsx",
+      "community": 19,
+      "community_name": "LocaleContext.jsx",
       "norm_label": "langs"
     },
     {
@@ -7338,8 +7360,8 @@
       "source_location": "L78",
       "_origin": "ast",
       "id": "pos_client_src_pages_settings_langpicker",
-      "community": 28,
-      "community_name": "Settings.jsx",
+      "community": 19,
+      "community_name": "LocaleContext.jsx",
       "norm_label": "langpicker()"
     },
     {
@@ -7349,8 +7371,8 @@
       "source_location": "L91",
       "_origin": "ast",
       "id": "pos_client_src_pages_settings_tabs",
-      "community": 28,
-      "community_name": "Settings.jsx",
+      "community": 19,
+      "community_name": "LocaleContext.jsx",
       "norm_label": "tabs"
     },
     {
@@ -7360,8 +7382,8 @@
       "source_location": "L99",
       "_origin": "ast",
       "id": "pos_client_src_pages_settings_settings",
-      "community": 28,
-      "community_name": "Settings.jsx",
+      "community": 19,
+      "community_name": "LocaleContext.jsx",
       "norm_label": "settings()"
     },
     {
@@ -7712,8 +7734,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "pos_client_src_pages_accounting_journal",
-      "community": 68,
-      "community_name": "accountingApi.js",
+      "community": 109,
+      "community_name": "Journal.jsx",
       "norm_label": "journal.jsx"
     },
     {
@@ -7723,8 +7745,8 @@
       "source_location": "L5",
       "_origin": "ast",
       "id": "pos_client_src_pages_accounting_journal_fmt",
-      "community": 68,
-      "community_name": "accountingApi.js",
+      "community": 109,
+      "community_name": "Journal.jsx",
       "norm_label": "fmt()"
     },
     {
@@ -7734,8 +7756,8 @@
       "source_location": "L6",
       "_origin": "ast",
       "id": "pos_client_src_pages_accounting_journal_fmtdate",
-      "community": 68,
-      "community_name": "accountingApi.js",
+      "community": 109,
+      "community_name": "Journal.jsx",
       "norm_label": "fmtdate()"
     },
     {
@@ -7745,8 +7767,8 @@
       "source_location": "L8",
       "_origin": "ast",
       "id": "pos_client_src_pages_accounting_journal_journal",
-      "community": 68,
-      "community_name": "accountingApi.js",
+      "community": 109,
+      "community_name": "Journal.jsx",
       "norm_label": "journal()"
     },
     {
@@ -7756,8 +7778,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "pos_client_src_pages_accounting_journalcreate",
-      "community": 60,
-      "community_name": "loading-sheets/Show.jsx",
+      "community": 108,
+      "community_name": "JournalCreate.jsx",
       "norm_label": "journalcreate.jsx"
     },
     {
@@ -7767,8 +7789,8 @@
       "source_location": "L5",
       "_origin": "ast",
       "id": "pos_client_src_pages_accounting_journalcreate_today",
-      "community": 60,
-      "community_name": "loading-sheets/Show.jsx",
+      "community": 108,
+      "community_name": "JournalCreate.jsx",
       "norm_label": "today()"
     },
     {
@@ -7778,8 +7800,8 @@
       "source_location": "L6",
       "_origin": "ast",
       "id": "pos_client_src_pages_accounting_journalcreate_tonum",
-      "community": 60,
-      "community_name": "loading-sheets/Show.jsx",
+      "community": 108,
+      "community_name": "JournalCreate.jsx",
       "norm_label": "tonum()"
     },
     {
@@ -7789,8 +7811,8 @@
       "source_location": "L8",
       "_origin": "ast",
       "id": "pos_client_src_pages_accounting_journalcreate_emptyline",
-      "community": 60,
-      "community_name": "loading-sheets/Show.jsx",
+      "community": 108,
+      "community_name": "JournalCreate.jsx",
       "norm_label": "emptyline()"
     },
     {
@@ -7800,8 +7822,8 @@
       "source_location": "L10",
       "_origin": "ast",
       "id": "pos_client_src_pages_accounting_journalcreate_journalcreate",
-      "community": 60,
-      "community_name": "loading-sheets/Show.jsx",
+      "community": 108,
+      "community_name": "JournalCreate.jsx",
       "norm_label": "journalcreate()"
     },
     {
@@ -7856,7 +7878,7 @@
       "_origin": "ast",
       "id": "pos_client_src_pages_accounting_profitloss",
       "community": 68,
-      "community_name": "accountingApi.js",
+      "community_name": "ProfitLoss.jsx",
       "norm_label": "profitloss.jsx"
     },
     {
@@ -7867,7 +7889,7 @@
       "_origin": "ast",
       "id": "pos_client_src_pages_accounting_profitloss_fmt",
       "community": 68,
-      "community_name": "accountingApi.js",
+      "community_name": "ProfitLoss.jsx",
       "norm_label": "fmt()"
     },
     {
@@ -7878,7 +7900,7 @@
       "_origin": "ast",
       "id": "pos_client_src_pages_accounting_profitloss_monthstart",
       "community": 68,
-      "community_name": "accountingApi.js",
+      "community_name": "ProfitLoss.jsx",
       "norm_label": "monthstart()"
     },
     {
@@ -7889,7 +7911,7 @@
       "_origin": "ast",
       "id": "pos_client_src_pages_accounting_profitloss_today",
       "community": 68,
-      "community_name": "accountingApi.js",
+      "community_name": "ProfitLoss.jsx",
       "norm_label": "today()"
     },
     {
@@ -7900,7 +7922,7 @@
       "_origin": "ast",
       "id": "pos_client_src_pages_accounting_profitloss_profitloss",
       "community": 68,
-      "community_name": "accountingApi.js",
+      "community_name": "ProfitLoss.jsx",
       "norm_label": "profitloss()"
     },
     {
@@ -7911,7 +7933,7 @@
       "_origin": "ast",
       "id": "pos_client_src_pages_accounting_trialbalance",
       "community": 83,
-      "community_name": "TrialBalance.jsx",
+      "community_name": "accountingApi.js",
       "norm_label": "trialbalance.jsx"
     },
     {
@@ -7922,7 +7944,7 @@
       "_origin": "ast",
       "id": "pos_client_src_pages_accounting_trialbalance_fmt",
       "community": 83,
-      "community_name": "TrialBalance.jsx",
+      "community_name": "accountingApi.js",
       "norm_label": "fmt()"
     },
     {
@@ -7933,7 +7955,7 @@
       "_origin": "ast",
       "id": "pos_client_src_pages_accounting_trialbalance_type_colors",
       "community": 83,
-      "community_name": "TrialBalance.jsx",
+      "community_name": "accountingApi.js",
       "norm_label": "type_colors"
     },
     {
@@ -7944,7 +7966,7 @@
       "_origin": "ast",
       "id": "pos_client_src_pages_accounting_trialbalance_groups",
       "community": 83,
-      "community_name": "TrialBalance.jsx",
+      "community_name": "accountingApi.js",
       "norm_label": "groups"
     },
     {
@@ -7955,7 +7977,7 @@
       "_origin": "ast",
       "id": "pos_client_src_pages_accounting_trialbalance_trialbalance",
       "community": 83,
-      "community_name": "TrialBalance.jsx",
+      "community_name": "accountingApi.js",
       "norm_label": "trialbalance()"
     },
     {
@@ -7965,8 +7987,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "pos_client_src_pages_admin_importdata",
-      "community": 21,
-      "community_name": "index.jsx",
+      "community": 76,
+      "community_name": "productsApi.js",
       "norm_label": "importdata.jsx"
     },
     {
@@ -7976,8 +7998,8 @@
       "source_location": "L5",
       "_origin": "ast",
       "id": "pos_client_src_pages_admin_importdata_parsecsv",
-      "community": 21,
-      "community_name": "index.jsx",
+      "community": 76,
+      "community_name": "productsApi.js",
       "norm_label": "parsecsv()"
     },
     {
@@ -7987,8 +8009,8 @@
       "source_location": "L16",
       "_origin": "ast",
       "id": "pos_client_src_pages_admin_importdata_importdatapage",
-      "community": 21,
-      "community_name": "index.jsx",
+      "community": 76,
+      "community_name": "productsApi.js",
       "norm_label": "importdatapage()"
     },
     {
@@ -8054,7 +8076,7 @@
       "_origin": "ast",
       "id": "pos_client_src_pages_admin_provisiontenant",
       "community": 19,
-      "community_name": "selectToken",
+      "community_name": "LocaleContext.jsx",
       "norm_label": "provisiontenant.jsx"
     },
     {
@@ -8065,7 +8087,7 @@
       "_origin": "ast",
       "id": "pos_client_src_pages_admin_provisiontenant_api",
       "community": 19,
-      "community_name": "selectToken",
+      "community_name": "LocaleContext.jsx",
       "norm_label": "api"
     },
     {
@@ -8076,7 +8098,7 @@
       "_origin": "ast",
       "id": "pos_client_src_pages_admin_provisiontenant_field",
       "community": 19,
-      "community_name": "selectToken",
+      "community_name": "LocaleContext.jsx",
       "norm_label": "field()"
     },
     {
@@ -8087,7 +8109,7 @@
       "_origin": "ast",
       "id": "pos_client_src_pages_admin_provisiontenant_tenant_fields",
       "community": 19,
-      "community_name": "selectToken",
+      "community_name": "LocaleContext.jsx",
       "norm_label": "tenant_fields"
     },
     {
@@ -8098,7 +8120,7 @@
       "_origin": "ast",
       "id": "pos_client_src_pages_admin_provisiontenant_admin_fields",
       "community": 19,
-      "community_name": "selectToken",
+      "community_name": "LocaleContext.jsx",
       "norm_label": "admin_fields"
     },
     {
@@ -8109,7 +8131,7 @@
       "_origin": "ast",
       "id": "pos_client_src_pages_admin_provisiontenant_default",
       "community": 19,
-      "community_name": "selectToken",
+      "community_name": "LocaleContext.jsx",
       "norm_label": "default"
     },
     {
@@ -8120,7 +8142,7 @@
       "_origin": "ast",
       "id": "pos_client_src_pages_admin_provisiontenant_slugify",
       "community": 19,
-      "community_name": "selectToken",
+      "community_name": "LocaleContext.jsx",
       "norm_label": "slugify()"
     },
     {
@@ -8131,7 +8153,7 @@
       "_origin": "ast",
       "id": "pos_client_src_pages_admin_provisiontenant_copybutton",
       "community": 19,
-      "community_name": "selectToken",
+      "community_name": "LocaleContext.jsx",
       "norm_label": "copybutton()"
     },
     {
@@ -8142,7 +8164,7 @@
       "_origin": "ast",
       "id": "pos_client_src_pages_admin_provisiontenant_credentialrow",
       "community": 19,
-      "community_name": "selectToken",
+      "community_name": "LocaleContext.jsx",
       "norm_label": "credentialrow()"
     },
     {
@@ -8153,7 +8175,7 @@
       "_origin": "ast",
       "id": "pos_client_src_pages_admin_provisiontenant_credentialcard",
       "community": 19,
-      "community_name": "selectToken",
+      "community_name": "LocaleContext.jsx",
       "norm_label": "credentialcard()"
     },
     {
@@ -8164,7 +8186,7 @@
       "_origin": "ast",
       "id": "pos_client_src_pages_admin_provisiontenant_edit_fields",
       "community": 19,
-      "community_name": "selectToken",
+      "community_name": "LocaleContext.jsx",
       "norm_label": "edit_fields"
     },
     {
@@ -8175,7 +8197,7 @@
       "_origin": "ast",
       "id": "pos_client_src_pages_admin_provisiontenant_tenanttable",
       "community": 19,
-      "community_name": "selectToken",
+      "community_name": "LocaleContext.jsx",
       "norm_label": "tenanttable()"
     },
     {
@@ -8186,7 +8208,7 @@
       "_origin": "ast",
       "id": "pos_client_src_pages_admin_provisiontenant_migratepanel",
       "community": 19,
-      "community_name": "selectToken",
+      "community_name": "LocaleContext.jsx",
       "norm_label": "migratepanel()"
     },
     {
@@ -8196,8 +8218,8 @@
       "source_location": "L416",
       "_origin": "ast",
       "id": "pos_client_src_pages_admin_provisiontenant_provisiontenant",
-      "community": 19,
-      "community_name": "selectToken",
+      "community": 86,
+      "community_name": "authSlice.js",
       "norm_label": "provisiontenant()"
     },
     {
@@ -8208,7 +8230,7 @@
       "_origin": "ast",
       "id": "pos_client_src_pages_categories_index",
       "community": 18,
-      "community_name": "AppLayout.jsx",
+      "community_name": "offlineQueue.js",
       "norm_label": "categories/index.jsx"
     },
     {
@@ -8219,7 +8241,7 @@
       "_origin": "ast",
       "id": "pos_client_src_pages_categories_index_empty",
       "community": 18,
-      "community_name": "AppLayout.jsx",
+      "community_name": "offlineQueue.js",
       "norm_label": "empty"
     },
     {
@@ -8230,7 +8252,7 @@
       "_origin": "ast",
       "id": "pos_client_src_pages_categories_index_categoriesindex",
       "community": 18,
-      "community_name": "AppLayout.jsx",
+      "community_name": "offlineQueue.js",
       "norm_label": "categoriesindex()"
     },
     {
@@ -8273,7 +8295,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "pos_client_src_pages_customers_credit",
-      "community": 86,
+      "community": 19,
       "community_name": "LocaleContext.jsx",
       "norm_label": "customers/credit.jsx"
     },
@@ -8284,7 +8306,7 @@
       "source_location": "L6",
       "_origin": "ast",
       "id": "pos_client_src_pages_customers_credit_api",
-      "community": 86,
+      "community": 19,
       "community_name": "LocaleContext.jsx",
       "norm_label": "api"
     },
@@ -8295,7 +8317,7 @@
       "source_location": "L8",
       "_origin": "ast",
       "id": "pos_client_src_pages_customers_credit_fmt",
-      "community": 86,
+      "community": 19,
       "community_name": "LocaleContext.jsx",
       "norm_label": "fmt()"
     },
@@ -8306,7 +8328,7 @@
       "source_location": "L9",
       "_origin": "ast",
       "id": "pos_client_src_pages_customers_credit_fmtdate",
-      "community": 86,
+      "community": 19,
       "community_name": "LocaleContext.jsx",
       "norm_label": "fmtdate()"
     },
@@ -8317,7 +8339,7 @@
       "source_location": "L11",
       "_origin": "ast",
       "id": "pos_client_src_pages_customers_credit_printpaymentreceipt",
-      "community": 86,
+      "community": 19,
       "community_name": "LocaleContext.jsx",
       "norm_label": "printpaymentreceipt()"
     },
@@ -8328,7 +8350,7 @@
       "source_location": "L73",
       "_origin": "ast",
       "id": "pos_client_src_pages_customers_credit_customercredit",
-      "community": 86,
+      "community": 19,
       "community_name": "LocaleContext.jsx",
       "norm_label": "customercredit()"
     },
@@ -8340,7 +8362,7 @@
       "_origin": "ast",
       "id": "pos_client_src_pages_customers_index",
       "community": 18,
-      "community_name": "AppLayout.jsx",
+      "community_name": "offlineQueue.js",
       "norm_label": "customers/index.jsx"
     },
     {
@@ -8351,7 +8373,7 @@
       "_origin": "ast",
       "id": "pos_client_src_pages_customers_index_empty",
       "community": 18,
-      "community_name": "AppLayout.jsx",
+      "community_name": "offlineQueue.js",
       "norm_label": "empty"
     },
     {
@@ -8362,7 +8384,7 @@
       "_origin": "ast",
       "id": "pos_client_src_pages_customers_index_customersindex",
       "community": 18,
-      "community_name": "AppLayout.jsx",
+      "community_name": "offlineQueue.js",
       "norm_label": "customersindex()"
     },
     {
@@ -8373,7 +8395,7 @@
       "_origin": "ast",
       "id": "pos_client_src_pages_customers_index_modal",
       "community": 18,
-      "community_name": "AppLayout.jsx",
+      "community_name": "offlineQueue.js",
       "norm_label": "modal()"
     },
     {
@@ -8384,7 +8406,7 @@
       "_origin": "ast",
       "id": "pos_client_src_pages_customers_index_field",
       "community": 18,
-      "community_name": "AppLayout.jsx",
+      "community_name": "offlineQueue.js",
       "norm_label": "field()"
     },
     {
@@ -8394,8 +8416,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "pos_client_src_pages_invoices_create",
-      "community": 0,
-      "community_name": "react",
+      "community": 76,
+      "community_name": "productsApi.js",
       "norm_label": "invoices/create.jsx"
     },
     {
@@ -8405,8 +8427,8 @@
       "source_location": "L6",
       "_origin": "ast",
       "id": "pos_client_src_pages_invoices_create_fmt",
-      "community": 0,
-      "community_name": "react",
+      "community": 76,
+      "community_name": "productsApi.js",
       "norm_label": "fmt()"
     },
     {
@@ -8416,8 +8438,8 @@
       "source_location": "L8",
       "_origin": "ast",
       "id": "pos_client_src_pages_invoices_create_dayendcreate",
-      "community": 0,
-      "community_name": "react",
+      "community": 76,
+      "community_name": "productsApi.js",
       "norm_label": "dayendcreate()"
     },
     {
@@ -8636,8 +8658,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "pos_client_src_pages_loading_sheets_saledetailmodal",
-      "community": 7,
-      "community_name": "useLocale",
+      "community": 19,
+      "community_name": "LocaleContext.jsx",
       "norm_label": "saledetailmodal.jsx"
     },
     {
@@ -8647,8 +8669,8 @@
       "source_location": "L8",
       "_origin": "ast",
       "id": "pos_client_src_pages_loading_sheets_saledetailmodal_api",
-      "community": 7,
-      "community_name": "useLocale",
+      "community": 19,
+      "community_name": "LocaleContext.jsx",
       "norm_label": "api"
     },
     {
@@ -8658,8 +8680,8 @@
       "source_location": "L9",
       "_origin": "ast",
       "id": "pos_client_src_pages_loading_sheets_saledetailmodal_fmt",
-      "community": 7,
-      "community_name": "useLocale",
+      "community": 19,
+      "community_name": "LocaleContext.jsx",
       "norm_label": "fmt()"
     },
     {
@@ -8669,8 +8691,8 @@
       "source_location": "L10",
       "_origin": "ast",
       "id": "pos_client_src_pages_loading_sheets_saledetailmodal_fmtdate",
-      "community": 7,
-      "community_name": "useLocale",
+      "community": 19,
+      "community_name": "LocaleContext.jsx",
       "norm_label": "fmtdate()"
     },
     {
@@ -8680,8 +8702,8 @@
       "source_location": "L11",
       "_origin": "ast",
       "id": "pos_client_src_pages_loading_sheets_saledetailmodal_fmttime",
-      "community": 7,
-      "community_name": "useLocale",
+      "community": 19,
+      "community_name": "LocaleContext.jsx",
       "norm_label": "fmttime()"
     },
     {
@@ -8691,8 +8713,8 @@
       "source_location": "L16",
       "_origin": "ast",
       "id": "pos_client_src_pages_loading_sheets_saledetailmodal_metarow",
-      "community": 7,
-      "community_name": "useLocale",
+      "community": 19,
+      "community_name": "LocaleContext.jsx",
       "norm_label": "metarow()"
     },
     {
@@ -8702,8 +8724,8 @@
       "source_location": "L26",
       "_origin": "ast",
       "id": "pos_client_src_pages_loading_sheets_saledetailmodal_saledetailmodal",
-      "community": 7,
-      "community_name": "useLocale",
+      "community": 19,
+      "community_name": "LocaleContext.jsx",
       "norm_label": "saledetailmodal()"
     },
     {
@@ -8713,8 +8735,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "pos_client_src_pages_loading_sheets_sheetdetailmodal",
-      "community": 7,
-      "community_name": "useLocale",
+      "community": 19,
+      "community_name": "LocaleContext.jsx",
       "norm_label": "sheetdetailmodal.jsx"
     },
     {
@@ -8724,8 +8746,8 @@
       "source_location": "L12",
       "_origin": "ast",
       "id": "pos_client_src_pages_loading_sheets_sheetdetailmodal_fmt",
-      "community": 7,
-      "community_name": "useLocale",
+      "community": 19,
+      "community_name": "LocaleContext.jsx",
       "norm_label": "fmt()"
     },
     {
@@ -8735,8 +8757,8 @@
       "source_location": "L16",
       "_origin": "ast",
       "id": "pos_client_src_pages_loading_sheets_sheetdetailmodal_fmtdate",
-      "community": 7,
-      "community_name": "useLocale",
+      "community": 19,
+      "community_name": "LocaleContext.jsx",
       "norm_label": "fmtdate()"
     },
     {
@@ -8746,8 +8768,8 @@
       "source_location": "L21",
       "_origin": "ast",
       "id": "pos_client_src_pages_loading_sheets_sheetdetailmodal_fmtdatetime",
-      "community": 7,
-      "community_name": "useLocale",
+      "community": 19,
+      "community_name": "LocaleContext.jsx",
       "norm_label": "fmtdatetime()"
     },
     {
@@ -8757,8 +8779,8 @@
       "source_location": "L26",
       "_origin": "ast",
       "id": "pos_client_src_pages_loading_sheets_sheetdetailmodal_printletterhead",
-      "community": 7,
-      "community_name": "useLocale",
+      "community": 19,
+      "community_name": "LocaleContext.jsx",
       "norm_label": "printletterhead()"
     },
     {
@@ -8768,8 +8790,8 @@
       "source_location": "L83",
       "_origin": "ast",
       "id": "pos_client_src_pages_loading_sheets_sheetdetailmodal_sheetdetailmodal",
-      "community": 7,
-      "community_name": "useLocale",
+      "community": 19,
+      "community_name": "LocaleContext.jsx",
       "norm_label": "sheetdetailmodal()"
     },
     {
@@ -8889,8 +8911,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "pos_client_src_pages_products_index",
-      "community": 22,
-      "community_name": "useConnectivity",
+      "community": 101,
+      "community_name": "products/Index.jsx",
       "norm_label": "products/index.jsx"
     },
     {
@@ -8900,8 +8922,8 @@
       "source_location": "L20",
       "_origin": "ast",
       "id": "pos_client_src_pages_products_index_printbarcode",
-      "community": 22,
-      "community_name": "useConnectivity",
+      "community": 101,
+      "community_name": "products/Index.jsx",
       "norm_label": "printbarcode()"
     },
     {
@@ -8911,8 +8933,8 @@
       "source_location": "L74",
       "_origin": "ast",
       "id": "pos_client_src_pages_products_index_downloadsamplecsv",
-      "community": 22,
-      "community_name": "useConnectivity",
+      "community": 101,
+      "community_name": "products/Index.jsx",
       "norm_label": "downloadsamplecsv()"
     },
     {
@@ -8922,8 +8944,8 @@
       "source_location": "L83",
       "_origin": "ast",
       "id": "pos_client_src_pages_products_index_fmtprice",
-      "community": 22,
-      "community_name": "useConnectivity",
+      "community": 101,
+      "community_name": "products/Index.jsx",
       "norm_label": "fmtprice()"
     },
     {
@@ -8933,8 +8955,8 @@
       "source_location": "L86",
       "_origin": "ast",
       "id": "pos_client_src_pages_products_index_fmtstock",
-      "community": 22,
-      "community_name": "useConnectivity",
+      "community": 101,
+      "community_name": "products/Index.jsx",
       "norm_label": "fmtstock()"
     },
     {
@@ -8944,8 +8966,8 @@
       "source_location": "L91",
       "_origin": "ast",
       "id": "pos_client_src_pages_products_index_productsindex",
-      "community": 22,
-      "community_name": "useConnectivity",
+      "community": 101,
+      "community_name": "products/Index.jsx",
       "norm_label": "productsindex()"
     },
     {
@@ -8955,8 +8977,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "pos_client_src_pages_products_intake",
-      "community": 19,
-      "community_name": "selectToken",
+      "community": 86,
+      "community_name": "authSlice.js",
       "norm_label": "intake.jsx"
     },
     {
@@ -8966,8 +8988,8 @@
       "source_location": "L10",
       "_origin": "ast",
       "id": "pos_client_src_pages_products_intake_api",
-      "community": 19,
-      "community_name": "selectToken",
+      "community": 86,
+      "community_name": "authSlice.js",
       "norm_label": "api"
     },
     {
@@ -8977,8 +8999,8 @@
       "source_location": "L12",
       "_origin": "ast",
       "id": "pos_client_src_pages_products_intake_productintake",
-      "community": 19,
-      "community_name": "selectToken",
+      "community": 86,
+      "community_name": "authSlice.js",
       "norm_label": "productintake()"
     },
     {
@@ -9043,8 +9065,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "pos_client_src_pages_purchases_index",
-      "community": 21,
-      "community_name": "index.jsx",
+      "community": 82,
+      "community_name": "selectRole",
       "norm_label": "purchases/index.jsx"
     },
     {
@@ -9054,8 +9076,8 @@
       "source_location": "L10",
       "_origin": "ast",
       "id": "pos_client_src_pages_purchases_index_purchasesindex",
-      "community": 21,
-      "community_name": "index.jsx",
+      "community": 82,
+      "community_name": "selectRole",
       "norm_label": "purchasesindex()"
     },
     {
@@ -9869,7 +9891,7 @@
       "_origin": "ast",
       "id": "pos_client_src_pages_sales_dailyreport",
       "community": 42,
-      "community_name": "authSlice.js",
+      "community_name": "selectCurrentUser",
       "norm_label": "dailyreport.jsx"
     },
     {
@@ -9880,7 +9902,7 @@
       "_origin": "ast",
       "id": "pos_client_src_pages_sales_dailyreport_api",
       "community": 42,
-      "community_name": "authSlice.js",
+      "community_name": "selectCurrentUser",
       "norm_label": "api"
     },
     {
@@ -9891,7 +9913,7 @@
       "_origin": "ast",
       "id": "pos_client_src_pages_sales_dailyreport_today",
       "community": 42,
-      "community_name": "authSlice.js",
+      "community_name": "selectCurrentUser",
       "norm_label": "today()"
     },
     {
@@ -9902,7 +9924,7 @@
       "_origin": "ast",
       "id": "pos_client_src_pages_sales_dailyreport_f",
       "community": 42,
-      "community_name": "authSlice.js",
+      "community_name": "selectCurrentUser",
       "norm_label": "f()"
     },
     {
@@ -9913,7 +9935,7 @@
       "_origin": "ast",
       "id": "pos_client_src_pages_sales_dailyreport_ft",
       "community": 42,
-      "community_name": "authSlice.js",
+      "community_name": "selectCurrentUser",
       "norm_label": "ft()"
     },
     {
@@ -9924,7 +9946,7 @@
       "_origin": "ast",
       "id": "pos_client_src_pages_sales_dailyreport_fd",
       "community": 42,
-      "community_name": "authSlice.js",
+      "community_name": "selectCurrentUser",
       "norm_label": "fd()"
     },
     {
@@ -9935,7 +9957,7 @@
       "_origin": "ast",
       "id": "pos_client_src_pages_sales_dailyreport_dailyreport",
       "community": 42,
-      "community_name": "authSlice.js",
+      "community_name": "selectCurrentUser",
       "norm_label": "dailyreport()"
     },
     {
@@ -9945,8 +9967,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "pos_client_src_pages_sales_index",
-      "community": 21,
-      "community_name": "index.jsx",
+      "community": 82,
+      "community_name": "selectRole",
       "norm_label": "sales/index.jsx"
     },
     {
@@ -9956,8 +9978,8 @@
       "source_location": "L11",
       "_origin": "ast",
       "id": "pos_client_src_pages_sales_index_salesindex",
-      "community": 21,
-      "community_name": "index.jsx",
+      "community": 82,
+      "community_name": "selectRole",
       "norm_label": "salesindex()"
     },
     {
@@ -9967,8 +9989,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "pos_client_src_pages_sales_show",
-      "community": 76,
-      "community_name": "sales/Show.jsx",
+      "community": 19,
+      "community_name": "LocaleContext.jsx",
       "norm_label": "sales/show.jsx"
     },
     {
@@ -9978,8 +10000,8 @@
       "source_location": "L11",
       "_origin": "ast",
       "id": "pos_client_src_pages_sales_show_api",
-      "community": 76,
-      "community_name": "sales/Show.jsx",
+      "community": 19,
+      "community_name": "LocaleContext.jsx",
       "norm_label": "api"
     },
     {
@@ -9989,8 +10011,8 @@
       "source_location": "L13",
       "_origin": "ast",
       "id": "pos_client_src_pages_sales_show_fmt",
-      "community": 76,
-      "community_name": "sales/Show.jsx",
+      "community": 19,
+      "community_name": "LocaleContext.jsx",
       "norm_label": "fmt()"
     },
     {
@@ -10000,8 +10022,8 @@
       "source_location": "L14",
       "_origin": "ast",
       "id": "pos_client_src_pages_sales_show_fmtdate",
-      "community": 76,
-      "community_name": "sales/Show.jsx",
+      "community": 19,
+      "community_name": "LocaleContext.jsx",
       "norm_label": "fmtdate()"
     },
     {
@@ -10011,8 +10033,8 @@
       "source_location": "L15",
       "_origin": "ast",
       "id": "pos_client_src_pages_sales_show_fmttime",
-      "community": 76,
-      "community_name": "sales/Show.jsx",
+      "community": 19,
+      "community_name": "LocaleContext.jsx",
       "norm_label": "fmttime()"
     },
     {
@@ -10022,8 +10044,8 @@
       "source_location": "L26",
       "_origin": "ast",
       "id": "pos_client_src_pages_sales_show_saleshow",
-      "community": 76,
-      "community_name": "sales/Show.jsx",
+      "community": 19,
+      "community_name": "LocaleContext.jsx",
       "norm_label": "saleshow()"
     },
     {
@@ -10033,8 +10055,8 @@
       "source_location": "L555",
       "_origin": "ast",
       "id": "pos_client_src_pages_sales_show_metarow",
-      "community": 76,
-      "community_name": "sales/Show.jsx",
+      "community": 19,
+      "community_name": "LocaleContext.jsx",
       "norm_label": "metarow()"
     },
     {
@@ -10044,8 +10066,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "pos_client_src_pages_settings_roles",
-      "community": 0,
-      "community_name": "react",
+      "community": 21,
+      "community_name": "index.jsx",
       "norm_label": "roles.jsx"
     },
     {
@@ -10055,8 +10077,8 @@
       "source_location": "L8",
       "_origin": "ast",
       "id": "pos_client_src_pages_settings_roles_group_label",
-      "community": 0,
-      "community_name": "react",
+      "community": 21,
+      "community_name": "index.jsx",
       "norm_label": "group_label"
     },
     {
@@ -10066,8 +10088,8 @@
       "source_location": "L16",
       "_origin": "ast",
       "id": "pos_client_src_pages_settings_roles_rolespage",
-      "community": 0,
-      "community_name": "react",
+      "community": 21,
+      "community_name": "index.jsx",
       "norm_label": "rolespage()"
     },
     {
@@ -10077,8 +10099,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "pos_client_src_pages_supplier_credit_index",
-      "community": 0,
-      "community_name": "react",
+      "community": 21,
+      "community_name": "index.jsx",
       "norm_label": "supplier-credit/index.jsx"
     },
     {
@@ -10088,8 +10110,8 @@
       "source_location": "L5",
       "_origin": "ast",
       "id": "pos_client_src_pages_supplier_credit_index_fmt",
-      "community": 0,
-      "community_name": "react",
+      "community": 21,
+      "community_name": "index.jsx",
       "norm_label": "fmt()"
     },
     {
@@ -10099,8 +10121,8 @@
       "source_location": "L7",
       "_origin": "ast",
       "id": "pos_client_src_pages_supplier_credit_index_suppliercreditindex",
-      "community": 0,
-      "community_name": "react",
+      "community": 21,
+      "community_name": "index.jsx",
       "norm_label": "suppliercreditindex()"
     },
     {
@@ -10110,8 +10132,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "pos_client_src_pages_suppliers_credit",
-      "community": 100,
-      "community_name": "suppliers/Credit.jsx",
+      "community": 19,
+      "community_name": "LocaleContext.jsx",
       "norm_label": "suppliers/credit.jsx"
     },
     {
@@ -10121,8 +10143,8 @@
       "source_location": "L6",
       "_origin": "ast",
       "id": "pos_client_src_pages_suppliers_credit_api",
-      "community": 100,
-      "community_name": "suppliers/Credit.jsx",
+      "community": 19,
+      "community_name": "LocaleContext.jsx",
       "norm_label": "api"
     },
     {
@@ -10132,8 +10154,8 @@
       "source_location": "L8",
       "_origin": "ast",
       "id": "pos_client_src_pages_suppliers_credit_fmt",
-      "community": 100,
-      "community_name": "suppliers/Credit.jsx",
+      "community": 19,
+      "community_name": "LocaleContext.jsx",
       "norm_label": "fmt()"
     },
     {
@@ -10143,8 +10165,8 @@
       "source_location": "L9",
       "_origin": "ast",
       "id": "pos_client_src_pages_suppliers_credit_fmtdate",
-      "community": 100,
-      "community_name": "suppliers/Credit.jsx",
+      "community": 19,
+      "community_name": "LocaleContext.jsx",
       "norm_label": "fmtdate()"
     },
     {
@@ -10154,8 +10176,8 @@
       "source_location": "L11",
       "_origin": "ast",
       "id": "pos_client_src_pages_suppliers_credit_printpaymentreceipt",
-      "community": 100,
-      "community_name": "suppliers/Credit.jsx",
+      "community": 19,
+      "community_name": "LocaleContext.jsx",
       "norm_label": "printpaymentreceipt()"
     },
     {
@@ -10165,8 +10187,8 @@
       "source_location": "L73",
       "_origin": "ast",
       "id": "pos_client_src_pages_suppliers_credit_suppliercredit",
-      "community": 100,
-      "community_name": "suppliers/Credit.jsx",
+      "community": 19,
+      "community_name": "LocaleContext.jsx",
       "norm_label": "suppliercredit()"
     },
     {
@@ -10177,7 +10199,7 @@
       "_origin": "ast",
       "id": "pos_client_src_pages_suppliers_index",
       "community": 18,
-      "community_name": "AppLayout.jsx",
+      "community_name": "offlineQueue.js",
       "norm_label": "suppliers/index.jsx"
     },
     {
@@ -10188,7 +10210,7 @@
       "_origin": "ast",
       "id": "pos_client_src_pages_suppliers_index_empty",
       "community": 18,
-      "community_name": "AppLayout.jsx",
+      "community_name": "offlineQueue.js",
       "norm_label": "empty"
     },
     {
@@ -10199,7 +10221,7 @@
       "_origin": "ast",
       "id": "pos_client_src_pages_suppliers_index_suppliersindex",
       "community": 18,
-      "community_name": "AppLayout.jsx",
+      "community_name": "offlineQueue.js",
       "norm_label": "suppliersindex()"
     },
     {
@@ -10210,7 +10232,7 @@
       "_origin": "ast",
       "id": "pos_client_src_pages_users_index",
       "community": 42,
-      "community_name": "authSlice.js",
+      "community_name": "selectCurrentUser",
       "norm_label": "users/index.jsx"
     },
     {
@@ -10221,7 +10243,7 @@
       "_origin": "ast",
       "id": "pos_client_src_pages_users_index_empty",
       "community": 42,
-      "community_name": "authSlice.js",
+      "community_name": "selectCurrentUser",
       "norm_label": "empty"
     },
     {
@@ -10232,7 +10254,7 @@
       "_origin": "ast",
       "id": "pos_client_src_pages_users_index_featuremodal",
       "community": 42,
-      "community_name": "authSlice.js",
+      "community_name": "selectCurrentUser",
       "norm_label": "featuremodal()"
     },
     {
@@ -10243,7 +10265,7 @@
       "_origin": "ast",
       "id": "pos_client_src_pages_users_index_usersindex",
       "community": 42,
-      "community_name": "authSlice.js",
+      "community_name": "selectCurrentUser",
       "norm_label": "usersindex()"
     },
     {
@@ -10275,8 +10297,8 @@
       "source_location": "L50",
       "_origin": "ast",
       "id": "pos_client_src_router_index_protectedroute",
-      "community": 19,
-      "community_name": "selectToken",
+      "community": 86,
+      "community_name": "authSlice.js",
       "norm_label": "protectedroute()"
     },
     {
@@ -10308,8 +10330,8 @@
       "source_location": "L62",
       "_origin": "ast",
       "id": "pos_client_src_router_index_rolelayout",
-      "community": 21,
-      "community_name": "index.jsx",
+      "community": 82,
+      "community_name": "selectRole",
       "norm_label": "rolelayout()"
     },
     {
@@ -10341,8 +10363,8 @@
       "source_location": "L84",
       "_origin": "ast",
       "id": "pos_client_src_router_index_adminonlyroute",
-      "community": 21,
-      "community_name": "index.jsx",
+      "community": 82,
+      "community_name": "selectRole",
       "norm_label": "adminonlyroute()"
     },
     {
@@ -10363,8 +10385,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "pos_client_src_services_cachesync",
-      "community": 18,
-      "community_name": "AppLayout.jsx",
+      "community": 11,
+      "community_name": "cacheSync.js",
       "norm_label": "cachesync.js"
     },
     {
@@ -10374,8 +10396,8 @@
       "source_location": "L12",
       "_origin": "ast",
       "id": "pos_client_src_services_cachesync_api",
-      "community": 18,
-      "community_name": "AppLayout.jsx",
+      "community": 11,
+      "community_name": "cacheSync.js",
       "norm_label": "api"
     },
     {
@@ -10385,8 +10407,8 @@
       "source_location": "L14",
       "_origin": "ast",
       "id": "pos_client_src_services_cachesync_headers",
-      "community": 18,
-      "community_name": "AppLayout.jsx",
+      "community": 11,
+      "community_name": "cacheSync.js",
       "norm_label": "headers()"
     },
     {
@@ -10396,8 +10418,8 @@
       "source_location": "L22",
       "_origin": "ast",
       "id": "pos_client_src_services_cachesync_fetchjson",
-      "community": 18,
-      "community_name": "AppLayout.jsx",
+      "community": 11,
+      "community_name": "cacheSync.js",
       "norm_label": "fetchjson()"
     },
     {
@@ -10407,8 +10429,8 @@
       "source_location": "L34",
       "_origin": "ast",
       "id": "pos_client_src_services_cachesync_syncproducts",
-      "community": 18,
-      "community_name": "AppLayout.jsx",
+      "community": 11,
+      "community_name": "cacheSync.js",
       "norm_label": "syncproducts()"
     },
     {
@@ -10418,8 +10440,8 @@
       "source_location": "L43",
       "_origin": "ast",
       "id": "pos_client_src_services_cachesync_synccustomers",
-      "community": 18,
-      "community_name": "AppLayout.jsx",
+      "community": 11,
+      "community_name": "cacheSync.js",
       "norm_label": "synccustomers()"
     },
     {
@@ -10429,8 +10451,8 @@
       "source_location": "L53",
       "_origin": "ast",
       "id": "pos_client_src_services_cachesync_syncsettings",
-      "community": 18,
-      "community_name": "AppLayout.jsx",
+      "community": 11,
+      "community_name": "cacheSync.js",
       "norm_label": "syncsettings()"
     },
     {
@@ -10440,8 +10462,8 @@
       "source_location": "L63",
       "_origin": "ast",
       "id": "pos_client_src_services_cachesync_synccategories",
-      "community": 18,
-      "community_name": "AppLayout.jsx",
+      "community": 11,
+      "community_name": "cacheSync.js",
       "norm_label": "synccategories()"
     },
     {
@@ -10451,8 +10473,8 @@
       "source_location": "L71",
       "_origin": "ast",
       "id": "pos_client_src_services_cachesync_syncsuppliers",
-      "community": 18,
-      "community_name": "AppLayout.jsx",
+      "community": 11,
+      "community_name": "cacheSync.js",
       "norm_label": "syncsuppliers()"
     },
     {
@@ -10462,8 +10484,8 @@
       "source_location": "L79",
       "_origin": "ast",
       "id": "pos_client_src_services_cachesync_syncsales",
-      "community": 18,
-      "community_name": "AppLayout.jsx",
+      "community": 11,
+      "community_name": "cacheSync.js",
       "norm_label": "syncsales()"
     },
     {
@@ -10473,8 +10495,8 @@
       "source_location": "L88",
       "_origin": "ast",
       "id": "pos_client_src_services_cachesync_syncpurchases",
-      "community": 18,
-      "community_name": "AppLayout.jsx",
+      "community": 11,
+      "community_name": "cacheSync.js",
       "norm_label": "syncpurchases()"
     },
     {
@@ -10484,8 +10506,8 @@
       "source_location": "L98",
       "_origin": "ast",
       "id": "pos_client_src_services_cachesync_syncall",
-      "community": 18,
-      "community_name": "AppLayout.jsx",
+      "community": 11,
+      "community_name": "cacheSync.js",
       "norm_label": "syncall()"
     },
     {
@@ -10495,8 +10517,8 @@
       "source_location": "L113",
       "_origin": "ast",
       "id": "pos_client_src_services_cachesync_lastsyncage",
-      "community": 18,
-      "community_name": "AppLayout.jsx",
+      "community": 11,
+      "community_name": "cacheSync.js",
       "norm_label": "lastsyncage()"
     },
     {
@@ -10506,8 +10528,8 @@
       "source_location": "L119",
       "_origin": "ast",
       "id": "pos_client_src_services_cachesync_getlocalproducts",
-      "community": 22,
-      "community_name": "useConnectivity",
+      "community": 101,
+      "community_name": "products/Index.jsx",
       "norm_label": "getlocalproducts()"
     },
     {
@@ -10517,8 +10539,8 @@
       "source_location": "L124",
       "_origin": "ast",
       "id": "pos_client_src_services_cachesync_getlocalcustomers",
-      "community": 7,
-      "community_name": "useLocale",
+      "community": 18,
+      "community_name": "offlineQueue.js",
       "norm_label": "getlocalcustomers()"
     },
     {
@@ -10528,8 +10550,8 @@
       "source_location": "L128",
       "_origin": "ast",
       "id": "pos_client_src_services_cachesync_getlocalcategories",
-      "community": 22,
-      "community_name": "useConnectivity",
+      "community": 101,
+      "community_name": "products/Index.jsx",
       "norm_label": "getlocalcategories()"
     },
     {
@@ -10540,7 +10562,7 @@
       "_origin": "ast",
       "id": "pos_client_src_services_cachesync_getlocalsuppliers",
       "community": 18,
-      "community_name": "AppLayout.jsx",
+      "community_name": "offlineQueue.js",
       "norm_label": "getlocalsuppliers()"
     },
     {
@@ -10550,8 +10572,8 @@
       "source_location": "L136",
       "_origin": "ast",
       "id": "pos_client_src_services_cachesync_getlocalsales",
-      "community": 21,
-      "community_name": "index.jsx",
+      "community": 82,
+      "community_name": "selectRole",
       "norm_label": "getlocalsales()"
     },
     {
@@ -10561,8 +10583,8 @@
       "source_location": "L140",
       "_origin": "ast",
       "id": "pos_client_src_services_cachesync_getlocalpurchases",
-      "community": 21,
-      "community_name": "index.jsx",
+      "community": 82,
+      "community_name": "selectRole",
       "norm_label": "getlocalpurchases()"
     },
     {
@@ -10572,8 +10594,8 @@
       "source_location": "L144",
       "_origin": "ast",
       "id": "pos_client_src_services_cachesync_resolveendpoint",
-      "community": 18,
-      "community_name": "AppLayout.jsx",
+      "community": 11,
+      "community_name": "cacheSync.js",
       "norm_label": "resolveendpoint()"
     },
     {
@@ -10583,8 +10605,8 @@
       "source_location": "L161",
       "_origin": "ast",
       "id": "pos_client_src_services_cachesync_syncofflinequeue",
-      "community": 18,
-      "community_name": "AppLayout.jsx",
+      "community": 11,
+      "community_name": "cacheSync.js",
       "norm_label": "syncofflinequeue()"
     },
     {
@@ -10594,7 +10616,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "pos_client_src_services_electronbridge",
-      "community": 18,
+      "community": 28,
       "community_name": "AppLayout.jsx",
       "norm_label": "electronbridge.js"
     },
@@ -10605,7 +10627,7 @@
       "source_location": "L7",
       "_origin": "ast",
       "id": "pos_client_src_services_electronbridge_iselectron",
-      "community": 18,
+      "community": 28,
       "community_name": "AppLayout.jsx",
       "norm_label": "iselectron()"
     },
@@ -10616,7 +10638,7 @@
       "source_location": "L9",
       "_origin": "ast",
       "id": "pos_client_src_services_electronbridge_electronapi",
-      "community": 18,
+      "community": 28,
       "community_name": "AppLayout.jsx",
       "norm_label": "electronapi"
     },
@@ -10628,7 +10650,7 @@
       "_origin": "ast",
       "id": "pos_client_src_services_offlinequeue",
       "community": 18,
-      "community_name": "AppLayout.jsx",
+      "community_name": "offlineQueue.js",
       "norm_label": "offlinequeue.js"
     },
     {
@@ -10638,7 +10660,7 @@
       "source_location": "L7",
       "_origin": "ast",
       "id": "pos_client_src_services_offlinequeue_offline_limit",
-      "community": 18,
+      "community": 28,
       "community_name": "AppLayout.jsx",
       "norm_label": "offline_limit"
     },
@@ -10650,7 +10672,7 @@
       "_origin": "ast",
       "id": "pos_client_src_services_offlinequeue_generateclientid",
       "community": 18,
-      "community_name": "AppLayout.jsx",
+      "community_name": "offlineQueue.js",
       "norm_label": "generateclientid()"
     },
     {
@@ -10661,7 +10683,7 @@
       "_origin": "ast",
       "id": "pos_client_src_services_offlinequeue_enqueueofflinesale",
       "community": 18,
-      "community_name": "AppLayout.jsx",
+      "community_name": "offlineQueue.js",
       "norm_label": "enqueueofflinesale()"
     },
     {
@@ -10671,8 +10693,8 @@
       "source_location": "L43",
       "_origin": "ast",
       "id": "pos_client_src_services_offlinequeue_getpendingcount",
-      "community": 18,
-      "community_name": "AppLayout.jsx",
+      "community": 7,
+      "community_name": "useLocale",
       "norm_label": "getpendingcount()"
     },
     {
@@ -10683,7 +10705,7 @@
       "_origin": "ast",
       "id": "pos_client_src_services_offlinequeue_getpendingitems",
       "community": 18,
-      "community_name": "AppLayout.jsx",
+      "community_name": "offlineQueue.js",
       "norm_label": "getpendingitems()"
     },
     {
@@ -10693,8 +10715,8 @@
       "source_location": "L55",
       "_origin": "ast",
       "id": "pos_client_src_services_offlinequeue_getallofflineitems",
-      "community": 18,
-      "community_name": "AppLayout.jsx",
+      "community": 85,
+      "community_name": "OfflineInvoicesDrawer.jsx",
       "norm_label": "getallofflineitems()"
     },
     {
@@ -10704,8 +10726,8 @@
       "source_location": "L60",
       "_origin": "ast",
       "id": "pos_client_src_services_offlinequeue_marksynced",
-      "community": 18,
-      "community_name": "AppLayout.jsx",
+      "community": 11,
+      "community_name": "cacheSync.js",
       "norm_label": "marksynced()"
     },
     {
@@ -10715,8 +10737,8 @@
       "source_location": "L68",
       "_origin": "ast",
       "id": "pos_client_src_services_offlinequeue_markfailed",
-      "community": 18,
-      "community_name": "AppLayout.jsx",
+      "community": 11,
+      "community_name": "cacheSync.js",
       "norm_label": "markfailed()"
     },
     {
@@ -10727,7 +10749,7 @@
       "_origin": "ast",
       "id": "pos_client_src_services_offlinequeue_enqueuecategorycreate",
       "community": 18,
-      "community_name": "AppLayout.jsx",
+      "community_name": "offlineQueue.js",
       "norm_label": "enqueuecategorycreate()"
     },
     {
@@ -10738,7 +10760,7 @@
       "_origin": "ast",
       "id": "pos_client_src_services_offlinequeue_enqueuecategoryedit",
       "community": 18,
-      "community_name": "AppLayout.jsx",
+      "community_name": "offlineQueue.js",
       "norm_label": "enqueuecategoryedit()"
     },
     {
@@ -10749,7 +10771,7 @@
       "_origin": "ast",
       "id": "pos_client_src_services_offlinequeue_enqueuecustomercreate",
       "community": 18,
-      "community_name": "AppLayout.jsx",
+      "community_name": "offlineQueue.js",
       "norm_label": "enqueuecustomercreate()"
     },
     {
@@ -10760,7 +10782,7 @@
       "_origin": "ast",
       "id": "pos_client_src_services_offlinequeue_enqueuecustomeredit",
       "community": 18,
-      "community_name": "AppLayout.jsx",
+      "community_name": "offlineQueue.js",
       "norm_label": "enqueuecustomeredit()"
     },
     {
@@ -10771,7 +10793,7 @@
       "_origin": "ast",
       "id": "pos_client_src_services_offlinequeue_enqueuesuppliercreate",
       "community": 18,
-      "community_name": "AppLayout.jsx",
+      "community_name": "offlineQueue.js",
       "norm_label": "enqueuesuppliercreate()"
     },
     {
@@ -10782,7 +10804,7 @@
       "_origin": "ast",
       "id": "pos_client_src_services_offlinequeue_enqueuesupplieredit",
       "community": 18,
-      "community_name": "AppLayout.jsx",
+      "community_name": "offlineQueue.js",
       "norm_label": "enqueuesupplieredit()"
     },
     {
@@ -10793,7 +10815,7 @@
       "_origin": "ast",
       "id": "pos_client_src_services_offlinequeue_edit_types",
       "community": 18,
-      "community_name": "AppLayout.jsx",
+      "community_name": "offlineQueue.js",
       "norm_label": "edit_types"
     },
     {
@@ -10804,7 +10826,7 @@
       "_origin": "ast",
       "id": "pos_client_src_services_offlinequeue_getpendingqueuebytypes",
       "community": 18,
-      "community_name": "AppLayout.jsx",
+      "community_name": "offlineQueue.js",
       "norm_label": "getpendingqueuebytypes()"
     },
     {
@@ -10814,8 +10836,8 @@
       "source_location": "L174",
       "_origin": "ast",
       "id": "pos_client_src_services_offlinequeue_clearofflinequeue",
-      "community": 18,
-      "community_name": "AppLayout.jsx",
+      "community": 85,
+      "community_name": "OfflineInvoicesDrawer.jsx",
       "norm_label": "clearofflinequeue()"
     },
     {
@@ -10826,7 +10848,7 @@
       "_origin": "ast",
       "id": "pos_client_src_services_offlinequeue_clearnonsalepending",
       "community": 18,
-      "community_name": "AppLayout.jsx",
+      "community_name": "offlineQueue.js",
       "norm_label": "clearnonsalepending()"
     },
     {
@@ -10837,7 +10859,7 @@
       "_origin": "ast",
       "id": "pos_client_src_services_offlinequeue_requeuefailed",
       "community": 18,
-      "community_name": "AppLayout.jsx",
+      "community_name": "offlineQueue.js",
       "norm_label": "requeuefailed()"
     },
     {
@@ -16380,7 +16402,7 @@
       "relation": "indirect_call",
       "confidence": "INFERRED",
       "source_file": "pos-api/src/helpers/accounting.js",
-      "source_location": "L423",
+      "source_location": "L435",
       "weight": 1.0,
       "_origin": "ast",
       "context": "collection",
@@ -16392,7 +16414,7 @@
       "relation": "indirect_call",
       "confidence": "INFERRED",
       "source_file": "pos-api/src/helpers/accounting.js",
-      "source_location": "L423",
+      "source_location": "L435",
       "weight": 1.0,
       "_origin": "ast",
       "context": "collection",
@@ -16404,7 +16426,7 @@
       "relation": "indirect_call",
       "confidence": "INFERRED",
       "source_file": "pos-api/src/helpers/accounting.js",
-      "source_location": "L423",
+      "source_location": "L435",
       "weight": 1.0,
       "_origin": "ast",
       "context": "collection",
@@ -16416,7 +16438,7 @@
       "relation": "indirect_call",
       "confidence": "INFERRED",
       "source_file": "pos-api/src/helpers/accounting.js",
-      "source_location": "L423",
+      "source_location": "L435",
       "weight": 1.0,
       "_origin": "ast",
       "context": "collection",
@@ -16428,7 +16450,7 @@
       "relation": "indirect_call",
       "confidence": "INFERRED",
       "source_file": "pos-api/src/helpers/accounting.js",
-      "source_location": "L423",
+      "source_location": "L435",
       "weight": 1.0,
       "_origin": "ast",
       "context": "collection",
@@ -16440,7 +16462,19 @@
       "relation": "indirect_call",
       "confidence": "INFERRED",
       "source_file": "pos-api/src/helpers/accounting.js",
-      "source_location": "L423",
+      "source_location": "L435",
+      "weight": 1.0,
+      "_origin": "ast",
+      "context": "collection",
+      "source": "pos_api_src_helpers_accounting",
+      "target": "pos_api_src_helpers_accounting_postpurchasevoid",
+      "confidence_score": 0.5
+    },
+    {
+      "relation": "indirect_call",
+      "confidence": "INFERRED",
+      "source_file": "pos-api/src/helpers/accounting.js",
+      "source_location": "L435",
       "weight": 1.0,
       "_origin": "ast",
       "context": "collection",
@@ -16452,7 +16486,7 @@
       "relation": "indirect_call",
       "confidence": "INFERRED",
       "source_file": "pos-api/src/helpers/accounting.js",
-      "source_location": "L423",
+      "source_location": "L435",
       "weight": 1.0,
       "_origin": "ast",
       "context": "collection",
@@ -16464,7 +16498,7 @@
       "relation": "indirect_call",
       "confidence": "INFERRED",
       "source_file": "pos-api/src/helpers/accounting.js",
-      "source_location": "L423",
+      "source_location": "L435",
       "weight": 1.0,
       "_origin": "ast",
       "context": "collection",
@@ -16476,7 +16510,7 @@
       "relation": "indirect_call",
       "confidence": "INFERRED",
       "source_file": "pos-api/src/helpers/accounting.js",
-      "source_location": "L423",
+      "source_location": "L435",
       "weight": 1.0,
       "_origin": "ast",
       "context": "collection",
@@ -16488,13 +16522,24 @@
       "relation": "indirect_call",
       "confidence": "INFERRED",
       "source_file": "pos-api/src/helpers/accounting.js",
-      "source_location": "L423",
+      "source_location": "L435",
       "weight": 1.0,
       "_origin": "ast",
       "context": "collection",
       "source": "pos_api_src_helpers_accounting",
       "target": "pos_api_src_helpers_accounting_postsupplierpayment",
       "confidence_score": 0.5
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "pos-api/src/helpers/accounting.js",
+      "source_location": "L373",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "pos_api_src_helpers_accounting",
+      "target": "pos_api_src_helpers_accounting_voidentries",
+      "confidence_score": 1.0
     },
     {
       "relation": "imports_from",
@@ -16621,7 +16666,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "pos-api/src/helpers/accounting.js",
-      "source_location": "L396",
+      "source_location": "L408",
       "weight": 1.0,
       "_origin": "ast",
       "source": "pos_api_src_helpers_accounting_postsalarypayment",
@@ -16657,10 +16702,10 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "pos-api/src/helpers/accounting.js",
-      "source_location": "L363",
+      "source_location": "L230",
       "weight": 1.0,
       "_origin": "ast",
-      "source": "pos_api_src_helpers_accounting_postsalevoid",
+      "source": "pos_api_src_helpers_accounting_postsupplierpayment",
       "target": "pos_api_src_helpers_accounting_isenabled",
       "confidence_score": 1.0
     },
@@ -16669,10 +16714,10 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "pos-api/src/helpers/accounting.js",
-      "source_location": "L230",
+      "source_location": "L375",
       "weight": 1.0,
       "_origin": "ast",
-      "source": "pos_api_src_helpers_accounting_postsupplierpayment",
+      "source": "pos_api_src_helpers_accounting_voidentries",
       "target": "pos_api_src_helpers_accounting_isenabled",
       "confidence_score": 1.0
     },
@@ -16741,7 +16786,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "pos-api/src/helpers/accounting.js",
-      "source_location": "L398",
+      "source_location": "L410",
       "weight": 1.0,
       "_origin": "ast",
       "source": "pos_api_src_helpers_accounting_postsalarypayment",
@@ -16849,7 +16894,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "pos-api/src/helpers/accounting.js",
-      "source_location": "L408",
+      "source_location": "L420",
       "weight": 1.0,
       "_origin": "ast",
       "source": "pos_api_src_helpers_accounting_postsalarypayment",
@@ -16885,10 +16930,10 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "pos-api/src/helpers/accounting.js",
-      "source_location": "L372",
+      "source_location": "L243",
       "weight": 1.0,
       "_origin": "ast",
-      "source": "pos_api_src_helpers_accounting_postsalevoid",
+      "source": "pos_api_src_helpers_accounting_postsupplierpayment",
       "target": "pos_api_src_helpers_accounting_nextref",
       "confidence_score": 1.0
     },
@@ -16897,10 +16942,10 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "pos-api/src/helpers/accounting.js",
-      "source_location": "L243",
+      "source_location": "L384",
       "weight": 1.0,
       "_origin": "ast",
-      "source": "pos_api_src_helpers_accounting_postsupplierpayment",
+      "source": "pos_api_src_helpers_accounting_voidentries",
       "target": "pos_api_src_helpers_accounting_nextref",
       "confidence_score": 1.0
     },
@@ -16969,7 +17014,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "pos-api/src/helpers/accounting.js",
-      "source_location": "L409",
+      "source_location": "L421",
       "weight": 1.0,
       "_origin": "ast",
       "source": "pos_api_src_helpers_accounting_postsalarypayment",
@@ -17005,10 +17050,10 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "pos-api/src/helpers/accounting.js",
-      "source_location": "L373",
+      "source_location": "L244",
       "weight": 1.0,
       "_origin": "ast",
-      "source": "pos_api_src_helpers_accounting_postsalevoid",
+      "source": "pos_api_src_helpers_accounting_postsupplierpayment",
       "target": "pos_api_src_helpers_accounting_createentry",
       "confidence_score": 1.0
     },
@@ -17017,10 +17062,10 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "pos-api/src/helpers/accounting.js",
-      "source_location": "L244",
+      "source_location": "L385",
       "weight": 1.0,
       "_origin": "ast",
-      "source": "pos_api_src_helpers_accounting_postsupplierpayment",
+      "source": "pos_api_src_helpers_accounting_voidentries",
       "target": "pos_api_src_helpers_accounting_createentry",
       "confidence_score": 1.0
     },
@@ -17121,6 +17166,18 @@
       "confidence_score": 1.0
     },
     {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "pos-api/src/helpers/accounting.js",
+      "source_location": "L362",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "pos_api_src_helpers_accounting_postsalevoid",
+      "target": "pos_api_src_helpers_accounting_voidentries",
+      "confidence_score": 1.0
+    },
+    {
       "relation": "imports",
       "context": "import",
       "confidence": "EXTRACTED",
@@ -17130,6 +17187,30 @@
       "_origin": "ast",
       "source": "pos_api_src_routes_sales",
       "target": "pos_api_src_helpers_accounting_postsalevoid",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "pos-api/src/helpers/accounting.js",
+      "source_location": "L370",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "pos_api_src_helpers_accounting_postpurchasevoid",
+      "target": "pos_api_src_helpers_accounting_voidentries",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "pos-api/src/routes/purchases.js",
+      "source_location": "L5",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "pos_api_src_routes_purchases",
+      "target": "pos_api_src_helpers_accounting_postpurchasevoid",
       "confidence_score": 1.0
     },
     {
@@ -18300,7 +18381,7 @@
       "weight": 1.0,
       "_origin": "ast",
       "source": "pos_api_src_routes_purchases",
-      "target": "pos_api_src_routes_purchases_postpurchase_postpurchasereturn",
+      "target": "pos_api_src_routes_purchases_postpurchase_postpurchasereturn_postpurchasevoid",
       "confidence_score": 1.0
     },
     {
@@ -23417,7 +23498,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "pos-client/src/pages/purchases/Index.jsx",
-      "source_location": "L14",
+      "source_location": "L15",
       "weight": 1.0,
       "_origin": "ast",
       "source": "pos_client_src_pages_purchases_index_purchasesindex",
@@ -24168,7 +24249,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "pos-client/src/pages/purchases/Index.jsx",
-      "source_location": "L13",
+      "source_location": "L14",
       "weight": 1.0,
       "_origin": "ast",
       "source": "pos_client_src_pages_purchases_index_purchasesindex",
@@ -31483,7 +31564,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "pos-client/src/pages/purchases/Index.jsx",
-      "source_location": "L21",
+      "source_location": "L22",
       "weight": 1.0,
       "_origin": "ast",
       "source": "pos_client_src_pages_purchases_index_purchasesindex",
@@ -35904,5 +35985,5 @@
       "source_file": ".claude/skills/graphify/SKILL.md"
     }
   ],
-  "built_at_commit": "1e6a7aa8c1f181293f64ee162b263c5a1e6fda28"
+  "built_at_commit": "c91562ad84def766032fd43fb5841f410d58aff3"
 }

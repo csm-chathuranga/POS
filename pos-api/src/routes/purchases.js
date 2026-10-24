@@ -2,7 +2,7 @@ const router = require('express').Router();
 const { Op }  = require('sequelize');
 const auth   = require('../middleware/auth');
 const role   = require('../middleware/role');
-const { postPurchase, postPurchaseReturn } = require('../helpers/accounting');
+const { postPurchase, postPurchaseReturn, postPurchaseVoid } = require('../helpers/accounting');
 
 router.get('/', auth, async (req, res) => {
   const { Purchase, PurchaseReturn, Supplier, User } = req.models;
@@ -99,46 +99,64 @@ router.get('/:id', auth, async (req, res) => {
 });
 
 router.delete('/:id', auth, role('admin', 'manager'), async (req, res) => {
-  const { Purchase, PurchaseItem, Product, StockMovement, Supplier } = req.models;
+  const { Purchase, PurchaseItem, PurchaseReturn, Product, StockMovement, Supplier } = req.models;
   const p = await Purchase.findByPk(req.params.id, {
     include: [{ model: PurchaseItem, as: 'items' }],
   });
   if (!p) return res.status(404).json({ error: 'Not found' });
 
-  for (const item of p.items) {
-    const product = await Product.findByPk(item.product_id);
-    if (product) {
-      const before = parseFloat(product.stock_qty);
-      const after  = Math.max(0, before - parseFloat(item.qty));
-      await product.update({ stock_qty: after });
-      await StockMovement.create({
-        product_id:   product.id,
-        user_id:      req.user.id,
-        type:         'out',
-        qty:          item.qty,
-        stock_before: before,
-        stock_after:  after,
-        reference:    `DEL-${p.grn_no}`,
-      });
-    }
+  // Returns already adjusted stock, totals and supplier balance; deleting would double-reverse them.
+  const returnCount = await PurchaseReturn.count({ where: { purchase_id: p.id } });
+  if (returnCount > 0) {
+    return res.status(409).json({ error: 'This purchase has returns and cannot be deleted' });
   }
 
-  // Reverse the unpaid portion from supplier payable balance
-  if (p.supplier_id) {
-    const unpaid = Math.max(0, parseFloat(p.total) - parseFloat(p.paid));
-    if (unpaid > 0) {
-      const supplier = await Supplier.findByPk(p.supplier_id);
-      if (supplier) {
-        const newBalance = Math.max(0, parseFloat(supplier.payable_balance) - unpaid);
-        await supplier.update({ payable_balance: newBalance });
+  const t = await req.db.transaction();
+  try {
+    for (const item of p.items) {
+      const product = await Product.findByPk(item.product_id, { transaction: t, lock: t.LOCK.UPDATE });
+      if (product) {
+        const before = parseFloat(product.stock_qty);
+        const after  = Math.max(0, before - parseFloat(item.qty));
+        await product.update({ stock_qty: after }, { transaction: t });
+        await StockMovement.create({
+          product_id:   product.id,
+          user_id:      req.user.id,
+          type:         'out',
+          qty:          item.qty,
+          stock_before: before,
+          stock_after:  after,
+          reference:    `DEL-${p.grn_no}`,
+        }, { transaction: t });
       }
     }
+
+    // Reverse the unpaid portion from supplier payable balance
+    if (p.supplier_id) {
+      const unpaid = Math.max(0, parseFloat(p.total) - parseFloat(p.paid));
+      if (unpaid > 0) {
+        const supplier = await Supplier.findByPk(p.supplier_id, { transaction: t, lock: t.LOCK.UPDATE });
+        if (supplier) {
+          const newBalance = Math.max(0, parseFloat(supplier.payable_balance) - unpaid);
+          await supplier.update({ payable_balance: newBalance }, { transaction: t });
+        }
+      }
+    }
+
+    await PurchaseItem.destroy({ where: { purchase_id: p.id }, transaction: t });
+    await p.destroy({ transaction: t });
+    await t.commit();
+  } catch (e) {
+    await t.rollback();
+    console.error('[purchases] delete failed:', e.message);
+    return res.status(500).json({ error: 'Failed to delete purchase' });
   }
 
-  await p.destroy();
+  // Opposite journal entry keeps the history visible (no-op if accounting is off)
+  await postPurchaseVoid(req.models, { grn_no: p.grn_no, user_id: req.user.id });
+
   res.json({ message: 'Deleted' });
 });
-
 router.post('/:id/return', auth, role('admin', 'manager'), async (req, res) => {
   const { Purchase, PurchaseItem, PurchaseReturn, Product, StockMovement, Supplier } = req.models;
   const purchase = await Purchase.findByPk(req.params.id, {

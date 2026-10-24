@@ -283,7 +283,11 @@ export default function ProductsIndex() {
         {/* Category */}
         <select
           value={catId}
-          onChange={e => { setCatId(e.target.value); }}
+          onChange={e => {
+            setCatId(e.target.value);
+            setApplied(a => ({ ...a, category_id: e.target.value }));
+            setPage(1);
+          }}
           className="rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500 bg-white max-w-48"
         >
           <option value="">{t('lbl.all')} {t('prod.category')}</option>

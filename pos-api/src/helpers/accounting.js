@@ -359,11 +359,23 @@ async function postMarkPaid(models, { invoice_no, amount, user_id }) {
  * "credit settled" receipts) by posting opposite entries; originals stay visible.
  */
 async function postSaleVoid(models, { invoice_no, user_id }) {
+  return voidEntries(models, {
+    descriptions: [`Sale ${invoice_no}`, `Credit settled ${invoice_no}`],
+    label: invoice_no, user_id,
+  });
+}
+
+/** Reverse the journal entry posted for a deleted purchase (GRN). */
+async function postPurchaseVoid(models, { grn_no, user_id }) {
+  return voidEntries(models, { descriptions: [`Purchase ${grn_no}`], label: grn_no, user_id });
+}
+
+async function voidEntries(models, { descriptions, label: invoice_no, user_id }) {
   try {
     if (!await isEnabled(models)) return;
     const { JournalEntry, JournalLine } = models;
     const entries = await JournalEntry.findAll({
-      where: { description: { [Op.in]: [`Sale ${invoice_no}`, `Credit settled ${invoice_no}`] } },
+      where: { description: { [Op.in]: descriptions } },
     });
     const date = new Date().toISOString().slice(0, 10);
     for (const orig of entries) {
@@ -382,7 +394,7 @@ async function postSaleVoid(models, { invoice_no, user_id }) {
       });
     }
   } catch (e) {
-    console.error('[accounting] postSaleVoid error:', e.message);
+    console.error('[accounting] void error:', e.message);
   }
 }
 
@@ -420,4 +432,4 @@ async function postSalaryPayment(models, { ref_no: sourceRef, amount, employee_n
   }
 }
 
-module.exports = { postSale, postPurchase, postCreditSettle, postCreditAdjustment, postSupplierPayment, postSaleReturn, postPurchaseReturn, postMarkPaid, postSaleVoid, postSalaryPayment };
+module.exports = { postSale, postPurchase, postCreditSettle, postCreditAdjustment, postSupplierPayment, postSaleReturn, postPurchaseReturn, postMarkPaid, postSaleVoid, postPurchaseVoid, postSalaryPayment };

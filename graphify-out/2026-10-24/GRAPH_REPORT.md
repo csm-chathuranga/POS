@@ -1,12 +1,12 @@
 # Graph Report - POS  (2026-10-24)
 
 ## Corpus Check
-- 173 files · ~206,883 words
+- 173 files · ~207,250 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 1088 nodes · 2030 edges · 113 communities (73 shown, 40 thin omitted)
-- Extraction: 96% EXTRACTED · 4% INFERRED · 0% AMBIGUOUS · INFERRED: 78 edges (avg confidence: 0.75)
+- 1089 nodes · 2037 edges · 101 communities (68 shown, 33 thin omitted)
+- Extraction: 96% EXTRACTED · 4% INFERRED · 0% AMBIGUOUS · INFERRED: 79 edges (avg confidence: 0.75)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
@@ -15,8 +15,8 @@
 - Run `graphify update .` after code changes (no API cost).
 
 ## Community Hubs (Navigation)
-- AppLayout.jsx
-- SaleDetailModal.jsx
+- react
+- Modules.jsx
 - dependencies
 - baseApi.js
 - dependencies
@@ -26,18 +26,17 @@
 - ChartOfAccounts.jsx
 - tenant.js
 - Dashboard.jsx
-- build
 - middleware/auth.js
 - role.js
 - products.js
 - .oxlintrc.json
-- selectToken
+- useProductCache.js
 - Icons SVG Sprite Sheet
-- react
-- ProvisionTenant.jsx
+- AppLayout.jsx
+- selectToken
 - add-supplier-credit.js
 - index.jsx
-- productsApi.js
+- useConnectivity
 - Electron Packaged App 404 Router Bug Fix
 - customers.js
 - LMUC POS
@@ -97,14 +96,13 @@
   useGetReportDailySalesQuery,
 }
 - add-product-batches.js
-- scripts
 - seed-hardware.js
 - seed-lover.js
 - purchases/Show.jsx
 - accountingApi.js
 - migrate-accounting.js
 - purchases/Create.jsx
-- Create2.jsx
+- Create3.jsx
 - invoices/Index.jsx
 - migrate-loading-sheets.js
 - migrate-purchase-returns.js
@@ -115,11 +113,9 @@
 - loading-sheets.js
 - purchases.js
 - employees.js
-- JournalCreate.jsx
 - TrialBalance.jsx
 - loading-sheets/Index.jsx
-- pos-client/package.json
-- customers/Credit.jsx
+- LocaleContext.jsx
 - {
   useGetAccountsQuery,
   useCreateAccountMutation,
@@ -228,17 +224,9 @@
 }
 - suppliers/Credit.jsx
 - reports.js
-- ProfitLoss.jsx
 - invoices/Show.jsx
 - JournalShow.jsx
 - index.js
-- electron-builder
-- tailwindcss
-- @types/react
-- @types/react-dom
-- vite
-- vite-plugin-pwa
-- @vitejs/plugin-react
 
 ## God Nodes (most connected - your core abstractions)
 1. `useLocale()` - 58 edges
@@ -261,8 +249,8 @@
   CLAUDE.md → .claude/skills/graphify/SKILL.md
 - `Native CLAUDE.md Graphify Integration` --conceptually_related_to--> `Project Graphify Knowledge Graph Config`  [INFERRED]
   .claude/skills/graphify/references/hooks.md → CLAUDE.md
-- `NotificationDrawer()` --indirect_call--> `selectToken()`  [INFERRED]
-  pos-client/src/components/NotificationDrawer.jsx → pos-client/src/features/auth/authSlice.js
+- `DailyConnectionGate()` --indirect_call--> `selectToken()`  [INFERRED]
+  pos-client/src/components/DailyConnectionGate.jsx → pos-client/src/features/auth/authSlice.js
 
 ## Import Cycles
 - None detected.
@@ -273,23 +261,23 @@
 - **Graphify Query Interface (BFS, DFS, Path, Explain)** — _claude_skills_graphify_references_query_bfs_traversal, _claude_skills_graphify_references_query_dfs_traversal, _claude_skills_graphify_references_query_path_query, _claude_skills_graphify_references_query_explain_node [EXTRACTED 1.00]
 - **Graphify Auto-Update System (hook, watch, incremental)** — _claude_skills_graphify_references_hooks_git_commit_hook, _claude_skills_graphify_references_add_watch_watch_mode, _claude_skills_graphify_references_update_incremental_update [INFERRED 0.85]
 
-## Communities (113 total, 40 thin omitted)
+## Communities (101 total, 33 thin omitted)
 
-### Community 0 - "AppLayout.jsx"
-Cohesion: 0.11
-Nodes (25): InstallPWA(), API, fmt(), NotificationDrawer(), timeAgo(), useNotifBadge(), buildPrintHtml(), fmt() (+17 more)
+### Community 0 - "react"
+Cohesion: 0.14
+Nodes (9): UpdateBanner(), DayEndCreate(), fmt(), GROUP_LABEL, RolesPage(), fmt(), SupplierCreditIndex(), router (+1 more)
 
-### Community 1 - "SaleDetailModal.jsx"
-Cohesion: 0.23
-Nodes (11): translations, API, fmt(), fmtDate(), fmtTime(), SaleDetailModal(), fmt(), fmtDate() (+3 more)
+### Community 1 - "Modules.jsx"
+Cohesion: 0.29
+Nodes (3): modulesApi, MODULE_ICONS, ModulesPage()
 
 ### Community 2 - "dependencies"
-Cohesion: 0.11
-Nodes (19): axios, dexie, jsbarcode, dependencies, axios, dexie, jsbarcode, react (+11 more)
+Cohesion: 0.04
+Nodes (46): axios, dexie, jsbarcode, build, appId, directories, files, nsis (+38 more)
 
 ### Community 3 - "baseApi.js"
 Cohesion: 0.13
-Nodes (12): api, baseQueryWithAuth(), rawBaseQuery, authApi, customersApi, employeesApi, extensionsApi, loadingSheetsApi (+4 more)
+Nodes (12): api, baseQueryWithAuth(), rawBaseQuery, authApi, categoriesApi, customersApi, employeesApi, extensionsApi (+4 more)
 
 ### Community 4 - "dependencies"
 Cohesion: 0.06
@@ -300,12 +288,12 @@ Cohesion: 0.09
 Nodes (27): Graphify Skill Trigger Rule, Add URL Command, Watch Mode Auto-Rebuild, MCP Server for Agent Graph Access, Wiki Export (agent-crawlable index), Confidence Scoring Rubric (EXTRACTED/INFERRED/AMBIGUOUS), Extraction Subagent Prompt Template, Node ID Format Convention (full-path stem) (+19 more)
 
 ### Community 6 - "devDependencies"
-Cohesion: 0.12
-Nodes (17): autoprefixer, cross-env, jimp, oxlint, devDependencies, autoprefixer, cross-env, electron (+9 more)
+Cohesion: 0.06
+Nodes (31): autoprefixer, cross-env, jimp, oxlint, devDependencies, autoprefixer, cross-env, electron (+23 more)
 
 ### Community 7 - "useLocale"
-Cohesion: 0.10
-Nodes (34): useLocale(), CreditCustomers(), DayEnd(), fmt(), fmtDate(), fmtQty(), isCoop, LowStock() (+26 more)
+Cohesion: 0.06
+Nodes (59): useLocale(), translations, API, fmt(), fmtDate(), fmtTime(), SaleDetailModal(), fmt() (+51 more)
 
 ### Community 8 - "ChartOfAccounts.jsx"
 Cohesion: 0.11
@@ -318,10 +306,6 @@ Nodes (17): app, cors, express, tenant, connectionCache, createConnection(), evi
 ### Community 10 - "Dashboard.jsx"
 Cohesion: 0.06
 Nodes (32): ThemeContext, ThemeProvider(), useTheme(), GuestLayout(), TAGLINES, TUTORIALS, BAR_COLORS, dashboardApi (+24 more)
-
-### Community 11 - "build"
-Cohesion: 0.14
-Nodes (14): build, appId, directories, files, nsis, productName, win, output (+6 more)
 
 ### Community 12 - "middleware/auth.js"
 Cohesion: 0.11
@@ -339,33 +323,33 @@ Nodes (6): auth, cache, NodeCache, { Op }, role, router
 Cohesion: 0.25
 Nodes (7): plugins, rules, react/only-export-components, react/rules-of-hooks, $schema, oxc, warn
 
-### Community 16 - "selectToken"
-Cohesion: 0.20
-Nodes (11): DailyConnectionGate(), getApiUrl(), selectToken(), clearProductCache(), API, CashierLayout(), settingsApi, ProvisionTenant() (+3 more)
+### Community 16 - "useProductCache.js"
+Cohesion: 0.31
+Nodes (7): store, salesApi, allApi, clearProductCache(), deductStockFromCache(), loadFromStorage(), restoreStockToCache()
 
 ### Community 17 - "Icons SVG Sprite Sheet"
 Cohesion: 0.29
 Nodes (7): Bluesky Social Icon, Discord Social Icon, Documentation Icon, GitHub Icon, Social / User Profile Icon, Icons SVG Sprite Sheet, X (Twitter) Social Icon
 
-### Community 18 - "react"
+### Community 18 - "AppLayout.jsx"
 Cohesion: 0.05
-Nodes (65): store, ConfirmModal(), API, ProductForm(), UNITS, SyncBlocker(), UpdateBanner(), API (+57 more)
+Nodes (61): ConfirmModal(), DailyConnectionGate(), InstallPWA(), API, fmt(), NotificationDrawer(), timeAgo(), useNotifBadge() (+53 more)
 
-### Community 19 - "ProvisionTenant.jsx"
-Cohesion: 0.15
-Nodes (5): ADMIN_FIELDS, API, DEFAULT, EDIT_FIELDS, TENANT_FIELDS
+### Community 19 - "selectToken"
+Cohesion: 0.12
+Nodes (10): selectToken(), ADMIN_FIELDS, API, DEFAULT, EDIT_FIELDS, ProvisionTenant(), TENANT_FIELDS, API (+2 more)
 
 ### Community 20 - "add-supplier-credit.js"
 Cohesion: 0.07
 Nodes (33): columnExists(), fail(), FEATURE, info(), isDry, main(), migrateTenant(), ok() (+25 more)
 
 ### Community 21 - "index.jsx"
-Cohesion: 0.13
-Nodes (16): selectFeatures(), selectRole(), MODULE_ICONS, ModulesPage(), CreditIndex(), fmt(), Dashboard(), GROUP_LABEL (+8 more)
+Cohesion: 0.15
+Nodes (17): selectFeatures(), selectRole(), AppLayout(), CashierLayout(), ImportDataPage(), CreditIndex(), fmt(), Dashboard() (+9 more)
 
-### Community 22 - "productsApi.js"
-Cohesion: 0.29
-Nodes (3): categoriesApi, productsApi, ImportDataPage()
+### Community 22 - "useConnectivity"
+Cohesion: 0.14
+Nodes (16): API, ProductForm(), UNITS, API, ConnectivityContext, ConnectivityProvider(), pingServer(), useConnectivity() (+8 more)
 
 ### Community 24 - "customers.js"
 Cohesion: 0.33
@@ -388,16 +372,16 @@ Cohesion: 0.22
 Nodes (6): LANGS, PRIMARY_COLORS, Settings(), settingsApi, SIDEBAR_THEMES, TABS
 
 ### Community 34 - "helpers/accounting.js"
-Cohesion: 0.42
-Nodes (15): byCode(), createEntry(), isEnabled(), nextRef(), { Op }, PAYMENT_METHOD_ACCOUNT, postCreditAdjustment(), postCreditSettle() (+7 more)
+Cohesion: 0.40
+Nodes (16): byCode(), createEntry(), isEnabled(), nextRef(), { Op }, PAYMENT_METHOD_ACCOUNT, postCreditAdjustment(), postCreditSettle() (+8 more)
 
 ### Community 41 - "electron/package.json"
 Cohesion: 0.11
 Nodes (18): author, dependencies, electron-updater, description, devDependencies, electron, electron-builder, electron (+10 more)
 
 ### Community 42 - "authSlice.js"
-Cohesion: 0.20
-Nodes (12): authSlice, selectCurrentUser(), stored, API, DailyReport(), f(), fd(), ft() (+4 more)
+Cohesion: 0.18
+Nodes (13): authSlice, selectAllFeatures(), selectCurrentUser(), stored, API, DailyReport(), f(), fd() (+5 more)
 
 ### Community 43 - "add-tenant.js"
 Cohesion: 0.21
@@ -432,16 +416,12 @@ Cohesion: 0.27
 Nodes (9): ACCOUNTS, { getMasterDb }, getModels, info(), ok(), resolveTenantConfig(), run(), { Sequelize } (+1 more)
 
 ### Community 60 - "loading-sheets/Show.jsx"
-Cohesion: 0.60
-Nodes (5): fmt(), fmtDate(), fmtDateTime(), LoadingSheetShow(), PrintLetterhead()
+Cohesion: 0.29
+Nodes (9): emptyLine(), JournalCreate(), today(), toNum(), fmt(), fmtDate(), fmtDateTime(), LoadingSheetShow() (+1 more)
 
 ### Community 63 - "add-product-batches.js"
 Cohesion: 0.36
 Nodes (9): fail(), info(), isDry, main(), migrateTenant(), ok(), { Sequelize }, skip() (+1 more)
-
-### Community 64 - "scripts"
-Cohesion: 0.25
-Nodes (8): scripts, build, build:electron, dev, dev:electron, dist, lint, preview
 
 ### Community 65 - "seed-hardware.js"
 Cohesion: 0.29
@@ -456,8 +436,8 @@ Cohesion: 0.48
 Nodes (5): fmt(), fmtDate(), fmtNum(), PurchaseShow(), statusBadge()
 
 ### Community 68 - "accountingApi.js"
-Cohesion: 0.47
-Nodes (4): accountingApi, fmt(), fmtDate(), Journal()
+Cohesion: 0.27
+Nodes (8): accountingApi, fmt(), fmtDate(), Journal(), fmt(), monthStart(), ProfitLoss(), today()
 
 ### Community 69 - "migrate-accounting.js"
 Cohesion: 0.39
@@ -467,9 +447,9 @@ Nodes (8): fail(), { getMasterDb }, getModels, head(), migrateTenant(), ok(), ru
 Cohesion: 0.25
 Nodes (5): purchasesApi, suppliersApi, PurchaseCreate(), searchApi, today()
 
-### Community 71 - "Create2.jsx"
-Cohesion: 0.10
-Nodes (28): salesApi, allApi, deductStockFromCache(), loadFromStorage(), restoreStockToCache(), useProductCache(), DayEndCreate(), fmt() (+20 more)
+### Community 71 - "Create3.jsx"
+Cohesion: 0.33
+Nodes (8): useProductCache(), DARK, fmt(), getPrice(), LIGHT, posApi, recalc(), SalesCreate3()
 
 ### Community 72 - "invoices/Index.jsx"
 Cohesion: 0.31
@@ -511,10 +491,6 @@ Nodes (5): auth, { Op }, { postPurchase, postPurchaseReturn }, role, router
 Cohesion: 0.40
 Nodes (4): auth, { postSalaryPayment }, role, router
 
-### Community 82 - "JournalCreate.jsx"
-Cohesion: 0.70
-Nodes (4): emptyLine(), JournalCreate(), today(), toNum()
-
 ### Community 83 - "TrialBalance.jsx"
 Cohesion: 0.50
 Nodes (4): fmt(), GROUPS, TrialBalance(), TYPE_COLORS
@@ -523,13 +499,9 @@ Nodes (4): fmt(), GROUPS, TrialBalance(), TYPE_COLORS
 Cohesion: 0.60
 Nodes (4): CreateModal(), fmt(), fmtDate(), LoadingSheetsIndex()
 
-### Community 85 - "pos-client/package.json"
-Cohesion: 0.33
-Nodes (5): main, name, private, type, version
-
-### Community 86 - "customers/Credit.jsx"
-Cohesion: 0.60
-Nodes (5): API, CustomerCredit(), fmt(), fmtDate(), printPaymentReceipt()
+### Community 86 - "LocaleContext.jsx"
+Cohesion: 0.23
+Nodes (12): getApiUrl(), getStoredLocale(), LocaleContext, LocaleProvider(), LOCALES, API, settingsApi, API (+4 more)
 
 ### Community 100 - "suppliers/Credit.jsx"
 Cohesion: 0.60
@@ -538,10 +510,6 @@ Nodes (5): API, fmt(), fmtDate(), printPaymentReceipt(), SupplierCredit()
 ### Community 101 - "reports.js"
 Cohesion: 0.40
 Nodes (3): auth, { Op }, router
-
-### Community 102 - "ProfitLoss.jsx"
-Cohesion: 0.70
-Nodes (4): fmt(), monthStart(), ProfitLoss(), today()
 
 ### Community 103 - "invoices/Show.jsx"
 Cohesion: 0.60
@@ -554,22 +522,22 @@ Nodes (3): fmt(), fmtDate(), JournalShow()
 ## Knowledge Gaps
 - **400 isolated node(s):** `{ app, BrowserWindow, ipcMain, globalShortcut, dialog, nativeImage }`, `path`, `fs`, `DEFAULT_CONFIG`, `{ app, BrowserWindow, ipcMain, globalShortcut, dialog, nativeImage }` (+395 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **40 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **33 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `f()` connect `authSlice.js` to `add-supplier-credit.js`, `index.jsx`?**
+- **Why does `f()` connect `authSlice.js` to `react`, `add-supplier-credit.js`, `index.jsx`?**
   _High betweenness centrality (0.252) - this node is a cross-community bridge._
 - **Why does `main()` connect `add-supplier-credit.js` to `authSlice.js`?**
   _High betweenness centrality (0.137) - this node is a cross-community bridge._
 - **Why does `ensureFeatures()` connect `add-supplier-credit.js` to `authSlice.js`?**
-  _High betweenness centrality (0.115) - this node is a cross-community bridge._
+  _High betweenness centrality (0.116) - this node is a cross-community bridge._
 - **Are the 15 inferred relationships involving `selectRole()` (e.g. with `AppLayout()` and `CashierLayout()`) actually correct?**
   _`selectRole()` has 15 INFERRED edges - model-reasoned connections that need verification._
 - **What connects `{ app, BrowserWindow, ipcMain, globalShortcut, dialog, nativeImage }`, `path`, `fs` to the rest of the system?**
   _400 weakly-connected nodes found - possible documentation gaps or missing edges._
-- **Should `AppLayout.jsx` be split into smaller, more focused modules?**
-  _Cohesion score 0.1053763440860215 - nodes in this community are weakly interconnected._
+- **Should `react` be split into smaller, more focused modules?**
+  _Cohesion score 0.13725490196078433 - nodes in this community are weakly interconnected._
 - **Should `dependencies` be split into smaller, more focused modules?**
-  _Cohesion score 0.10526315789473684 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.0425531914893617 - nodes in this community are weakly interconnected._

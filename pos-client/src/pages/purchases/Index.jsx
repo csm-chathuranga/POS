@@ -9,6 +9,7 @@ import { getLocalPurchases } from '../../services/cacheSync';
 
 export default function PurchasesIndex() {
   const role = useSelector(selectRole);
+  const canManage = ['admin', 'manager', 'custom'].includes(String(role || '').toLowerCase());
   const navigate = useNavigate();
   const { t } = useLocale();
   const { isOnline } = useConnectivity();
@@ -115,7 +116,7 @@ export default function PurchasesIndex() {
                 <p className="text-xs text-slate-400">{t('th.paid')}: {fmt(p.paid)}</p>
               </div>
             </div>
-            {(role === 'admin' || role === 'manager') && isOnline && (
+            {canManage && isOnline && (
               <div className="pt-2 border-t border-slate-50 flex justify-end gap-2">
                 <button onClick={e => { e.preventDefault(); e.stopPropagation(); navigate(`/purchases/${p.id}?print=1`); }}
                   className="text-xs text-slate-500 hover:text-slate-700 font-medium px-2 py-0.5 hover:bg-slate-100 rounded transition-colors flex items-center gap-1">
@@ -155,7 +156,7 @@ export default function PurchasesIndex() {
                 <th className="px-4 py-3 text-right font-semibold">{t('th.total')}</th>
                 <th className="px-4 py-3 text-right font-semibold">{t('th.paid')}</th>
                 <th className="px-4 py-3 text-center font-semibold">{t('th.status')}</th>
-                {(role === 'admin' || role === 'manager') && <th className="px-4 py-3 text-right font-semibold">{t('th.actions')}</th>}
+                {canManage && <th className="px-4 py-3 text-right font-semibold">{t('th.actions')}</th>}
               </tr>
             </thead>
             <tbody>
@@ -179,7 +180,7 @@ export default function PurchasesIndex() {
                       )}
                     </div>
                   </td>
-                  {(role === 'admin' || role === 'manager') && isOnline && (
+                  {canManage && isOnline && (
                     <td className="px-4 py-3 text-right">
                       <div className="inline-flex items-center gap-1.5">
                         <button onClick={() => navigate(`/purchases/${p.id}?print=1`)}
@@ -197,7 +198,7 @@ export default function PurchasesIndex() {
                 </tr>
               ))}
               {!rows.length && (
-                <tr><td colSpan={(role === 'admin' || role === 'manager') && isOnline ? 8 : 7} className="px-4 py-8 text-center text-slate-400">{t('pur.no_purchases')}</td></tr>
+                <tr><td colSpan={canManage && isOnline ? 8 : 7} className="px-4 py-8 text-center text-slate-400">{t('pur.no_purchases')}</td></tr>
               )}
             </tbody>
           </table></div>
