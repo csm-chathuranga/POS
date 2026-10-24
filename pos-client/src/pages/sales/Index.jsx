@@ -6,10 +6,11 @@ import { selectRole } from '../../features/auth/authSlice';
 import { useLocale } from '../../contexts/LocaleContext';
 import { useConnectivity } from '../../contexts/ConnectivityContext';
 import { getLocalSales } from '../../services/cacheSync';
+import ConfirmModal from '../../components/ConfirmModal';
 
 export default function SalesIndex() {
   const role = useSelector(selectRole);
-  const canDelete = role === 'admin';
+  const canDelete = ['admin', 'custom'].includes(String(role).trim().toLowerCase());
   const navigate = useNavigate();
   const { isOnline } = useConnectivity();
   const [offlineSales, setOfflineSales] = useState([]);
@@ -52,6 +53,7 @@ export default function SalesIndex() {
 
   const { data, isLoading } = useGetSalesQuery({ ...applied, page }, { skip: !isOnline });
   const [deleteSale] = useDeleteSaleMutation();
+  const [confirmDelete, setConfirmDelete] = useState(null);
 
   const rows = isOnline ? (data?.data || []) : offlineSales.filter(s => {
     if (applied.search && !s.invoice_no?.toLowerCase().includes(applied.search.toLowerCase())) return false;
@@ -71,8 +73,13 @@ export default function SalesIndex() {
     if (search.length === 0 || search.length >= 3) { setApplied({ search, date }); setPage(1); }
   }
 
-  async function handleDelete(id, inv) {
-    if (!window.confirm(`Delete sale ${inv}?`)) return;
+  function handleDelete(id, inv) {
+    setConfirmDelete({ id, inv });
+  }
+
+  async function confirmDeleteAction() {
+    const { id } = confirmDelete;
+    setConfirmDelete(null);
     await deleteSale(id);
   }
 
@@ -263,6 +270,14 @@ export default function SalesIndex() {
           </div>
         )}
       </div>
+
+      {confirmDelete && (
+        <ConfirmModal
+          message={`Delete sale ${confirmDelete.inv}?`}
+          onConfirm={confirmDeleteAction}
+          onCancel={() => setConfirmDelete(null)}
+        />
+      )}
     </div>
   );
 }

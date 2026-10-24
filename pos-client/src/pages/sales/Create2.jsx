@@ -1552,7 +1552,11 @@ export default function SalesCreate() {
                   {payMethod === 'cash' ? (
                     <input ref={cashInputRef} type="text" inputMode="numeric"
                       value={cashFocused ? cashPaid : (cashPaid ? Number(cashPaid).toLocaleString('en-LK',{minimumFractionDigits:0,maximumFractionDigits:2}) : '')}
-                      onChange={e => { setCashPaid(e.target.value.replace(/,/g,'')); setShakeInput(false); }}
+                      onChange={e => {
+                        setCashPaid(e.target.value.replace(/,/g, ''));
+                        setErr(currentErr => currentErr === 'Cash paid is less than total' ? '' : currentErr);
+                        setShakeInput(false);
+                      }}
                       onFocus={e => { setCashFocused(true); setTimeout(() => e.target.select(), 0); }}
                       onBlur={() => setCashFocused(false)}
                       onKeyDown={e => { if (e.key==='Enter' && !submitting) handleCompleteSale(false, true); }}

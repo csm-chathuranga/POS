@@ -1,8 +1,7 @@
 const router = require('express').Router();
 const { Op, fn, col, literal } = require('sequelize');
 const auth   = require('../middleware/auth');
-const role   = require('../middleware/role');
-const { postSale, postSaleReturn, postMarkPaid } = require('../helpers/accounting');
+const { postSale, postSaleReturn, postMarkPaid, postSaleVoid } = require('../helpers/accounting');
 
 function nextInvoiceNo(sequelize) {
   const d = new Date();
@@ -212,38 +211,81 @@ router.get('/:id', auth, async (req, res) => {
 });
 
 // DELETE /api/sales/:id  — restores stock for every item before destroying
-router.delete('/:id', auth, role('admin', 'manager'), async (req, res) => {
-  const { Sale, SaleItem, Product, ProductBatch, StockMovement } = req.models;
+router.delete('/:id', auth, (req, res, next) => {
+  const userRole = String(req.user?.role || '').trim().toLowerCase();
+  if (userRole === 'admin' || userRole === 'custom') return next();
+  return res.status(403).json({ error: 'Forbidden' });
+}, async (req, res) => {
+  const {
+    Sale, SaleItem, Payment, Customer, SaleReturn, LoadingSheetItem,
+    Product, ProductBatch, StockMovement,
+  } = req.models;
   const sale = await Sale.findByPk(req.params.id, {
-    include: [{ model: SaleItem, as: 'items' }],
+    include: [
+      { model: SaleItem, as: 'items' },
+      { model: Payment,  as: 'payments' },
+    ],
   });
   if (!sale) return res.status(404).json({ error: 'Not found' });
 
-  for (const item of sale.items || []) {
-    const product = await Product.findByPk(item.product_id);
-    if (!product) continue;
-
-    const before = parseFloat(product.stock_qty);
-    const after  = before + parseFloat(item.qty);
-    await product.update({ stock_qty: after });
-
-    // Return qty to the most-recently-received batch
-    const latestBatch = await ProductBatch.findOne({
-      where: { product_id: product.id },
-      order: [['received_at', 'DESC'], ['id', 'DESC']],
-    });
-    if (latestBatch) {
-      await latestBatch.update({ qty: parseFloat(latestBatch.qty) + parseFloat(item.qty) });
-    }
-
-    await StockMovement.create({
-      product_id: product.id, user_id: req.user.id, type: 'void',
-      qty: item.qty, stock_before: before, stock_after: after,
-      reference: sale.invoice_no,
-    });
+  const returnCount = await SaleReturn.count({ where: { sale_id: sale.id } });
+  if (returnCount > 0) {
+    return res.status(409).json({ error: 'This sale has returns recorded and cannot be deleted' });
   }
 
-  await sale.destroy();
+  const t = await req.db.transaction();
+  try {
+    for (const item of sale.items || []) {
+      const product = await Product.findByPk(item.product_id, { transaction: t });
+      if (!product) continue;
+
+      const before = parseFloat(product.stock_qty);
+      const after  = before + parseFloat(item.qty);
+      await product.update({ stock_qty: after }, { transaction: t });
+
+      // Return qty to the most-recently-received batch
+      const latestBatch = await ProductBatch.findOne({
+        where: { product_id: product.id },
+        order: [['received_at', 'DESC'], ['id', 'DESC']],
+        transaction: t,
+      });
+      if (latestBatch) {
+        await latestBatch.update({ qty: parseFloat(latestBatch.qty) + parseFloat(item.qty) }, { transaction: t });
+      }
+
+      await StockMovement.create({
+        product_id: product.id, user_id: req.user.id, type: 'return',
+        qty: item.qty, stock_before: before, stock_after: after,
+        reference: sale.invoice_no,
+      }, { transaction: t });
+    }
+
+    // Remove the still-unpaid credit portion from the customer's balance
+    const hasCredit = (sale.payments || []).some(p => p.method === 'credit');
+    const outstanding = parseFloat(sale.balance || 0);
+    if (hasCredit && sale.customer_id && outstanding > 0) {
+      const customer = await Customer.findByPk(sale.customer_id, { transaction: t });
+      if (customer) {
+        await customer.update(
+          { credit_balance: Math.max(0, parseFloat(customer.credit_balance) - outstanding) },
+          { transaction: t }
+        );
+      }
+    }
+
+    await Payment.destroy({ where: { sale_id: sale.id }, transaction: t });
+    await SaleItem.destroy({ where: { sale_id: sale.id }, transaction: t });
+    await LoadingSheetItem.destroy({ where: { sale_id: sale.id }, transaction: t });
+    await sale.destroy({ transaction: t });
+    await t.commit();
+  } catch (e) {
+    await t.rollback();
+    return res.status(500).json({ error: e.message });
+  }
+
+  // Post opposite journal entries (no-op if accounting is disabled)
+  await postSaleVoid(req.models, { invoice_no: sale.invoice_no, user_id: req.user.id });
+
   res.json({ message: 'Deleted' });
 });
 
