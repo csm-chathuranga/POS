@@ -341,7 +341,7 @@ function Receipt({ sale, settings, user, onClose }) {
       overflow-wrap: break-word;
     }
     body { padding: 5mm 4mm; }
-    .logo { width:56px; height:56px; object-fit:contain; margin:0 auto 6px; display:block; border-radius:50%; }
+    .logo { width:96px; height:96px; object-fit:contain; margin:0 auto 6px; display:block; border-radius:50%; }
     .shop-name { font-size:16px; font-weight:900; text-align:center; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:3px; word-break:break-word; }
     .shop-meta { font-size:12px; font-weight:900; text-align:center; line-height:1.6; word-break:break-word; }
     .divider { border:none; border-top:2px solid #000; margin:8px 0; }
