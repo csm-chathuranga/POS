@@ -50,7 +50,7 @@ function printBarcode(product, qty = 1, shopName = '') {
     ${shopName ? `<p class="shop">${shopName.replace(/</g,'&lt;')}</p>` : ''}
     ${svgHtml}
     <p class="name">${(product.name_si || product.name).replace(/</g,'&lt;')}</p>
-    ${product.our_price
+    ${product.our_price && Number(product.our_price) !== Number(product.selling_price || 0)
       ? `<p class="orig">Rs. ${Number(product.selling_price||0).toFixed(2)}</p>
          <p class="price">Rs. ${Number(product.our_price).toFixed(2)}</p>`
       : `<p class="price">Rs. ${Number(product.selling_price||0).toFixed(2)}</p>`
