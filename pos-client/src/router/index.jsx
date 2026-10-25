@@ -39,6 +39,8 @@ import ModulesPage      from '../pages/admin/Modules';
 import ChartOfAccounts      from '../pages/accounting/ChartOfAccounts';
 import LoadingSheetsIndex   from '../pages/loading-sheets/Index';
 import LoadingSheetShow     from '../pages/loading-sheets/Show';
+import CoopCityIndex        from '../pages/coop-city/Index';
+import PayrollIndex         from '../pages/payroll/Index';
 import JournalCreate    from '../pages/accounting/JournalCreate';
 import JournalShow      from '../pages/accounting/JournalShow';
 import Settings         from '../pages/Settings';
@@ -163,6 +165,18 @@ export const router = createAppRouter([
               children: [
                 { path: 'loading-sheets',     element: <LoadingSheetsIndex /> },
                 { path: 'loading-sheets/:id', element: <LoadingSheetShow /> },
+              ],
+            },
+            {
+              element: <FeatureRoute feature="coop_city" />,
+              children: [
+                { path: 'coop-city', element: <CoopCityIndex /> },
+              ],
+            },
+            {
+              element: <FeatureRoute feature="payroll" />,
+              children: [
+                { path: 'payroll', element: <PayrollIndex /> },
               ],
             },
           ],

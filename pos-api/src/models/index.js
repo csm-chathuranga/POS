@@ -289,6 +289,46 @@ function getModels(sequelize) {
     sale_id:  { type: DataTypes.BIGINT.UNSIGNED, allowNull: false },
   }, { tableName: 'loading_sheet_items', underscored: true, updatedAt: false });
 
+  const CoopStore = sequelize.define('CoopStore', {
+    id:     { type: DataTypes.BIGINT.UNSIGNED, primaryKey: true, autoIncrement: true },
+    name:   { type: DataTypes.STRING(191), allowNull: false },
+    active: { type: DataTypes.BOOLEAN, defaultValue: true },
+  }, { tableName: 'coop_stores', underscored: true });
+
+  const CoopStockTransfer = sequelize.define('CoopStockTransfer', {
+    id:             { type: DataTypes.BIGINT.UNSIGNED, primaryKey: true, autoIncrement: true },
+    transfer_no:    { type: DataTypes.STRING(50), allowNull: false, unique: true },
+    date:           { type: DataTypes.DATEONLY, allowNull: false },
+    from_store_id:  { type: DataTypes.BIGINT.UNSIGNED, allowNull: false },
+    to_store_id:    { type: DataTypes.BIGINT.UNSIGNED, allowNull: false },
+    total_cost:     { type: DataTypes.DECIMAL(12, 2), defaultValue: 0 },
+    total_selling:  { type: DataTypes.DECIMAL(12, 2), defaultValue: 0 },
+    remarks:        { type: DataTypes.TEXT, allowNull: true },
+    prepared_by:    { type: DataTypes.STRING(191), allowNull: true },
+    checked_by:     { type: DataTypes.STRING(191), allowNull: true },
+    issued_by:      { type: DataTypes.STRING(191), allowNull: true },
+    received_by:    { type: DataTypes.STRING(191), allowNull: true },
+    created_by:     { type: DataTypes.BIGINT.UNSIGNED, allowNull: true },
+  }, { tableName: 'coop_stock_transfers', underscored: true });
+
+  const CoopStockTransferItem = sequelize.define('CoopStockTransferItem', {
+    id:            { type: DataTypes.BIGINT.UNSIGNED, primaryKey: true, autoIncrement: true },
+    transfer_id:   { type: DataTypes.BIGINT.UNSIGNED, allowNull: false },
+    product_id:    { type: DataTypes.BIGINT.UNSIGNED, allowNull: false },
+    product_name:  { type: DataTypes.STRING(191), allowNull: false },
+    qty:           { type: DataTypes.DECIMAL(10, 3), allowNull: false },
+    cost_price:    { type: DataTypes.DECIMAL(10, 2), defaultValue: 0 },
+    selling_price: { type: DataTypes.DECIMAL(10, 2), defaultValue: 0 },
+    cost_total:    { type: DataTypes.DECIMAL(12, 2), defaultValue: 0 },
+    selling_total: { type: DataTypes.DECIMAL(12, 2), defaultValue: 0 },
+  }, { tableName: 'coop_stock_transfer_items', underscored: true, updatedAt: false });
+
+  CoopStockTransfer.hasMany(CoopStockTransferItem, { foreignKey: 'transfer_id', as: 'items' });
+  CoopStockTransferItem.belongsTo(CoopStockTransfer, { foreignKey: 'transfer_id', as: 'transfer' });
+  CoopStockTransfer.belongsTo(CoopStore, { foreignKey: 'from_store_id', as: 'fromStore' });
+  CoopStockTransfer.belongsTo(CoopStore, { foreignKey: 'to_store_id', as: 'toStore' });
+  CoopStockTransfer.belongsTo(User, { foreignKey: 'created_by', as: 'createdBy' });
+
   // ── Associations ────────────────────────────────────────────────────────────
   User.belongsToMany(Role, { through: 'user_role', foreignKey: 'user_id', otherKey: 'role_id', timestamps: false });
   Role.belongsToMany(User, { through: 'user_role', foreignKey: 'role_id', otherKey: 'user_id', timestamps: false });
@@ -311,6 +351,7 @@ function getModels(sequelize) {
   Purchase.belongsTo(Supplier, { foreignKey: 'supplier_id', as: 'supplier' });
   Purchase.belongsTo(User, { foreignKey: 'user_id', as: 'user' });
   Purchase.hasMany(PurchaseItem, { foreignKey: 'purchase_id', as: 'items' });
+  PurchaseItem.belongsTo(Product, { foreignKey: 'product_id', as: 'product' });
   Purchase.hasMany(PurchaseReturn, { foreignKey: 'purchase_id', as: 'returns' });
 
   Supplier.hasMany(SupplierPayment, { foreignKey: 'supplier_id', as: 'payments' });
@@ -356,6 +397,7 @@ function getModels(sequelize) {
     Account, JournalEntry, JournalLine,
     Employee, SalaryPayment,
     LoadingSheet, LoadingSheetItem,
+    CoopStore, CoopStockTransfer, CoopStockTransferItem,
   };
 }
 

@@ -86,6 +86,8 @@ const PAGE_TITLE_KEYS = {
   '/accounting':                'Accounting',
   '/accounting/journal/create': 'New Journal Entry',
   '/loading-sheets':            'Loading Sheets',
+  '/coop-city':                 'Coop City',
+  '/payroll':                   'Payroll',
   '/reports':          'page.reports',
 };
 

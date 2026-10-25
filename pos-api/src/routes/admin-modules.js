@@ -30,6 +30,22 @@ router.patch('/:key/toggle', auth, role('admin'), async (req, res) => {
   const current  = await Setting.findOne({ where: { key: settingKey } });
   const newValue = current?.value !== 'true';
 
+  if (newValue && mod.requires) {
+    const dep = await Setting.findOne({ where: { key: `module.${mod.requires}.enabled` } });
+    if (dep?.value !== 'true') return res.status(400).json({ error: `Enable the ${mod.requires} module first` });
+  }
+  if (!newValue) {
+    const dependents = MODULES.filter(m => m.requires === mod.key);
+    for (const d of dependents) {
+      const s = await Setting.findOne({ where: { key: `module.${d.key}.enabled` } });
+      if (s?.value === 'true') return res.status(400).json({ error: `Disable the ${d.label} module first` });
+    }
+  }
+
+  if (newValue && mod.key === 'coop_city') {
+    await require('../lib/coopCity').ensureCoopTables(req.db);
+  }
+
   await Setting.upsert({ key: settingKey, value: String(newValue) });
 
   if (mod.insertsFeature) {

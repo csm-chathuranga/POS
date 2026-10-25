@@ -22,7 +22,7 @@ async function baseQueryWithAuth(args, api, extraOptions) {
 export const api = createApi({
   reducerPath: 'api',
   baseQuery: baseQueryWithAuth,
-  tagTypes: ['Products', 'Sales', 'Customers', 'Purchases', 'Suppliers', 'Categories', 'Users', 'UserFeatures', 'Settings', 'Dashboard', 'Features', 'Modules', 'Accounting', 'AccountingReports', 'Employees', 'LoadingSheets'],
+  tagTypes: ['Products', 'Sales', 'Customers', 'Purchases', 'Suppliers', 'Categories', 'Users', 'UserFeatures', 'Settings', 'Dashboard', 'Features', 'Modules', 'Accounting', 'AccountingReports', 'Employees', 'LoadingSheets', 'CoopStores', 'CoopTransfers'],
   keepUnusedDataFor: 300,
   endpoints: () => ({}),
 });

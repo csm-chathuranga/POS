@@ -35,6 +35,37 @@ const MODULES = [
       offline_ok: false,
     },
   },
+  {
+    key: 'coop_city',
+    label: 'Coop City',
+    description: 'Co-op stock transfers between stores (F18 form)',
+    insertsFeature: true,
+    feature: {
+      key: 'coop_city',
+      label: 'Coop City',
+      path: '/coop-city',
+      group: 'finance',
+      sort_order: 30,
+      icon: 'truck',
+      offline_ok: false,
+    },
+  },
+  {
+    key: 'payroll',
+    label: 'Payroll',
+    description: 'Employees and salary payments (requires Accounting)',
+    requires: 'accounting',
+    insertsFeature: true,
+    feature: {
+      key: 'payroll',
+      label: 'Payroll',
+      path: '/payroll',
+      group: 'finance',
+      sort_order: 40,
+      icon: 'users',
+      offline_ok: false,
+    },
+  },
 ];
 
 module.exports = MODULES;

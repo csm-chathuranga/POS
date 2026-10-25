@@ -3,6 +3,18 @@ const auth   = require('../middleware/auth');
 const role   = require('../middleware/role');
 const { postSalaryPayment } = require('../helpers/accounting');
 
+async function requireModules(req, res, next) {
+  const rows = await req.models.Setting.findAll({
+    where: { key: ['module.payroll.enabled', 'module.accounting.enabled'] },
+  });
+  const on = k => rows.find(r => r.key === k)?.value === 'true';
+  if (!on('module.payroll.enabled')) return res.status(403).json({ error: 'Payroll module is not enabled' });
+  if (!on('module.accounting.enabled')) return res.status(403).json({ error: 'Payroll requires the Accounting module' });
+  next();
+}
+
+router.use(auth, (req, res, next) => requireModules(req, res, next).catch(next));
+
 router.get('/', auth, async (req, res) => {
   const { Employee } = req.models;
   res.json(await Employee.findAll({ where: { active: true }, order: [['name', 'ASC']] }));

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { useLocale } from '../../contexts/LocaleContext';
 import {
   useGetReportTodayQuery,
@@ -161,6 +161,87 @@ function SalesToday() {
     } catch { setPrinting(false); }
   }
 
+  function handlePrintF9B() {
+    if (!data || printing) return;
+    setPrinting(true);
+    const split = v => {
+      const c = Math.round((Number(v) || 0) * 100);
+      return [Math.floor(c / 100).toLocaleString('en-LK'), String(c % 100).padStart(2, '0')];
+    };
+    const money = v => { const [r, c] = split(v); return `<td class="r">${r}</td><td class="r c">${c}</td>`; };
+    const blank2 = '<td></td><td class="c"></td>';
+    const methods = byPayment.length ? byPayment : [];
+    const total = Number(summary.total_revenue) || 0;
+    const bal   = Number(summary.total_balance) || 0;
+    const mHead = methods.map(m => `<th colspan="2">${methodLabel(m.method, locale)}</th>`).join('');
+    const mCells = methods.map(m => money(m.total)).join('');
+    const mBlank = methods.map(() => blank2).join('');
+    const MIN = 8;
+    const saleRows = sales.map((s, i) => `<tr><td class="m">${i + 1}</td><td class="l">${s.invoice_no}</td><td class="l">${s.user_name || ''}</td>${money(s.total)}${money(s.paid)}${money(s.balance)}</tr>`).join('');
+    const filler = Array.from({ length: Math.max(MIN - sales.length, 0) }).map(() => `<tr>${'<td>&nbsp;</td>'.repeat(3)}${blank2.repeat(3)}</tr>`).join('');
+
+    const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>F9B – ${fmtDate(date)}</title>
+<style>
+  @page { size: A4 landscape; margin: 8mm; }
+  * { box-sizing: border-box; }
+  body { font-family:'Iskoola Pota','Noto Sans Sinhala','Segoe UI',Arial,sans-serif; font-size:10px; color:#000; margin:0; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+  .top { display:flex; justify-content:space-between; align-items:flex-start; }
+  .ttl { text-align:center; flex:1; } .ttl b { font-size:14px; } .ttl div { font-size:10px; }
+  .f { font-size:16px; font-weight:700; min-width:100px; text-align:right; }
+  .meta { display:flex; justify-content:space-between; margin:5px 0; font-size:11px; }
+  table { width:100%; border-collapse:collapse; margin-bottom:10px; }
+  th, td { border:1px solid #000; padding:1px 4px; height:17px; }
+  th { background:#d9d9d9; font-size:9px; font-weight:600; height:auto; }
+  td.l { text-align:left; } td.r { text-align:right; } td.c { width:34px; text-align:right; } td.m { text-align:center; width:30px; }
+  tr { page-break-inside:avoid; } .tot td { font-weight:700; }
+  .sec { font-weight:700; margin:4px 0; }
+  .foot { display:flex; gap:24px; margin-top:8px; } .foot > div { flex:1; } .line { margin-top:12px; }
+</style></head><body>
+  <div class="top">
+    <div style="min-width:100px">No. ..........</div>
+    <div class="ttl"><b>සිල්ලර ගබඩාවේ දෛනික මුදල් වෙළඳාම් වාර්තාව</b><div>Retail Store Daily Cash Transaction Report</div></div>
+    <div class="f">F 9B</div>
+  </div>
+  <div class="meta"><div>දිනය / Date: <b>${fmtDate(date)}</b></div><div>මුද්‍රණය / Printed: ${new Date().toLocaleString('en-LK')}</div></div>
+
+  <table>
+    <thead><tr><th style="width:22%">විස්තරය<br>Description</th>${mHead}<th colspan="2">ණය වෙළඳාම<br>Credit</th><th colspan="2">එකතුව<br>Total</th></tr>
+    <tr><th></th>${'<th>රු.</th><th>ශත</th>'.repeat(methods.length + 2)}</tr></thead>
+    <tbody>
+      <tr><td class="l">දිනට මුදල තැන්පත් ණය<br>Today's sales</td>${mCells}${money(bal)}${money(total + bal)}</tr>
+      <tr><td class="l">පෙර දිනට මුදල තැන්පත් ණය<br>Previous days</td>${mBlank}${blank2}${blank2}</tr>
+      <tr class="tot"><td class="l">අදට දිනට තැන්පත් ණය<br>Cumulative</td>${mBlank}${blank2}${blank2}</tr>
+    </tbody>
+  </table>
+
+  <div class="sec">ලැබීම් / Receipts – Sales (${sales.length})</div>
+  <table>
+    <thead><tr><th>#</th><th style="width:20%">බිල්පත් අංකය<br>Invoice</th><th style="width:20%">අයකැමි<br>Cashier</th><th colspan="2">එකතුව<br>Total</th><th colspan="2">ගෙවූ<br>Paid</th><th colspan="2">ශේෂය<br>Balance</th></tr>
+    <tr><th></th><th></th><th></th>${'<th>රු.</th><th>ශත</th>'.repeat(3)}</tr></thead>
+    <tbody>${saleRows}${filler}
+      <tr class="tot"><td colspan="3" class="r">මුළු එකතුව / Total (${summary.total_bills ?? 0} bills)</td>${money(total + bal)}${money(total)}${money(bal)}</tr>
+    </tbody>
+  </table>
+
+  <div>අද දින මෙම ගබඩාවට ලැබුණු සම්පූර්ණ මුදල මා විසින් නිසියාකාරව මෙහි ඇතුළත් කර ඇති බවත්, එය සනාථ කිරීමට අංක ඉදිරිපත් කරන බවත් සහතික කරමි.<br>I certify that all money received today has been properly recorded.</div>
+  <div class="foot">
+    <div><div>මුදල් / Cash: රු. ........................</div><div class="line">චෙක්පත් / Cheques: රු. ........................</div></div>
+    <div><div>මුදල් අනුමති / Vouchers: රු. ........................</div><div class="line">අත ඉතිරිය / Cash in hand: රු. ........................</div></div>
+    <div><div>මුදල් භාරකරුගේ අත්සන / Cashier Signature: ..................</div><div class="line">දිනය / Date: ..................</div></div>
+  </div>
+</body></html>`;
+
+    try {
+      if (window.electronAPI?.printReceiptHtml) {
+        window.electronAPI.printReceiptHtml(html, { paperSize: 'A4', landscape: true }).finally(() => setPrinting(false));
+      } else {
+        const win = window.open('', '_blank', 'width=1100,height=800,scrollbars=yes');
+        if (win) { win.document.write(html); win.document.close(); win.onload = () => { win.print(); setPrinting(false); }; }
+        else setPrinting(false);
+      }
+    } catch { setPrinting(false); }
+  }
+
   return (
     <div className="space-y-4">
       {/* Date picker + Print */}
@@ -177,8 +258,15 @@ function SalesToday() {
           <span className="text-xs text-slate-400">{fmtDate(date)}</span>
         )}
         {!isLoading && data && (
+          <button onClick={handlePrintF9B} disabled={printing}
+            className="ml-auto flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-60 rounded-lg transition-colors">
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+            A4 Print
+          </button>
+        )}
+        {!isLoading && data && (
           <button onClick={handlePrint} disabled={printing}
-            className="ml-auto flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-slate-700 hover:bg-slate-800 disabled:opacity-60 rounded-lg transition-colors">
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-slate-700 hover:bg-slate-800 disabled:opacity-60 rounded-lg transition-colors">
             {printing
               ? <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
               : <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>

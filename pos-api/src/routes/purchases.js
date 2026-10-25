@@ -86,10 +86,10 @@ router.post('/', auth, role('admin', 'manager'), async (req, res) => {
 });
 
 router.get('/:id', auth, async (req, res) => {
-  const { Purchase, PurchaseItem, Supplier, User } = req.models;
+  const { Purchase, PurchaseItem, Product, Supplier, User } = req.models;
   const purchase = await Purchase.findByPk(req.params.id, {
     include: [
-      { model: PurchaseItem, as: 'items' },
+      { model: PurchaseItem, as: 'items', include: [{ model: Product, as: 'product', attributes: ['id', 'selling_price'] }] },
       { model: Supplier,     as: 'supplier', attributes: ['id', 'name'] },
       { model: User,         as: 'user',     attributes: ['id', 'name'] },
     ],

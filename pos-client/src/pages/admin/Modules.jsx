@@ -27,6 +27,8 @@ const MODULE_ICONS = {
   sms:           IconSms,
   accounting:    IconAccounting,
   loading_sheet: IconLoadingSheet,
+  coop_city:     IconLoadingSheet,
+  payroll:       IconAccounting,
 };
 
 function Toggle({ enabled, loading, onChange }) {
