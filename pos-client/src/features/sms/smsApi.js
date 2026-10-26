@@ -21,6 +21,20 @@ export const smsApi = api.injectEndpoints({
       query: (page = 1) => `/sms/logs?page=${page}`,
       providesTags: ['SmsLogs'],
     }),
+    getCustomersWithPhone: builder.query({
+      query: () => '/sms/customers-with-phone',
+    }),
+    sendBulkSms: builder.mutation({
+      query: (body) => ({ url: '/sms/bulk', method: 'POST', body }),
+      invalidatesTags: ['SmsLogs'],
+    }),
+    getAccountStatus: builder.query({
+      query: () => '/sms/account-status',
+      keepUnusedDataFor: 60,
+    }),
+    reloadCredit: builder.mutation({
+      query: (body) => ({ url: '/sms/reload-credit', method: 'POST', body }),
+    }),
   }),
 });
 
@@ -30,4 +44,8 @@ export const {
   useTestSmsMutation,
   useSendSmsReceiptMutation,
   useGetSmsLogsQuery,
+  useGetCustomersWithPhoneQuery,
+  useSendBulkSmsMutation,
+  useGetAccountStatusQuery,
+  useReloadCreditMutation,
 } = smsApi;

@@ -1,9 +1,11 @@
 const https = require('https');
 const http  = require('http');
 
-// SMSlenz API — POST https://smslenz.lk/api/send-sms
-// Fields: user_id, api_key, sender_id, contact, message
-const SMSGENZ_URL = 'https://smslenz.lk/api/send-sms';
+// SMSlenz API endpoints
+const SMSGENZ_URL           = 'https://smslenz.lk/api/send-sms';
+const SMSGENZ_BULK_URL      = 'https://smslenz.lk/api/send-bulk-sms';
+const SMSGENZ_STATUS_URL    = 'https://smslenz.lk/api/account-status';
+const SMSGENZ_RELOAD_URL    = 'https://smslenz.lk/api/reload-credit';
 
 function interpolate(template, vars) {
   return template.replace(/\{(\w+)\}/g, (_, k) => vars[k] ?? '');
@@ -126,4 +128,71 @@ async function fireSmsReceipt(models, db, sale, customerId) {
   } catch { /* silent */ }
 }
 
-module.exports = { ensureSmsTables, getConfig, sendSms, fireSmsReceipt, interpolate };
+// Sends the same SMS to multiple numbers via bulk API.
+// contacts: string[] of phone numbers
+// Returns { ok, campaignId, creditBalance, error }
+async function sendBulkSms(cfg, contacts, message) {
+  try {
+    const { status, body } = await httpPost(SMSGENZ_BULK_URL, {
+      user_id:   cfg.user_id,
+      api_key:   cfg.api_key,
+      sender_id: cfg.sender_id,
+      contacts,
+      message,
+    });
+    let parsed = null;
+    try { parsed = JSON.parse(body); } catch {}
+    const ok = status >= 200 && status < 300 && parsed?.success === true;
+    return {
+      ok,
+      campaignId:     parsed?.data?.campaign_id   ?? null,
+      creditBalance:  parsed?.data?.sms_credit_balance ?? null,
+      recipientCount: parsed?.data?.no_of_recipients  ?? contacts.length,
+      error: ok ? null : (parsed?.message || `HTTP ${status}`),
+    };
+  } catch (e) {
+    return { ok: false, campaignId: null, creditBalance: null, recipientCount: 0, error: e.message };
+  }
+}
+
+// Returns account status: balance, plan, sender_id_balances etc.
+async function getAccountStatus(cfg) {
+  try {
+    const { status, body } = await httpPost(SMSGENZ_STATUS_URL, {
+      user_id: cfg.user_id,
+      api_key: cfg.api_key,
+    });
+    let parsed = null;
+    try { parsed = JSON.parse(body); } catch {}
+    const ok = status >= 200 && status < 300 && parsed?.success === true;
+    return { ok, data: parsed?.data ?? null, error: ok ? null : (parsed?.message || `HTTP ${status}`) };
+  } catch (e) {
+    return { ok: false, data: null, error: e.message };
+  }
+}
+
+// Creates a PayHere credit reload link. Returns { ok, paymentUrl, orderId, error }.
+async function reloadCredit(cfg, amount, { senderId, clientReference, returnUrl, callbackUrl } = {}) {
+  try {
+    const payload = { user_id: cfg.user_id, api_key: cfg.api_key, amount };
+    if (senderId)        payload.sender_id        = senderId;
+    if (clientReference) payload.client_reference = clientReference;
+    if (returnUrl)       payload.return_url        = returnUrl;
+    if (callbackUrl)     payload.callback_url      = callbackUrl;
+    const { status, body } = await httpPost(SMSGENZ_RELOAD_URL, payload);
+    let parsed = null;
+    try { parsed = JSON.parse(body); } catch {}
+    const ok = status >= 200 && status < 300 && parsed?.success === true;
+    return {
+      ok,
+      paymentUrl: parsed?.data?.payment_url ?? null,
+      orderId:    parsed?.data?.order_id    ?? null,
+      expiresAt:  parsed?.data?.expires_at  ?? null,
+      error: ok ? null : (parsed?.message || `HTTP ${status}`),
+    };
+  } catch (e) {
+    return { ok: false, paymentUrl: null, orderId: null, expiresAt: null, error: e.message };
+  }
+}
+
+module.exports = { ensureSmsTables, getConfig, sendSms, sendBulkSms, getAccountStatus, reloadCredit, fireSmsReceipt, interpolate };

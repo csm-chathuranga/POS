@@ -101,10 +101,29 @@ function AdminOnlyRoute() {
 const isElectron = typeof window !== 'undefined' && !!window.electronAPI?.isElectron;
 const createAppRouter = isElectron ? createHashRouter : createBrowserRouter;
 
+function SmsPaymentDone() {
+  const params = new URLSearchParams(window.location.search);
+  const status = params.get('status') || 'success';
+  window.parent?.postMessage({ type: 'sms-payment-done', status }, '*');
+  return (
+    <div style={{ fontFamily: 'sans-serif', textAlign: 'center', padding: '60px 20px' }}>
+      <div style={{ fontSize: 48, marginBottom: 16 }}>{status === 'success' ? '✅' : '❌'}</div>
+      <h2 style={{ margin: 0, color: status === 'success' ? '#16a34a' : '#dc2626' }}>
+        {status === 'success' ? 'Payment Successful!' : 'Payment Cancelled'}
+      </h2>
+      <p style={{ color: '#64748b', marginTop: 8 }}>You can close this window.</p>
+    </div>
+  );
+}
+
 export const router = createAppRouter([
   {
     path: '/login',
     element: <GuestLayout><Login /></GuestLayout>,
+  },
+  {
+    path: '/sms-payment-done',
+    element: <SmsPaymentDone />,
   },
   {
     element: <ProtectedRoute />,

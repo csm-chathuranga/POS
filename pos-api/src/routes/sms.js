@@ -1,7 +1,7 @@
 const router = require('express').Router();
 const auth   = require('../middleware/auth');
 const role   = require('../middleware/role');
-const { sendSms, interpolate } = require('../lib/sms');
+const { sendSms, sendBulkSms, getAccountStatus, reloadCredit, interpolate } = require('../lib/sms');
 
 async function requireModule(req, res, next) {
   const s = await req.models.Setting.findOne({ where: { key: 'module.sms.enabled' } });
@@ -97,6 +97,79 @@ router.post('/send-receipt', async (req, res) => {
 
   if (!ok) return res.status(502).json({ error: error || 'SMS send failed' });
   res.json({ ok: true, phone, message });
+});
+
+// ── Customers with phone (for bulk picker) ────────────────────────────────────
+
+router.get('/customers-with-phone', role('admin'), async (req, res) => {
+  const customers = await req.models.Customer.findAll({
+    where: req.db.literal('phone IS NOT NULL AND phone != ""'),
+    attributes: ['id', 'name', 'phone'],
+    order: [['name', 'ASC']],
+    limit: 2000,
+  });
+  res.json(customers);
+});
+
+// ── Bulk SMS ──────────────────────────────────────────────────────────────────
+
+router.post('/bulk', role('admin'), async (req, res) => {
+  const { contacts, message } = req.body;
+  if (!Array.isArray(contacts) || contacts.length === 0) {
+    return res.status(422).json({ error: 'contacts array is required' });
+  }
+  if (!message || !message.trim()) {
+    return res.status(422).json({ error: 'message is required' });
+  }
+
+  const cfg = await req.models.SmsConfig.findOne();
+  if (!cfg || !cfg.user_id) return res.status(400).json({ error: 'SMS not configured yet' });
+
+  const result = await sendBulkSms(cfg, contacts, message);
+
+  // Log one entry per contact (best-effort)
+  const status = result.ok ? 'sent' : 'failed';
+  const logRows = contacts.map(phone => ({
+    sale_id: null, phone, message, status, error: result.error || null,
+  }));
+  try { await req.models.SmsLog.bulkCreate(logRows); } catch {}
+
+  if (!result.ok) return res.status(502).json({ error: result.error || 'Bulk SMS failed' });
+  res.json({
+    ok:             true,
+    campaign_id:    result.campaignId,
+    credit_balance: result.creditBalance,
+    sent_to:        result.recipientCount,
+  });
+});
+
+// ── Account status ────────────────────────────────────────────────────────────
+
+router.get('/account-status', role('admin'), async (req, res) => {
+  const cfg = await req.models.SmsConfig.findOne();
+  if (!cfg || !cfg.user_id) return res.status(400).json({ error: 'SMS not configured yet' });
+  const { ok, data, error } = await getAccountStatus(cfg);
+  if (!ok) return res.status(502).json({ error: error || 'Failed to fetch account status' });
+  res.json(data);
+});
+
+// ── Reload credit ─────────────────────────────────────────────────────────────
+
+router.post('/reload-credit', role('admin'), async (req, res) => {
+  const { amount, sender_id, client_reference, return_url, callback_url } = req.body;
+  if (!amount || Number(amount) < 1000 || Number(amount) > 100000) {
+    return res.status(422).json({ error: 'amount must be between 1,000 and 100,000' });
+  }
+  const cfg = await req.models.SmsConfig.findOne();
+  if (!cfg || !cfg.user_id) return res.status(400).json({ error: 'SMS not configured yet' });
+  const result = await reloadCredit(cfg, Number(amount), {
+    senderId: sender_id || cfg.sender_id || undefined,
+    clientReference: client_reference,
+    returnUrl: return_url,
+    callbackUrl: callback_url,
+  });
+  if (!result.ok) return res.status(502).json({ error: result.error || 'Failed to create payment link' });
+  res.json({ payment_url: result.paymentUrl, order_id: result.orderId, expires_at: result.expiresAt });
 });
 
 // ── Logs ──────────────────────────────────────────────────────────────────────

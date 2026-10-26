@@ -959,12 +959,13 @@ function DeviceSettingsSection() {
   );
 
   return (
-    <div className="max-w-lg space-y-4">
-      <p className="text-sm text-slate-500">
+    <div className="max-w-4xl">
+      <p className="text-sm text-slate-500 mb-4">
         Configure the Hikvision fingerprint scanner (ISAPI / HTTP Digest Auth).
         The server polls the device on the set interval and imports punch events automatically.
       </p>
-      <form onSubmit={handleSave} className="bg-white border rounded-xl p-6 space-y-4">
+      <div className="flex gap-6 items-start">
+      <form onSubmit={handleSave} className="bg-white border rounded-xl p-6 space-y-4 flex-1">
         <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Device Connection</p>
         <div className="flex gap-4">
           <div className="flex-1">{inp('Device IP Address', 'device_ip', 'text', '192.168.1.100')}</div>
@@ -1009,14 +1010,15 @@ function DeviceSettingsSection() {
         </button>
       </form>
 
-      <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-xs text-amber-800 space-y-1">
-        <p className="font-semibold">Setup steps</p>
-        <ol className="list-decimal list-inside space-y-0.5">
+      <div className="w-72 shrink-0 bg-amber-50 border border-amber-200 rounded-xl p-4 text-xs text-amber-800 space-y-2 sticky top-4">
+        <p className="font-bold text-sm">Setup steps</p>
+        <ol className="list-decimal list-inside space-y-2 leading-relaxed">
           <li>Connect the Hikvision device to the same network as this server.</li>
           <li>Enter the device IP, port (default 80), and admin credentials above.</li>
           <li>On each employee record, set the <strong>Device Employee ID</strong> to match the enroll number on the scanner.</li>
           <li>Click &quot;Save Settings&quot; then use &quot;Sync Device&quot; on the Attendance tab to pull events.</li>
         </ol>
+      </div>
       </div>
     </div>
   );
