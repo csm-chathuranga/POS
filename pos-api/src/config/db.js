@@ -20,19 +20,12 @@ function createConnection(tenant) {
   });
 }
 
-const synced = new Set();
-
 function getTenantDb(tenant, host) {
   if (!connectionCache[host]) {
-    const sequelize = createConnection(tenant);
-    connectionCache[host] = { sequelize, models: getModels(sequelize) };
-  }
-  // Ensure core tables exist for this tenant (runs once per process per host)
-  if (!synced.has(host)) {
-    synced.add(host);
-    connectionCache[host].sequelize.sync({ force: false }).catch(err =>
-      console.error(`[sync:${host}]`, err.message)
-    );
+    connectionCache[host] = {
+      sequelize: createConnection(tenant),
+    };
+    connectionCache[host].models = getModels(connectionCache[host].sequelize);
   }
   return connectionCache[host];
 }
