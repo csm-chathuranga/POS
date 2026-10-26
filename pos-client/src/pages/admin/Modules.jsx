@@ -96,7 +96,7 @@ export default function ModulesPage() {
   const [toggleModule, { isLoading: toggling, originalArgs: togglingKey }] = useToggleModuleMutation();
 
   return (
-    <div className="p-6 max-w-3xl">
+    <div className="p-6 max-w-5xl">
       <div className="mb-6">
         <h1 className="text-xl font-bold text-slate-800 dark:text-white">Modules</h1>
         <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
@@ -105,13 +105,13 @@ export default function ModulesPage() {
       </div>
 
       {isLoading ? (
-        <div className="space-y-4">
-          {[1, 2].map(i => (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {[1, 2, 3, 4].map(i => (
             <div key={i} className="bg-white dark:bg-[#1e1e1e] rounded-xl border border-slate-200 dark:border-[#2a2a2a] p-5 animate-pulse h-24" />
           ))}
         </div>
       ) : (
-        <div className="space-y-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {modules.map(mod => (
             <ModuleCard
               key={mod.key}
