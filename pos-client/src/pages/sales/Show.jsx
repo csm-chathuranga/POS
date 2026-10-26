@@ -391,8 +391,8 @@ export default function SaleShow() {
                 <div className="grid grid-cols-5 gap-1 text-xs text-black font-semibold mt-0.5 min-w-0 items-center">
                   <span className="text-right min-w-0">{fmt(origPrice)}</span>
                   <span className="text-right text-black min-w-0">{fmt(ourUnit)}</span>
-                  <span className="text-right min-w-0">{lineDiscount > 0 ? fmt(lineDiscount) : '-'}</span>
-                  <span className="text-right min-w-0">{qty}</span>
+                  <span className="text-center min-w-0">{lineDiscount > 0 ? fmt(lineDiscount) : '-'}</span>
+                  <span className="text-center min-w-0">{qty}</span>
                   <span className="text-right min-w-0 text-xs font-semibold">{fmt(reducedLineTotal)}</span>
                 </div>
               </div>

@@ -109,7 +109,7 @@ export default function Login() {
         const hash = await hashCreds(form.email, form.password);
         saveOfflineCreds(hash, res, appInfo);
         dispatch(setCredentials(res));
-        navigate('/sales/create');
+        navigate(window.innerWidth < 768 ? '/' : '/sales/create');
         return;
       } catch (err) {
         // Network error → fall through to offline check
@@ -128,7 +128,7 @@ export default function Login() {
       const hash = await hashCreds(form.email, form.password);
       if (hash !== stored.hash) { setError('Incorrect email or password'); return; }
       dispatch(setCredentials(stored.auth));
-      navigate('/sales/create');
+      navigate(window.innerWidth < 768 ? '/' : '/sales/create');
     } catch {
       setError('Offline login failed');
     }
