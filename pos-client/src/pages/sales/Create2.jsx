@@ -1,10 +1,11 @@
 import { useState, useRef, useCallback, useMemo, useEffect } from 'react';
+import { printReceipt } from '../../lib/buildReceiptHtml';
 import { createPortal } from 'react-dom';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import { logout, selectCurrentUser, selectRole, selectToken } from '../../features/auth/authSlice';
+import { logout, selectCurrentUser, selectRole, selectToken, selectAllFeatures } from '../../features/auth/authSlice';
 import { useCreateSaleMutation, useReturnSaleMutation } from '../../features/sales/salesApi';
-import { useGetExtensionsQuery, useSendSmsReceiptMutation } from '../../features/extensions/extensionsApi';
+import { useSendSmsReceiptMutation } from '../../features/extensions/extensionsApi';
 import { useGetCategoriesQuery } from '../../features/categories/categoriesApi';
 import useProductCache from '../../hooks/useProductCache';
 import { useConnectivity } from '../../contexts/ConnectivityContext';
@@ -13,7 +14,6 @@ import { getLocalCustomers } from '../../services/cacheSync';
 import { useLocale } from '../../contexts/LocaleContext';
 import { getApiUrl } from '../../config/runtimeConfig';
 const API = getApiUrl();
-import { translations } from '../../i18n/translations';
 import { api } from '../../app/baseApi';
 
 const posApi = api.injectEndpoints({
@@ -286,115 +286,8 @@ function Receipt({ sale, settings, user, onClose }) {
   async function handlePrint() {
     if (printing) return;
     setPrinting(true);
-    const paperSize   = '80mm';
-    const receiptLang = settings?.receipt_language || 'en';
-    const isSinhala   = receiptLang === 'si';
-    const rl = key => (translations[receiptLang] || translations.en)[key] ?? translations.en[key];
-    const minDelay = new Promise(r => setTimeout(r, 1200));
-
-    let totalSaved = 0;
-    const itemsHtml = (sale.items || []).map((item, idx) => {
-      const qty = Number(item.qty || 0);
-      const unit = parseFloat(item.unit_price || 0);
-      const origPrice = parseFloat(item.original_price || 0) || unit;
-      const lineDiscount = parseFloat(item.discount || 0);
-      const originalLineTotal = qty * unit;
-      const reducedLineTotal = Math.max(0, originalLineTotal - lineDiscount);
-      const ourUnit = qty > 0 ? Math.max(0, reducedLineTotal / qty) : unit;
-      if (origPrice > unit) totalSaved += (origPrice - unit) * qty;
-      return `
-      <div class="item-row">
-        <div class="item-name">${idx + 1} ${isSinhala && item.name_si ? item.name_si : item.name}</div>
-      </div>
-      <div class="item-data">
-        <span class="qty-col">${qty}</span>
-        <span class="orig-col">${f(origPrice)}</span>
-        <span class="our-col">${f(ourUnit)}</span>
-        <span class="line-col">${f(reducedLineTotal)}</span>
-      </div>
-    `;
-    }).join('');
-
-    const html = `<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <title>${sale.invoice_no}</title>
-  ${isSinhala ? '<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Sinhala:wght@700;800;900&display=swap" rel="stylesheet">' : ''}
-  <style>
-    * { margin:0; padding:0; box-sizing:border-box; }
-    html, body {
-      font-family: ${isSinhala ? "'Noto Sans Sinhala', sans-serif" : "'Courier New', Courier, monospace"};
-      font-size: 13px;
-      font-weight: 700;
-      width: 100%;
-      max-width: 72mm;
-      color: #000;
-      word-break: break-word;
-      overflow-wrap: break-word;
-    }
-    body { padding: 5mm 2mm; }
-    .logo { width:96px; height:96px; object-fit:contain; margin:0 auto 6px; display:block; border-radius:50%; }
-    .shop-name { font-size:16px; font-weight:700; text-align:center; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:3px; word-break:break-word; }
-    .shop-meta { font-size:12px; font-weight:700; text-align:center; line-height:1.6; word-break:break-word; }
-    .divider { border:none; border-top:2px solid #000; margin:8px 0; }
-    .row { display:flex; justify-content:space-between; gap:6px; padding:3px 0; font-size:12px; }
-    .row span:first-child { flex-shrink:0; }
-    .row span:last-child { text-align:right; word-break:break-word; min-width:0; }
-    .col-header { display:flex; justify-content:flex-end; font-weight:700; padding:4px 0 3px; border-top:2px solid #000; border-bottom:2px solid #000; margin:6px 0; font-size:12px; }
-    .col-head-prices { display:grid; grid-template-columns: 30px repeat(3, 1fr); gap:8px; min-width:168px; text-align:right; }
-    .item-row { display:flex; justify-content:space-between; align-items:flex-start; gap:6px; font-weight:700; padding-top:5px; font-size:13px; }
-    .item-name { flex:1; min-width:0; word-break:break-word; overflow-wrap:break-word; }
-    .item-data { display:grid; grid-template-columns: 30px repeat(3, 1fr); gap:8px; text-align:right; padding:2px 0 5px; font-size:12px; font-weight:700; }
-    .qty-col { text-align:left; }
-    .orig-col, .our-col, .line-col { text-align:right; }
-    .disc-box { border:2px solid #000; border-radius:4px; padding:3px 8px; display:flex; justify-content:space-between; gap:6px; margin:5px 0; }
-    .total-row { display:flex; justify-content:space-between; align-items:baseline; gap:6px; font-weight:700; font-size:15px; padding:6px 0 4px; border-top:2px solid #000; margin-top:4px; }
-    .paid-row { display:flex; justify-content:space-between; gap:6px; padding:3px 0; font-weight:700; font-size:12px; }
-    .change-row { display:flex; justify-content:space-between; gap:6px; font-weight:700; padding:3px 0; font-size:13px; }
-    .footer { text-align:center; margin-top:10px; font-size:12px; font-weight:700; line-height:1.8; word-break:break-word; }
-    @media print {
-      html, body { overflow: visible !important; height: auto !important; }
-      body { padding: 3mm 2mm; width: 72mm !important; max-width: 72mm !important; }
-    }
-  </style>
-</head>
-<body>
-  ${settings?.shop_logo ? `<img class="logo" src="${settings.shop_logo}" alt="logo">` : ''}
-  <div class="shop-name">${settings?.shop_name || 'LMUC POS'}</div>
-  ${(settings?.address || settings?.phone) ? `<div class="shop-meta">${settings?.address ? settings.address + '<br>' : ''}${settings?.phone || ''}</div>` : ''}
-  <hr class="divider">
-  <div class="row"><span>${rl('th.invoice')}</span><span>${sale.invoice_no}</span></div>
-  <div class="row"><span>${rl('th.date')}</span><span>${fmtDate(sale.created_at)} ${fmtTime(sale.created_at)}</span></div>
-  <div class="row"><span>${rl('lbl.cashier')}</span><span>${user?.name || '—'}</span></div>
-  ${sale.customer_name ? `<div class="row"><span>${rl('lbl.customer')}</span><span>${sale.customer_name}</span></div>` : ''}
-  <div class="col-header"><span class="col-head-prices"><span>${rl('th.qty')}</span><span>${rl('lbl.original_price')}</span><span>${rl('lbl.our_price')}</span><span>${rl('th.total')}</span></span></div>
-  ${itemsHtml}
-  <hr class="divider">
-  ${totalSaved > 0 ? `<div class="disc-box"><span>${rl('lbl.you_saved')}</span><span>- ${f(totalSaved)}</span></div>` : ''}
-  ${parseFloat(sale.discount) > 0 ? `<div class="disc-box"><span>${rl('lbl.earned_profit')}</span><span>- ${f(sale.discount)}</span></div>` : ''}
-  <div class="total-row"><span>${rl('lbl.grand_total')}</span><span>${currency} ${f(sale.total)}</span></div>
-  ${paidCash > 0  ? `<div class="paid-row"><span>${rl('lbl.cash_paid')} (${rl('lbl.cash')})</span><span>${f(paidCard === 0 && paidCredit === 0 ? parseFloat(sale.paid || 0) : paidCash)}</span></div>` : ''}
-  ${paidCard > 0  ? `<div class="paid-row"><span>${rl('lbl.cash_paid')} (${rl('lbl.card')})</span><span>${f(paidCard)}</span></div>` : ''}
-  ${paidCredit > 0 ? `<div class="paid-row"><span>${rl('lbl.credit')}</span><span>${f(paidCredit)}</span></div>` : ''}
-  ${change > 0    ? `<div class="change-row"><span>${rl('lbl.change')}</span><span>${f(change)}</span></div>` : ''}
-  <hr class="divider">
-  <div class="footer">
-    ${settings?.receipt_footer || 'Thank you for shopping with us!'}
-    <br>lumac.lk
-  </div>
-</body>
-</html>`;
-
     try {
-      if (window.electronAPI?.printReceiptHtml) {
-        const [r] = await Promise.all([window.electronAPI.printReceiptHtml(html, { paperSize }), minDelay]);
-        if (r && !r.success) alert('Print failed: ' + (r.error || 'unknown error'));
-      } else {
-        const win = window.open('', '_blank', 'width=400,height=700,scrollbars=yes');
-        if (win) { win.document.write(html); win.document.close(); win.onload = () => win.print(); }
-        await minDelay;
-      }
+      await printReceipt(sale, settings, user?.name);
     } catch (err) {
       alert('Print error: ' + err.message);
     } finally {
@@ -498,7 +391,7 @@ function Receipt({ sale, settings, user, onClose }) {
 
           <div className="text-center leading-relaxed">
             <p className="text-sm font-semibold text-black">{settings?.receipt_footer || 'Thank you for shopping with us!'}</p>
-            <p className="text-black font-bold text-sm mt-1">lumac.lk</p>
+            <p className="text-black font-bold text-sm mt-1">Powered by lumac.lk</p>
           </div>
         </div>
 
@@ -532,9 +425,10 @@ export default function SalesCreate() {
   const navigate = useNavigate();
   const location = useLocation();
   const dispatch = useDispatch();
-  const user     = useSelector(selectCurrentUser);
-  const role     = useSelector(selectRole);
-  const token    = useSelector(selectToken);
+  const user        = useSelector(selectCurrentUser);
+  const role        = useSelector(selectRole);
+  const token       = useSelector(selectToken);
+  const allFeatures = useSelector(selectAllFeatures);
 
   const { t } = useLocale();
   const { products, ready, deductStock, invalidate } = useProductCache();
@@ -634,8 +528,7 @@ export default function SalesCreate() {
   // Categories from API
   const { data: allCategories = [] } = useGetCategoriesQuery(undefined, { skip: !isOnline });
 
-  // SMS receipt extension
-  const { data: extState = {} } = useGetExtensionsQuery(undefined, { skip: !isOnline });
+  const smsEnabled = allFeatures.some(f => f.key === 'sms');
   const [sendSms] = useSendSmsReceiptMutation();
   const [smsPending, setSmsPending] = useState(null); // { saleId, phone, message }
   const [returnSaleData, setReturnSaleData] = useState(null);
@@ -1019,20 +912,11 @@ export default function SalesCreate() {
   const completeSaleInFlight = useRef(false);
 
   // ─── Complete sale ────────────────────────────────────────────────────────
-  async function handleCompleteSale(saveOnly = false, redirectAndPrint = false) {
+  async function handleCompleteSale(saveOnly = false, redirectAndPrint = false, withSms = false) {
     if (completeSaleInFlight.current) return;
-    completeSaleInFlight.current = true;
     setErr('');
 
-    // Block if too many unsynced offline invoices
-    if (!isOnline) {
-      const pending = await getPendingCount();
-      if (pending >= OFFLINE_LIMIT) {
-        setErr(`Sync required: ${pending} unsynced invoices. Please connect to internet to sync first.`);
-        return;
-      }
-    }
-
+    // Validate before locking — so failed validation never traps the flag
     if (payMethod === 'credit' && !customer) { setCustErr(t('lbl.credit_warn')); return; }
     if (payMethod === 'split' && splitMode === 'credit' && !customer) { setCustErr(t('lbl.credit_warn')); return; }
     if (payMethod === 'cash' && !saveOnly && cashNum < total) {
@@ -1041,6 +925,18 @@ export default function SalesCreate() {
       setShakeInput(true);
       setTimeout(() => setShakeInput(false), 500);
       return;
+    }
+
+    completeSaleInFlight.current = true;
+
+    // Block if too many unsynced offline invoices
+    if (!isOnline) {
+      const pending = await getPendingCount();
+      if (pending >= OFFLINE_LIMIT) {
+        setErr(`Sync required: ${pending} unsynced invoices. Please connect to internet to sync first.`);
+        completeSaleInFlight.current = false;
+        return;
+      }
     }
 
     const payments = [];
@@ -1105,19 +1001,6 @@ export default function SalesCreate() {
       const cartSnapshot = cart.map(i => ({ name: i.name, qty: i.qty, unit_price: i.unit_price, discount: i.discount || 0, total: i.total }));
       setCart([]); setCustomer(null); setCustQuery(''); setBillDisc(''); setCashPaid('');
 
-      const smsEnabled = extState?.sms_receipt?.enabled;
-      const custPhone  = customer?.phone;
-      if (!saveOnly && smsEnabled && custPhone && result?.id) {
-        const tmpl = (extState?.sms_receipt?.config && typeof extState.sms_receipt.config === 'object')
-          ? extState.sms_receipt.config.template || '' : '';
-        const msg = (tmpl || 'Your bill {invoice} is Rs.{total}. Thank you!')
-          .replace('{customer}', customer?.name || '')
-          .replace('{invoice}',  result.invoice_no || '')
-          .replace('{total}',    Number(total).toFixed(2))
-          .replace('{shop}',     settings?.shop_name || '');
-        setSmsPending({ saleId: result.id, autoPrint: !!redirectAndPrint, phone: custPhone, message: msg, cartSnapshot, payments, subtotal, totalDisc, total, paid, customerName: customer?.name, result });
-        return;
-      }
 
       if (!saveOnly) {
         if (redirectAndPrint && result?.id) {
@@ -1501,31 +1384,34 @@ export default function SalesCreate() {
                     <p className="text-xs text-slate-600">{splitMode==='card'?'Card':'Credit'}: <strong className="text-violet-700">{fmtAmt(Math.max(0,total-(parseFloat(splitCash)||0)))}</strong></p>
                   </div>
                 )}
-                {payMethod === 'credit' && (
-                  <div className="flex flex-col gap-1">
-                    <div className="flex items-center justify-between">
-                      <label className="text-xs font-semibold text-slate-500 uppercase">{t('lbl.customer')}</label>
-                      <button onClick={() => setQcForm({ name:'', phone:'' })} className="text-xs text-blue-600 font-semibold">{t('cust.quick_add')}</button>
-                    </div>
-                    <div className="relative">
-                      <input value={custQuery} onChange={e => { setCustQuery(e.target.value); setShowCust(true); }} onFocus={() => setShowCust(true)} onBlur={() => setTimeout(() => setShowCust(false), 150)}
-                        placeholder={t('lbl.select_customer')} className="w-full rounded-lg border-2 border-orange-300 bg-orange-50 px-2 py-1.5 text-sm font-semibold outline-none" />
-                      {customer && <button onClick={() => { setCustomer(null); setCustQuery(''); }} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 text-lg">&times;</button>}
-                      {showCustDrop && filteredCusts.length > 0 && (
-                        <div className="absolute bottom-full left-0 right-0 z-40 bg-white rounded-xl shadow-xl border border-slate-200 max-h-36 overflow-y-auto mb-1">
-                          {filteredCusts.map(c => (
-                            <button key={c.id} onMouseDown={() => { setCustomer(c); setCustQuery(c.name); setShowCust(false); setCustErr(''); }}
-                              className="w-full text-left px-3 py-2 text-sm hover:bg-orange-50 border-b border-slate-50 last:border-0">
-                              <p className="font-semibold">{c.name}</p>
-                              {c.phone && <p className="text-xs text-slate-400">{c.phone}</p>}
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                    {!customer && <p className="text-xs text-red-500 font-semibold">⚠ {t('pos.credit_warn_msg')}</p>}
+                {/* Customer — shown for all payment methods; required only for credit */}
+                <div className="flex flex-col gap-1">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-semibold text-slate-500 uppercase">{t('lbl.customer')}</label>
+                    <button onClick={() => setQcForm({ name:'', phone:'' })} className="text-xs text-blue-600 font-semibold">{t('cust.quick_add')}</button>
                   </div>
-                )}
+                  <div className="relative">
+                    <input value={custQuery} onChange={e => { setCustQuery(e.target.value); setShowCust(true); }} onFocus={() => setShowCust(true)} onBlur={() => setTimeout(() => setShowCust(false), 150)}
+                      placeholder={t('lbl.select_customer')}
+                      className={`w-full rounded-lg border-2 px-2 py-1.5 text-sm font-semibold outline-none ${
+                        payMethod === 'credit' ? 'border-orange-300 bg-orange-50' : 'border-slate-300 bg-slate-50'
+                      }`} />
+                    {customer && <button onClick={() => { setCustomer(null); setCustQuery(''); }} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 text-lg">&times;</button>}
+                    {showCustDrop && filteredCusts.length > 0 && (
+                      <div className="absolute bottom-full left-0 right-0 z-40 bg-white rounded-xl shadow-xl border border-slate-200 max-h-36 overflow-y-auto mb-1">
+                        {filteredCusts.map(c => (
+                          <button key={c.id} onMouseDown={() => { setCustomer(c); setCustQuery(c.name); setShowCust(false); setCustErr(''); }}
+                            className="w-full text-left px-3 py-2 text-sm hover:bg-slate-50 border-b border-slate-50 last:border-0">
+                            <p className="font-semibold">{c.name}</p>
+                            {c.phone && <p className="text-xs text-slate-400">{c.phone}</p>}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  {payMethod === 'credit' && !customer && <p className="text-xs text-red-500 font-semibold">⚠ {t('pos.credit_warn_msg')}</p>}
+                  {custErr && payMethod !== 'credit' && <p className="text-xs text-red-500 font-semibold">{custErr}</p>}
+                </div>
               </div>
 
               {/* Divider */}
@@ -1597,6 +1483,22 @@ export default function SalesCreate() {
                 className="flex-[2] flex flex-col items-center justify-center gap-1 py-3 bg-gradient-to-br from-green-600 to-green-800 hover:from-green-500 hover:to-green-700 text-white rounded-xl font-bold text-sm transition-all shadow-[0_4px_14px_rgba(22,163,74,0.5)] disabled:cursor-not-allowed">
                 {Icon.print} <span>{t('pos.complete_sale')} <span className="text-xs opacity-70">F10</span></span>
               </button>
+              {smsEnabled && (
+                <button
+                  disabled={cart.length === 0 || total === 0 || submitting}
+                  onClick={() => {
+                    if (!customer) { setErr('Select a customer to send SMS'); return; }
+                    if (!customer.phone) { setErr('Customer has no phone number'); return; }
+                    handleCompleteSale(false, false, true);
+                  }}
+                  title="Complete sale & send SMS receipt"
+                  className="w-16 h-16 shrink-0 flex flex-col items-center justify-center gap-1 bg-gradient-to-br from-emerald-500 to-emerald-700 hover:from-emerald-400 hover:to-emerald-600 text-white disabled:opacity-50 disabled:cursor-not-allowed rounded-xl text-xs font-bold transition-all shadow-[0_4px_14px_rgba(16,185,129,0.5)]">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-3 3-3-3z" />
+                  </svg>
+                  <span>SMS</span>
+                </button>
+              )}
             </div>
           </div>
         </div>

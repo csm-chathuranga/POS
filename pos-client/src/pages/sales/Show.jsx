@@ -204,7 +204,7 @@ export default function SaleShow() {
   <hr class="divider">
   <div class="footer">
     ${shopInfo.receipt_footer || 'Thank you for shopping with us!'}
-    <br>lumac.lk
+    <br>Powered by lumac.lk
   </div>
   <script>
     if (typeof JsBarcode !== 'undefined') {
@@ -478,7 +478,7 @@ export default function SaleShow() {
             </p>
             {true && (
               <p className="text-black font-semibold text-[11px] mt-1">
-                lumac.lk
+                Powered by lumac.lk
               </p>
             )}
           </div>

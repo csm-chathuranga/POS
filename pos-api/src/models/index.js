@@ -253,14 +253,16 @@ function getModels(sequelize) {
   }, { tableName: 'features', timestamps: false });
 
   const Employee = sequelize.define('Employee', {
-    id:           { type: DataTypes.BIGINT.UNSIGNED, primaryKey: true, autoIncrement: true },
-    name:         { type: DataTypes.STRING(191), allowNull: false },
-    position:     { type: DataTypes.STRING(191), allowNull: true },
-    phone:        { type: DataTypes.STRING(50),  allowNull: true },
-    address:      { type: DataTypes.TEXT,        allowNull: true },
-    basic_salary: { type: DataTypes.DECIMAL(10, 2), defaultValue: 0 },
-    hired_date:   { type: DataTypes.DATEONLY,    allowNull: true },
-    active:       { type: DataTypes.BOOLEAN,     defaultValue: true },
+    id:                 { type: DataTypes.BIGINT.UNSIGNED, primaryKey: true, autoIncrement: true },
+    name:               { type: DataTypes.STRING(191), allowNull: false },
+    position:           { type: DataTypes.STRING(191), allowNull: true },
+    phone:              { type: DataTypes.STRING(50),  allowNull: true },
+    address:            { type: DataTypes.TEXT,        allowNull: true },
+    basic_salary:       { type: DataTypes.DECIMAL(10, 2), defaultValue: 0 },
+    hired_date:         { type: DataTypes.DATEONLY,    allowNull: true },
+    device_employee_id:  { type: DataTypes.STRING(50),  allowNull: true },
+    salary_calculation:  { type: DataTypes.ENUM('daily_rate', 'deduction', 'manual'), defaultValue: 'manual' },
+    active:              { type: DataTypes.BOOLEAN,     defaultValue: true },
   }, { tableName: 'employees' });
 
   const SalaryPayment = sequelize.define('SalaryPayment', {
@@ -272,6 +274,45 @@ function getModels(sequelize) {
     amount:      { type: DataTypes.DECIMAL(10, 2), allowNull: false },
     note:        { type: DataTypes.STRING(191), allowNull: true },
   }, { tableName: 'salary_payments' });
+
+  const AttendanceSetting = sequelize.define('AttendanceSetting', {
+    id:                { type: DataTypes.BIGINT.UNSIGNED, primaryKey: true, autoIncrement: true },
+    device_ip:         { type: DataTypes.STRING(100), allowNull: false, defaultValue: '' },
+    port:              { type: DataTypes.SMALLINT.UNSIGNED, allowNull: false, defaultValue: 80 },
+    username:          { type: DataTypes.STRING(100), allowNull: false, defaultValue: 'admin' },
+    password:          { type: DataTypes.STRING(191), allowNull: false, defaultValue: '' },
+    poll_interval_min: { type: DataTypes.TINYINT.UNSIGNED, allowNull: false, defaultValue: 5 },
+    enabled:           { type: DataTypes.BOOLEAN, defaultValue: false },
+    last_synced_at:    { type: DataTypes.DATE, allowNull: true },
+  }, { tableName: 'attendance_settings' });
+
+  const AttendanceRecord = sequelize.define('AttendanceRecord', {
+    id:          { type: DataTypes.BIGINT.UNSIGNED, primaryKey: true, autoIncrement: true },
+    employee_id: { type: DataTypes.BIGINT.UNSIGNED, allowNull: false },
+    punch_time:  { type: DataTypes.DATE, allowNull: false },
+    direction:   { type: DataTypes.ENUM('in', 'out', 'unknown'), defaultValue: 'unknown' },
+    event_id:    { type: DataTypes.STRING(64), allowNull: true, unique: true },
+    source:      { type: DataTypes.ENUM('device', 'manual'), defaultValue: 'device' },
+  }, { tableName: 'attendance_records' });
+
+  AttendanceRecord.belongsTo(Employee, { foreignKey: 'employee_id', as: 'employee' });
+  Employee.hasMany(AttendanceRecord, { foreignKey: 'employee_id', as: 'attendanceRecords' });
+
+  const CashAdvance = sequelize.define('CashAdvance', {
+    id:                { type: DataTypes.BIGINT.UNSIGNED, primaryKey: true, autoIncrement: true },
+    employee_id:       { type: DataTypes.BIGINT.UNSIGNED, allowNull: false },
+    amount:            { type: DataTypes.DECIMAL(10, 2), allowNull: false },
+    note:              { type: DataTypes.STRING(255), allowNull: true },
+    given_date:        { type: DataTypes.DATEONLY, allowNull: false },
+    deducted:          { type: DataTypes.BOOLEAN, defaultValue: false },
+    salary_payment_id: { type: DataTypes.BIGINT.UNSIGNED, allowNull: true },
+    given_by:          { type: DataTypes.BIGINT.UNSIGNED, allowNull: true },
+  }, { tableName: 'cash_advances' });
+
+  CashAdvance.belongsTo(Employee, { foreignKey: 'employee_id', as: 'employee' });
+  Employee.hasMany(CashAdvance,   { foreignKey: 'employee_id', as: 'cashAdvances' });
+  CashAdvance.belongsTo(User,     { foreignKey: 'given_by', as: 'givenBy' });
+  CashAdvance.belongsTo(SalaryPayment, { foreignKey: 'salary_payment_id', as: 'salaryPayment' });
 
   const LoadingSheet = sequelize.define('LoadingSheet', {
     id:           { type: DataTypes.BIGINT.UNSIGNED, primaryKey: true, autoIncrement: true },
@@ -288,6 +329,78 @@ function getModels(sequelize) {
     sheet_id: { type: DataTypes.BIGINT.UNSIGNED, allowNull: false },
     sale_id:  { type: DataTypes.BIGINT.UNSIGNED, allowNull: false },
   }, { tableName: 'loading_sheet_items', underscored: true, updatedAt: false });
+
+  const VanTrip = sequelize.define('VanTrip', {
+    id:          { type: DataTypes.BIGINT.UNSIGNED, primaryKey: true, autoIncrement: true },
+    driver_name: { type: DataTypes.STRING(191), allowNull: false, defaultValue: '' },
+    vehicle_no:  { type: DataTypes.STRING(100), allowNull: false, defaultValue: '' },
+    start_date:  { type: DataTypes.DATEONLY, allowNull: false },
+    end_date:    { type: DataTypes.DATEONLY, allowNull: true },
+    status:      { type: DataTypes.ENUM('active', 'closed'), defaultValue: 'active' },
+    notes:       { type: DataTypes.TEXT, allowNull: true },
+  }, { tableName: 'van_trips' });
+
+  const VanLoad = sequelize.define('VanLoad', {
+    id:      { type: DataTypes.BIGINT.UNSIGNED, primaryKey: true, autoIncrement: true },
+    trip_id: { type: DataTypes.BIGINT.UNSIGNED, allowNull: false },
+    date:    { type: DataTypes.DATEONLY, allowNull: false },
+    type:    { type: DataTypes.ENUM('initial', 'refill'), defaultValue: 'initial' },
+    notes:   { type: DataTypes.TEXT, allowNull: true },
+  }, { tableName: 'van_loads' });
+
+  const VanLoadItem = sequelize.define('VanLoadItem', {
+    id:           { type: DataTypes.BIGINT.UNSIGNED, primaryKey: true, autoIncrement: true },
+    load_id:      { type: DataTypes.BIGINT.UNSIGNED, allowNull: false },
+    variant_name: { type: DataTypes.STRING(191), allowNull: false },
+    quantity:     { type: DataTypes.INTEGER.UNSIGNED, defaultValue: 0 },
+    unit_price:   { type: DataTypes.DECIMAL(10, 2), defaultValue: 0 },
+    unit_cost:    { type: DataTypes.DECIMAL(10, 2), defaultValue: 0 },
+  }, { tableName: 'van_load_items', timestamps: false });
+
+  const VanDailyRecord = sequelize.define('VanDailyRecord', {
+    id:            { type: DataTypes.BIGINT.UNSIGNED, primaryKey: true, autoIncrement: true },
+    trip_id:       { type: DataTypes.BIGINT.UNSIGNED, allowNull: false },
+    date:          { type: DataTypes.DATEONLY, allowNull: false },
+    advance_given: { type: DataTypes.DECIMAL(10, 2), defaultValue: 5000 },
+    cash_handover: { type: DataTypes.DECIMAL(10, 2), defaultValue: 0 },
+    notes:         { type: DataTypes.TEXT, allowNull: true },
+  }, { tableName: 'van_daily_records' });
+
+  const VanUnloadItem = sequelize.define('VanUnloadItem', {
+    id:           { type: DataTypes.BIGINT.UNSIGNED, primaryKey: true, autoIncrement: true },
+    trip_id:      { type: DataTypes.BIGINT.UNSIGNED, allowNull: false },
+    date:         { type: DataTypes.DATEONLY, allowNull: false },
+    variant_name: { type: DataTypes.STRING(191), allowNull: false },
+    qty_returned: { type: DataTypes.INTEGER.UNSIGNED, defaultValue: 0 },
+    qty_damaged:  { type: DataTypes.INTEGER.UNSIGNED, defaultValue: 0 },
+  }, { tableName: 'van_unload_items', timestamps: false });
+
+  VanTrip.hasMany(VanLoad,        { foreignKey: 'trip_id', as: 'loads' });
+  VanLoad.belongsTo(VanTrip,      { foreignKey: 'trip_id', as: 'trip' });
+  VanLoad.hasMany(VanLoadItem,    { foreignKey: 'load_id', as: 'items' });
+  VanLoadItem.belongsTo(VanLoad,  { foreignKey: 'load_id', as: 'load' });
+  VanTrip.hasMany(VanDailyRecord, { foreignKey: 'trip_id', as: 'dailyRecords' });
+  VanDailyRecord.belongsTo(VanTrip, { foreignKey: 'trip_id', as: 'trip' });
+  VanTrip.hasMany(VanUnloadItem,  { foreignKey: 'trip_id', as: 'unloadItems' });
+  VanUnloadItem.belongsTo(VanTrip, { foreignKey: 'trip_id', as: 'trip' });
+
+  const SmsConfig = sequelize.define('SmsConfig', {
+    id:               { type: DataTypes.BIGINT.UNSIGNED, primaryKey: true, autoIncrement: true },
+    user_id:          { type: DataTypes.STRING(191), defaultValue: '' },
+    api_key:          { type: DataTypes.STRING(191), defaultValue: '' },
+    sender_id:        { type: DataTypes.STRING(50),  defaultValue: '' },
+    receipt_template: { type: DataTypes.TEXT, allowNull: false },
+  }, { tableName: 'sms_config', updatedAt: 'updated_at', createdAt: false });
+
+  const SmsLog = sequelize.define('SmsLog', {
+    id:      { type: DataTypes.BIGINT.UNSIGNED, primaryKey: true, autoIncrement: true },
+    sale_id: { type: DataTypes.BIGINT.UNSIGNED, allowNull: true },
+    phone:   { type: DataTypes.STRING(50), allowNull: false },
+    message: { type: DataTypes.TEXT, allowNull: false },
+    status:  { type: DataTypes.ENUM('sent', 'failed'), allowNull: false },
+    error:   { type: DataTypes.TEXT, allowNull: true },
+    sent_at: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
+  }, { tableName: 'sms_logs', createdAt: false, updatedAt: false });
 
   const CoopStore = sequelize.define('CoopStore', {
     id:     { type: DataTypes.BIGINT.UNSIGNED, primaryKey: true, autoIncrement: true },
@@ -395,9 +508,12 @@ function getModels(sequelize) {
     Supplier, Customer, Sale, SaleItem, Payment, SaleReturn,
     Purchase, PurchaseItem, PurchaseReturn, StockMovement, CreditPayment, SupplierPayment, Setting, Feature,
     Account, JournalEntry, JournalLine,
-    Employee, SalaryPayment,
+    Employee, SalaryPayment, CashAdvance,
+    AttendanceSetting, AttendanceRecord,
     LoadingSheet, LoadingSheetItem,
     CoopStore, CoopStockTransfer, CoopStockTransferItem,
+    SmsConfig, SmsLog,
+    VanTrip, VanLoad, VanLoadItem, VanDailyRecord, VanUnloadItem,
   };
 }
 

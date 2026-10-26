@@ -57,7 +57,7 @@ function printPaymentReceipt({ supplier, payment, balanceBefore, shopInfo = {} }
   <hr class="divider">
   <div class="footer">
     ${shopInfo.receipt_footer || 'Thank you!'}
-    <br>lumac.lk
+    <br>Powered by lumac.lk
   </div>
 </body>
 </html>`;

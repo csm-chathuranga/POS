@@ -45,6 +45,17 @@ router.patch('/:key/toggle', auth, role('admin'), async (req, res) => {
   if (newValue && mod.key === 'coop_city') {
     await require('../lib/coopCity').ensureCoopTables(req.db);
   }
+  if (newValue && mod.key === 'sms') {
+    await require('../lib/sms').ensureSmsTables(req.db);
+  }
+  if (newValue && mod.key === 'van_sales') {
+    await require('../lib/vanSales').ensureVanSalesTables(req.db);
+  }
+  if (newValue && mod.key === 'payroll') {
+    const { ensureAttendanceTables, ensureCashAdvanceTable } = require('../lib/attendance');
+    await ensureAttendanceTables(req.db);
+    await ensureCashAdvanceTable(req.db);
+  }
 
   await Setting.upsert({ key: settingKey, value: String(newValue) });
 

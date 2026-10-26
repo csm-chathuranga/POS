@@ -8,7 +8,7 @@ export const modulesApi = api.injectEndpoints({
     }),
     toggleModule: build.mutation({
       query: key => ({ url: `/admin/modules/${key}/toggle`, method: 'PATCH' }),
-      invalidatesTags: ['Modules', 'Features'],
+      invalidatesTags: ['Modules', 'Features', 'Me'],
     }),
   }),
   overrideExisting: false,

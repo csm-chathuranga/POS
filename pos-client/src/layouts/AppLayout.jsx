@@ -114,7 +114,7 @@ export default function AppLayout() {
   const { t } = useLocale();
 
   // Refresh user features from server on every app load
-  const { data: meData } = useMeQuery(undefined, { skip: !token });
+  const { data: meData } = useMeQuery(undefined, { skip: !token, refetchOnMountOrArgChange: true });
   useEffect(() => {
     if (meData) dispatch(setCredentials({ token, ...meData }));
   }, [meData]);

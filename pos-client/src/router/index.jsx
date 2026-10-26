@@ -40,6 +40,9 @@ import ChartOfAccounts      from '../pages/accounting/ChartOfAccounts';
 import LoadingSheetsIndex   from '../pages/loading-sheets/Index';
 import LoadingSheetShow     from '../pages/loading-sheets/Show';
 import CoopCityIndex        from '../pages/coop-city/Index';
+import VanSalesIndex        from '../pages/van-sales/Index';
+import VanSalesShow         from '../pages/van-sales/Show';
+import SmsCenter            from '../pages/sms/Index';
 import PayrollIndex         from '../pages/payroll/Index';
 import JournalCreate    from '../pages/accounting/JournalCreate';
 import JournalShow      from '../pages/accounting/JournalShow';
@@ -174,9 +177,22 @@ export const router = createAppRouter([
               ],
             },
             {
+              element: <FeatureRoute feature="van_sales" />,
+              children: [
+                { path: 'van-sales',     element: <VanSalesIndex /> },
+                { path: 'van-sales/:id', element: <VanSalesShow /> },
+              ],
+            },
+            {
               element: <FeatureRoute feature="payroll" />,
               children: [
                 { path: 'payroll', element: <PayrollIndex /> },
+              ],
+            },
+            {
+              element: <FeatureRoute feature="sms" />,
+              children: [
+                { path: 'sms', element: <SmsCenter /> },
               ],
             },
           ],

@@ -137,7 +137,7 @@ export default function SaleDetailModal({ saleId, onClose }) {
   ${totalSaved > 0 ? `<div style="border:2px solid #000;border-radius:4px;padding:3px 8px;display:flex;justify-content:space-between;gap:6px;margin-top:6px"><span style="font-weight:900">${rl('lbl.you_saved')}</span><span style="font-weight:900">${fmt(totalSaved)}</span></div>` : ''}
   <div style="text-align:center;margin:8px 0 4px;"><svg id="barcode" style="max-width:100%;"></svg></div>
   <hr class="divider">
-  <div class="footer">${shopInfo.receipt_footer || 'Thank you for shopping with us!'}<br>lumac.lk</div>
+  <div class="footer">${shopInfo.receipt_footer || 'Thank you for shopping with us!'}<br>Powered by lumac.lk</div>
   <script>
     if (typeof JsBarcode !== 'undefined') {
       JsBarcode('#barcode', '${sale.invoice_no}', { format:'CODE128', displayValue:true, fontSize:10, height:35, margin:2, width:1 });
@@ -309,7 +309,7 @@ export default function SaleDetailModal({ saleId, onClose }) {
 
               <div className="text-center text-xs font-semibold text-black leading-relaxed">
                 <p>{shopInfo.receipt_footer || 'Thank you for shopping with us!'}</p>
-                <p className="mt-1">lumac.lk</p>
+                <p className="mt-1">Powered by lumac.lk</p>
               </div>
             </div>
           )}

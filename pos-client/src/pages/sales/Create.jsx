@@ -1,16 +1,17 @@
 import { useState, useRef, useCallback, useMemo, useEffect } from 'react';
+import { printReceipt } from '../../lib/buildReceiptHtml';
 import { createPortal } from 'react-dom';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { logout, selectCurrentUser, selectRole, selectToken } from '../../features/auth/authSlice';
 import { useCreateSaleMutation, useReturnSaleMutation } from '../../features/sales/salesApi';
+import { useSendSmsReceiptMutation } from '../../features/sms/smsApi';
 import useProductCache from '../../hooks/useProductCache';
 import { useConnectivity } from '../../contexts/ConnectivityContext';
 import { enqueueOfflineSale, getPendingCount, OFFLINE_LIMIT } from '../../services/offlineQueue';
 import { getLocalCustomers } from '../../services/cacheSync';
 import { useLocale } from '../../contexts/LocaleContext';
 import { useTheme } from '../../contexts/ThemeContext';
-import { translations } from '../../i18n/translations';
 import { api } from '../../app/baseApi';
 
 const posApi = api.injectEndpoints({
@@ -20,6 +21,7 @@ const posApi = api.injectEndpoints({
     getPOSSettings:   b.query({ query: () => '/settings' }),
     searchSaleByInvoice: b.query({ query: no => `/sales?search=${encodeURIComponent(no)}&limit=1` }),
     getSaleForReturn:    b.query({ query: id => `/sales/${id}/return` }),
+    getPOSFeatures:      b.query({ query: () => '/features' }),
   }),
   overrideExisting: false,
 });
@@ -293,121 +295,8 @@ function Receipt({ sale, settings, user, onClose }) {
   async function handlePrint() {
     if (printing) return;
     setPrinting(true);
-    const paperSize   = '80mm';
-    const receiptLang = settings?.receipt_language || 'en';
-    const isSinhala   = receiptLang === 'si';
-    const rl = key => (translations[receiptLang] || translations.en)[key] ?? translations.en[key];
-    const minDelay = new Promise(r => setTimeout(r, 1200));
-
-    let totalSaved = 0;
-    const itemsHtml = (sale.items || []).map((item, idx) => {
-      const qty = Number(item.qty || 0);
-      const unit = parseFloat(item.unit_price || 0);
-      const origPrice = parseFloat(item.original_price || 0) || unit;
-      const lineDiscount = parseFloat(item.discount || 0);
-      const originalLineTotal = qty * unit;
-      const reducedLineTotal = Math.max(0, originalLineTotal - lineDiscount);
-      const ourUnit = qty > 0 ? Math.max(0, reducedLineTotal / qty) : unit;
-      if (origPrice > unit) totalSaved += (origPrice - unit) * qty;
-      return `
-      <div class="item-row">
-        <div class="item-name">${idx + 1} ${isSinhala && item.name_si ? item.name_si : item.name}</div>
-      </div>
-      <div class="item-data">
-        <span class="qty-col">${qty}</span>
-        <span class="orig-col">${f(origPrice)}</span>
-        <span class="our-col">${f(ourUnit)}</span>
-        <span class="line-col">${f(reducedLineTotal)}</span>
-      </div>
-    `;
-    }).join('');
-
-    const html = `<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <title>${sale.invoice_no}</title>
-  ${isSinhala ? '<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Sinhala:wght@700;800;900&display=swap" rel="stylesheet">' : ''}
-  <style>
-    * { margin:0; padding:0; box-sizing:border-box; }
-    html, body {
-      font-family: ${isSinhala ? "'Noto Sans Sinhala', sans-serif" : "'Courier New', Courier, monospace"};
-      font-size: 13px;
-      font-weight: 900;
-      width: 80mm;
-      max-width: 80mm;
-      color: #000;
-      word-break: break-word;
-      overflow-wrap: break-word;
-    }
-    body { padding: 5mm 4mm; }
-    .logo { width:96px; height:96px; object-fit:contain; margin:0 auto 6px; display:block; border-radius:50%; }
-    .shop-name { font-size:16px; font-weight:900; text-align:center; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:3px; word-break:break-word; }
-    .shop-meta { font-size:12px; font-weight:900; text-align:center; line-height:1.6; word-break:break-word; }
-    .divider { border:none; border-top:2px solid #000; margin:8px 0; }
-    .row { display:flex; justify-content:space-between; gap:6px; padding:3px 0; font-size:12px; }
-    .row span:first-child { flex-shrink:0; }
-    .row span:last-child { text-align:right; word-break:break-word; min-width:0; }
-    .col-header { display:flex; justify-content:flex-end; font-weight:900; padding:4px 0 3px; border-top:2px solid #000; border-bottom:2px solid #000; margin:6px 0; font-size:12px; }
-    .col-head-prices { display:grid; grid-template-columns: 30px repeat(3, 1fr); gap:8px; min-width:168px; text-align:right; }
-    .item-row { display:flex; justify-content:space-between; align-items:flex-start; gap:6px; font-weight:900; padding-top:5px; font-size:13px; }
-    .item-name { flex:1; min-width:0; word-break:break-word; overflow-wrap:break-word; }
-    .item-data { display:grid; grid-template-columns: 30px repeat(3, 1fr); gap:8px; text-align:right; padding:2px 0 5px; font-size:12px; font-weight:900; }
-    .qty-col { text-align:left; }
-    .orig-col, .our-col, .line-col { text-align:right; }
-    .disc-box { border:2px solid #000; border-radius:4px; padding:3px 8px; display:flex; justify-content:space-between; gap:6px; margin:5px 0; }
-    .total-row { display:flex; justify-content:space-between; align-items:baseline; gap:6px; font-weight:900; font-size:15px; padding:6px 0 4px; border-top:2px solid #000; margin-top:4px; }
-    .paid-row { display:flex; justify-content:space-between; gap:6px; padding:3px 0; font-weight:900; font-size:12px; }
-    .change-row { display:flex; justify-content:space-between; gap:6px; font-weight:900; padding:3px 0; font-size:13px; }
-    .footer { text-align:center; margin-top:10px; font-size:12px; font-weight:900; line-height:1.8; word-break:break-word; }
-    @media print {
-      html, body { overflow: visible !important; height: auto !important; }
-      @page { margin: 0; size: 80mm auto; }
-      body { padding: 3mm 4mm; width: 80mm !important; }
-    }
-  </style>
-</head>
-<body>
-  ${settings?.shop_logo ? `<img class="logo" src="${settings.shop_logo}" alt="logo">` : ''}
-  <div class="shop-name">${settings?.shop_name || 'LMUC POS'}</div>
-  <div class="shop-meta">
-    ${settings?.address ? settings.address + '<br>' : ''}
-    ${settings?.phone || ''}
-  </div>
-  <hr class="divider">
-  <div class="row"><span>${rl('th.invoice')}</span><span>${sale.invoice_no}</span></div>
-  <div class="row"><span>${rl('th.date')}</span><span>${fmtDate(sale.created_at)} ${fmtTime(sale.created_at)}</span></div>
-  <div class="row"><span>${rl('lbl.cashier')}</span><span>${user?.name || '—'}</span></div>
-  ${sale.customer_name ? `<div class="row"><span>${rl('lbl.customer')}</span><span>${sale.customer_name}</span></div>` : ''}
-  <div class="col-header"><span class="col-head-prices"><span>${rl('th.qty')}</span><span>${rl('lbl.original_price')}</span><span>${rl('lbl.our_price')}</span><span>${rl('th.total')}</span></span></div>
-  ${itemsHtml}
-  <hr class="divider">
-  ${totalSaved > 0 ? `<div class="disc-box"><span>${rl('lbl.you_saved')}</span><span>- ${f(totalSaved)}</span></div>` : ''}
-  ${parseFloat(sale.discount) > 0 ? `<div class="disc-box"><span>${rl('lbl.earned_profit')}</span><span>- ${f(sale.discount)}</span></div>` : ''}
-  <div class="total-row"><span>${rl('lbl.grand_total')}</span><span>${currency} ${f(sale.total)}</span></div>
-  ${paidCash > 0  ? `<div class="paid-row"><span>${rl('lbl.cash_paid')} (${rl('lbl.cash')})</span><span>${f(paidCard === 0 && paidCredit === 0 ? parseFloat(sale.paid || 0) : paidCash)}</span></div>` : ''}
-  ${paidCard > 0  ? `<div class="paid-row"><span>${rl('lbl.cash_paid')} (${isCoop ? (isSinhala ? 'මුද්දර' : 'Stamp') : rl('lbl.card')})</span><span>${f(paidCard)}</span></div>` : ''}
-  ${paidCredit > 0 ? `<div class="paid-row"><span>${rl('lbl.credit')}</span><span>${f(paidCredit)}</span></div>` : ''}
-  ${change > 0    ? `<div class="change-row"><span>${rl('lbl.change')}</span><span>${f(change)}</span></div>` : ''}
-  <hr class="divider">
-  <div class="footer">
-    ${settings?.receipt_footer || 'Thank you for shopping with us!'}
-    <br>lumac.lk
-  </div>
-</body>
-</html>`;
-
     try {
-      if (window.electronAPI?.printReceiptHtml) {
-        const [r] = await Promise.all([window.electronAPI.printReceiptHtml(html, { paperSize }), minDelay]);
-        if (r && !r.success) alert('Print failed: ' + (r.error || 'unknown error'));
-      } else {
-        const win = window.open('', '_blank', 'width=400,height=700,scrollbars=yes');
-        if (win) { win.document.write(html); win.document.close(); win.onload = () => win.print(); }
-        await minDelay;
-      }
-    } catch (err) {
-      alert('Print error: ' + err.message);
+      await printReceipt(sale, settings, user?.name);
     } finally {
       setPrinting(false);
     }
@@ -509,7 +398,7 @@ function Receipt({ sale, settings, user, onClose }) {
 
           <div className="text-center leading-relaxed">
             <p className="text-sm font-semibold text-black">{settings?.receipt_footer || 'Thank you for shopping with us!'}</p>
-            <p className="text-black font-bold text-sm mt-1">lumac.lk</p>
+            <p className="text-black font-bold text-sm mt-1">Powered by lumac.lk</p>
           </div>
         </div>
 
@@ -554,6 +443,9 @@ export default function SalesCreate() {
   const isDark = theme === 'dark';
   const { products, ready, deductStock, invalidate } = useProductCache();
   const [createSale, { isLoading: submitting }] = useCreateSaleMutation();
+  const [sendSmsReceipt, { isLoading: smsSending }] = useSendSmsReceiptMutation();
+  const { data: posFeatures } = posApi.useGetPOSFeaturesQuery();
+  const smsEnabled = posFeatures?.some(f => f.key === 'sms');
   const [quickAdd] = posApi.useQuickAddCustomerMutation();
   const { isOnline } = useConnectivity();
   const { data: custData } = posApi.useGetPOSCustomersQuery(undefined, { skip: !isOnline });
@@ -1019,8 +911,11 @@ export default function SalesCreate() {
 
   const completeSaleInFlight = useRef(false);
 
+  // SMS toast
+  const [smsToast, setSmsToast] = useState('');
+
   // ─── Complete sale ────────────────────────────────────────────────────────
-  async function handleCompleteSale(saveOnly = false, redirectAndPrint = false) {
+  async function handleCompleteSale(saveOnly = false, redirectAndPrint = false, withSms = false) {
     if (completeSaleInFlight.current) return;
     completeSaleInFlight.current = true;
     setErr('');
@@ -1103,8 +998,17 @@ export default function SalesCreate() {
       cart.forEach(item => { if (item.product_id) deductStock(item.product_id, item.qty); });
       invalidate();
 
+      const savedCustomerPhone = customer?.phone || null;
       setCart([]); setCustomer(null); setCustQuery(''); setBillDisc(''); setCashPaid('');
-      if (!saveOnly) {
+      if (withSms && result?.id) {
+        setSmsToast('Sending SMS…');
+        sendSmsReceipt({ sale_id: result.id, phone: savedCustomerPhone || undefined })
+          .unwrap()
+          .then(r => { setSmsToast(`SMS sent to ${r.phone}`); })
+          .catch(e => { setSmsToast(e?.data?.error || 'SMS failed — sale saved'); })
+          .finally(() => setTimeout(() => setSmsToast(''), 4000));
+      }
+      if (!saveOnly && !withSms) {
         if (redirectAndPrint && result?.id) {
           navigate('/sales/' + result.id, { state: { autoPrint: true } });
         } else {
@@ -1720,6 +1624,22 @@ export default function SalesCreate() {
                 <span className="hidden lg:inline ml-1 bg-white/20 text-white text-xs px-1.5 py-0.5 rounded font-bold">F10</span>
               </button>
 
+              {/* Save & Send SMS — only when module enabled */}
+              {smsEnabled && (
+                <button
+                  disabled={cart.length === 0 || total === 0 || submitting || smsSending}
+                  onClick={() => handleCompleteSale(false, false, true)}
+                  className="flex flex-col items-center justify-center gap-0.5 px-3 py-2 border-2 border-emerald-400 hover:border-emerald-500 disabled:opacity-40 text-emerald-700 dark:text-emerald-400 rounded-xl text-xs font-semibold transition-colors shadow-md"
+                  title="Save & Send SMS receipt"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                      d="M8 10h.01M12 10h.01M16 10h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 0 1-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                  </svg>
+                  <span>SMS</span>
+                </button>
+              )}
+
               {/* Save only */}
               <button
                 disabled={cart.length === 0 || total === 0 || submitting}
@@ -1731,6 +1651,13 @@ export default function SalesCreate() {
                 <span className="hidden lg:block text-slate-400 font-normal">F11</span>
               </button>
             </div>
+
+            {/* SMS toast */}
+            {smsToast && (
+              <div className="mt-2 px-3 py-2 bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-700 rounded-lg text-xs text-emerald-700 dark:text-emerald-300 font-medium text-center">
+                {smsToast}
+              </div>
+            )}
 
             {/* Hold Bill + Clear Cart */}
             <div className="flex gap-2">

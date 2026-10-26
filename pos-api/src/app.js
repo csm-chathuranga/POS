@@ -46,6 +46,9 @@ app.use('/api/accounting',      require('./routes/accounting'));
 app.use('/api/employees',       require('./routes/employees'));
 app.use('/api/loading-sheets',  require('./routes/loading-sheets'));
 app.use('/api/coop-city',       require('./routes/coop-city'));
+app.use('/api/sms',             require('./routes/sms'));
+app.use('/api/attendance',      require('./routes/attendance'));
+app.use('/api/van-sales',       require('./routes/van-sales'));
 
 // Wrap all async route handlers so thrown errors flow to the error handler
 function wrapAsync(router) {
@@ -64,7 +67,7 @@ function wrapAsync(router) {
 }
 
 // Apply async wrapper to all mounted routers
-['auth', 'dashboard', 'products', 'categories', 'suppliers', 'customers', 'sales', 'purchases', 'settings', 'users', 'reports', 'employees', 'accounting', 'loading-sheets', 'coop-city'].forEach(name => {
+['auth', 'dashboard', 'products', 'categories', 'suppliers', 'customers', 'sales', 'purchases', 'settings', 'users', 'reports', 'employees', 'accounting', 'loading-sheets', 'coop-city', 'sms', 'attendance', 'van-sales'].forEach(name => {
   try { wrapAsync(require(`./routes/${name}`)); } catch {}
 });
 

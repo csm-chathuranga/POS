@@ -132,6 +132,9 @@ router.post('/', auth, async (req, res) => {
   // Post to accounting journal (no-op if module disabled or accounts not seeded)
   postSale(req.models, { sale, payments, user_id: req.user.id });
 
+  // Fire SMS receipt — pluggable, never blocks response
+  require('../lib/sms').fireSmsReceipt(req.models, req.db, created, customer_id).catch(() => {});
+
   res.status(201).json(created);
 });
 
