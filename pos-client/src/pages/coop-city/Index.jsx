@@ -498,30 +498,40 @@ function StoresTab() {
   );
 }
 
-const TABS = [
-  { key: 'transfer', label: 'Stock Transfer', Component: StockTransferTab },
-  { key: 'stores', label: 'Stores', Component: StoresTab },
+const NAV = [
+  { key: 'transfer', label: 'Stock Transfer', icon: 'M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4', Component: StockTransferTab },
+  { key: 'stores',   label: 'Stores',         icon: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6', Component: StoresTab },
 ];
 
 export default function CoopCityIndex() {
-  const [tab, setTab] = useState('transfer');
-  const Active = TABS.find(t => t.key === tab).Component;
+  const [section, setSection] = useState('transfer');
+  const Active = NAV.find(n => n.key === section).Component;
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 space-y-6">
-      <h1 className="text-2xl font-bold text-slate-800 no-print">Coop City</h1>
-      <div className="inline-flex gap-1 p-1 rounded-xl bg-slate-200/70 no-print">
-        {TABS.map(t => (
-          <button
-            key={t.key}
-            onClick={() => setTab(t.key)}
-            className={`px-5 py-2 rounded-lg text-sm font-semibold transition-all ${tab === t.key ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-600 hover:text-slate-800 hover:bg-white/50'}`}
-          >
-            {t.label}
-          </button>
-        ))}
-      </div>
-      <Active />
+    <div className="flex" style={{ minHeight: 'calc(100vh - 56px)' }}>
+      {/* Sidebar */}
+      <aside className="w-48 shrink-0 bg-white border-r border-slate-200 pt-4 no-print">
+        <p className="px-4 pb-3 text-xs font-bold text-slate-400 uppercase tracking-wider">Coop City</p>
+        <nav className="space-y-0.5">
+          {NAV.map(item => (
+            <button key={item.key} onClick={() => setSection(item.key)}
+              className={`w-full flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium transition-colors text-left
+                ${section === item.key
+                  ? 'bg-blue-50 text-blue-700 border-r-2 border-blue-600'
+                  : 'text-slate-600 hover:bg-slate-50 hover:text-slate-800'}`}>
+              <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d={item.icon} />
+              </svg>
+              {item.label}
+            </button>
+          ))}
+        </nav>
+      </aside>
+
+      {/* Content */}
+      <main className="flex-1 p-4 sm:p-6 overflow-auto">
+        <Active />
+      </main>
     </div>
   );
 }
