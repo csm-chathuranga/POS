@@ -240,10 +240,22 @@ router.post('/truncate', auth, role('admin'), async (req, res) => {
   }
 });
 
+const DECIMAL_FIELDS = ['selling_price', 'wholesale_price', 'cost_price', 'promo_price', 'our_price', 'stock_qty', 'alert_qty'];
+function sanitiseProduct(data) {
+  const out = { ...data };
+  for (const f of DECIMAL_FIELDS) {
+    if (f in out) out[f] = out[f] === '' || out[f] === null || out[f] === undefined ? (f === 'alert_qty' ? 5 : 0) : parseFloat(out[f]) || 0;
+  }
+  if ('promo_price' in out && !out.promo_price) out.promo_price = null;
+  if ('our_price'   in out && !out.our_price)   out.our_price   = null;
+  return out;
+}
+
 // POST /api/products
 router.post('/', auth, role('admin', 'manager'), async (req, res) => {
   const { Product, ProductVariant } = req.models;
-  const { variants = [], ...data } = req.body;
+  const { variants = [], ...raw } = req.body;
+  const data = sanitiseProduct(raw);
 
   if (data.barcode) {
     const existing = await Product.findOne({ where: { barcode: data.barcode } });
@@ -349,7 +361,8 @@ router.put('/:id', auth, role('admin', 'manager'), async (req, res) => {
   const product = await Product.findByPk(req.params.id);
   if (!product) return res.status(404).json({ error: 'Not found' });
 
-  const { variants = [], ...data } = req.body;
+  const { variants = [], ...raw } = req.body;
+  const data = sanitiseProduct(raw);
 
   if (data.barcode) {
     const existing = await Product.findOne({ where: { barcode: data.barcode } });
