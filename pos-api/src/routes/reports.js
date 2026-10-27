@@ -99,14 +99,15 @@ router.get('/profit', auth, async (req, res) => {
 
   const [items, salesSummary] = await Promise.all([
     db.query(`
-      SELECT si.product_id, si.product_name, si.unit_price, si.cost_price,
-             (si.unit_price - si.cost_price) as unit_profit,
+      SELECT si.product_id, si.product_name, si.unit_price,
+             IF(si.cost_price > 0, si.cost_price, si.unit_price) as cost_price,
+             (si.unit_price - IF(si.cost_price > 0, si.cost_price, si.unit_price)) as unit_profit,
              SUM(si.qty) as total_qty,
              SUM(si.unit_price * si.qty) as gross_revenue,
              SUM(si.discount) as total_item_discount,
              SUM(si.total) as net_revenue,
-             SUM(si.cost_price * si.qty) as total_cost,
-             SUM((si.unit_price - si.cost_price) * si.qty) as gross_profit
+             SUM(IF(si.cost_price > 0, si.cost_price, si.unit_price) * si.qty) as total_cost,
+             SUM((si.unit_price - IF(si.cost_price > 0, si.cost_price, si.unit_price)) * si.qty) as gross_profit
       FROM sale_items si JOIN sales s ON si.sale_id = s.id
       WHERE s.created_at BETWEEN ? AND ? AND s.status != 'held'
       GROUP BY si.product_id, si.product_name, si.unit_price, si.cost_price
@@ -190,8 +191,8 @@ router.get('/revenue', auth, async (req, res) => {
     db.query(`
       SELECT DATE(s.created_at) as date, COUNT(DISTINCT s.id) as total_bills,
              SUM(si.unit_price * si.qty) as gross_revenue, SUM(si.discount) as item_discount,
-             SUM(si.total) as net_revenue, SUM(si.cost_price * si.qty) as total_cost,
-             SUM((si.unit_price - si.cost_price) * si.qty) as gross_profit
+             SUM(si.total) as net_revenue, SUM(IF(si.cost_price > 0, si.cost_price, si.unit_price) * si.qty) as total_cost,
+             SUM((si.unit_price - IF(si.cost_price > 0, si.cost_price, si.unit_price)) * si.qty) as gross_profit
       FROM sale_items si JOIN sales s ON si.sale_id = s.id
       WHERE s.created_at BETWEEN ? AND ? AND s.status != 'held'
       GROUP BY DATE(s.created_at) ORDER BY date
