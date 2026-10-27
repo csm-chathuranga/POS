@@ -174,12 +174,11 @@ export default function PurchaseShow() {
       return `<tr>
         <td></td><td class="l">${it.product_name}</td><td></td>
         <td class="m">${fmtNum(qty)}</td>
-        ${money(it.cost_price)}${money(it.total)}
         ${money(retail)}${money(qty * retail)}
         <td></td></tr>`;
     }).join('');
     const blank = Array.from({ length: Math.max(ROWS - items.length, 0) })
-      .map(() => `<tr>${'<td>&nbsp;</td>'.repeat(13)}</tr>`).join('');
+      .map(() => `<tr>${'<td>&nbsp;</td>'.repeat(9)}</tr>`).join('');
     const sum = (a, b) => `${money(a)}${money(b)}`;
 
     const html = `<!DOCTYPE html>
@@ -215,9 +214,8 @@ export default function PurchaseShow() {
   </div>
   <table>
     <colgroup>
-      <col style="width:8%"><col style="width:25%"><col style="width:12%"><col style="width:7%">
-      <col style="width:7%"><col style="width:3%"><col style="width:8%"><col style="width:3%">
-      <col style="width:7%"><col style="width:3%"><col style="width:8%"><col style="width:3%"><col style="width:9%">
+      <col style="width:8%"><col style="width:30%"><col style="width:14%"><col style="width:9%">
+      <col style="width:9%"><col style="width:4%"><col style="width:10%"><col style="width:4%"><col style="width:12%">
     </colgroup>
     <thead>
       <tr>
@@ -225,21 +223,19 @@ export default function PurchaseShow() {
         <th rowspan="3">විස්තරය<br>Description</th>
         <th rowspan="3">ආපසු එවිය යුතු නිස් භාජනවල විස්තරය<br>Empty containers to return</th>
         <th rowspan="3">ප්‍රමාණය<br>Qty</th>
-        <th colspan="4">තොග ගබඩාවේ විකුණන මිල<br>Wholesale Selling Price</th>
         <th colspan="4">සිල්ලර ගබඩාවේ විකුණන මිල<br>Retail Selling Price</th>
         <th rowspan="3">වෙනත් කරුණු<br>Remarks</th>
       </tr>
       <tr>
         <th colspan="2">එකක මිල<br>Unit</th><th colspan="2">එකතුව<br>Total</th>
-        <th colspan="2">එකක මිල<br>Unit</th><th colspan="2">එකතුව<br>Total</th>
       </tr>
-      <tr>${'<th>රු.</th><th>ශත</th>'.repeat(4)}</tr>
+      <tr>${'<th>රු.</th><th>ශත</th>'.repeat(2)}</tr>
     </thead>
     <tbody>
       ${rows}${blank}
-      <tr class="tot"><td colspan="3" class="r">මෙම සටහනේ එකතුව / Total of this note</td><td></td><td colspan="2"></td>${money(sumCost)}<td colspan="2"></td>${money(sumRetail)}<td></td></tr>
-      <tr class="tot"><td colspan="3" class="r">පෙර සටහනේ එකතුව / Previous total</td><td></td><td colspan="2"></td><td colspan="2"></td><td colspan="2"></td><td colspan="2"></td><td></td></tr>
-      <tr class="tot"><td colspan="3" class="r">මුළු එකතුව / Grand total</td><td></td><td colspan="2"></td>${money(sumCost)}<td colspan="2"></td>${money(sumRetail)}<td></td></tr>
+      <tr class="tot"><td colspan="3" class="r">මෙම සටහනේ එකතුව / Total of this note</td><td></td><td colspan="2"></td>${money(sumRetail)}<td></td></tr>
+      <tr class="tot"><td colspan="3" class="r">පෙර සටහනේ එකතුව / Previous total</td><td></td><td colspan="2"></td><td colspan="2"></td><td></td></tr>
+      <tr class="tot"><td colspan="3" class="r">මුළු එකතුව / Grand total</td><td></td><td colspan="2"></td>${money(sumRetail)}<td></td></tr>
     </tbody>
   </table>
   <div class="foot">

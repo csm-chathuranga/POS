@@ -4,6 +4,8 @@ import { selectCurrentUser } from '../../features/auth/authSlice';
 import { getApiUrl } from '../../config/runtimeConfig';
 
 const API = getApiUrl();
+const isCoop = window.location.hostname.includes('coop');
+const mlabel = m => (m === 'card' && isCoop) ? 'Stamp' : m;
 const today = () => {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -51,7 +53,7 @@ export default function DailyReport() {
       const printMethods = summary.methods || {};
 
       const rowsHtml = sales.map(s => {
-        const saleMethods = [...new Set((s.payments || []).map(p => p.method))].join('/');
+        const saleMethods = [...new Set((s.payments || []).map(p => mlabel(p.method)))].join('/');
         return `
   <div class="sale-row">
     <div class="inv">${s.invoice_no}</div>
@@ -143,7 +145,7 @@ export default function DailyReport() {
 
   <div class="section-title">Payment Methods</div>
   <div class="summary">
-    ${Object.entries(printMethods).map(([m, amt]) => `<div class="sum-row"><span style="text-transform:capitalize">${m}</span><span>${f(amt)}</span></div>`).join('')}
+    ${Object.entries(printMethods).map(([m, amt]) => `<div class="sum-row"><span style="text-transform:capitalize">${mlabel(m)}</span><span>${f(amt)}</span></div>`).join('')}
     <div class="sum-row grand">
       <span>Grand Total</span>
       <span>${f(summary.total)}</span>

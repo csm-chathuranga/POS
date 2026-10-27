@@ -6,6 +6,7 @@ import { selectRole } from '../../features/auth/authSlice';
 import { useLocale } from '../../contexts/LocaleContext';
 import { useConnectivity } from '../../contexts/ConnectivityContext';
 import { getLocalPurchases } from '../../services/cacheSync';
+import ConfirmModal from '../../components/ConfirmModal';
 
 export default function PurchasesIndex() {
   const role = useSelector(selectRole);
@@ -43,9 +44,15 @@ export default function PurchasesIndex() {
   const fmt = n => 'Rs. ' + Number(n || 0).toLocaleString('en-LK', { minimumFractionDigits: 2 });
   const fmtDate = s => new Date(s).toLocaleDateString('en-LK');
 
-  async function handleDelete(p) {
-    if (!window.confirm(`Delete GRN ${p.grn_no}?`)) return;
-    await del(p.id);
+  const [deleteConfirm, setDeleteConfirm] = useState(null); // { id, grn_no }
+
+  function handleDelete(p) {
+    setDeleteConfirm({ id: p.id, grn_no: p.grn_no });
+  }
+
+  async function confirmDelete() {
+    await del(deleteConfirm.id);
+    setDeleteConfirm(null);
   }
 
   const statusBadge = s => {
@@ -54,6 +61,14 @@ export default function PurchasesIndex() {
   };
 
   return (
+    <>
+    {deleteConfirm && (
+      <ConfirmModal
+        message={`Delete GRN ${deleteConfirm.grn_no}?`}
+        onConfirm={confirmDelete}
+        onCancel={() => setDeleteConfirm(null)}
+      />
+    )}
     <div className="p-3 sm:p-6 space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-bold text-slate-800">{t('page.purchases')}</h1>
@@ -215,5 +230,6 @@ export default function PurchasesIndex() {
         )}
       </div>
     </div>
+    </>
   );
 }

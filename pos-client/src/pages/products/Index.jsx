@@ -13,6 +13,7 @@ import { getApiUrl } from '../../config/runtimeConfig';
 import { useLocale } from '../../contexts/LocaleContext';
 import { useConnectivity } from '../../contexts/ConnectivityContext';
 import { getLocalProducts, getLocalCategories } from '../../services/cacheSync';
+import ConfirmModal from '../../components/ConfirmModal';
 
 const SAMPLE_CSV_HEADERS = 'name,barcode,selling_price,cost_price,wholesale_price,stock_qty,alert_qty,unit';
 const SAMPLE_CSV_ROW     = 'Sample Product,123456,100.00,70.00,80.00,50,5,pcs';
@@ -248,14 +249,27 @@ export default function ProductsIndex() {
     setPage(1);
   }
 
-  async function handleDelete(id, name) {
-    if (!window.confirm(`Delete "${name}"?`)) return;
-    await deleteProduct(id);
+  const [deleteConfirm, setDeleteConfirm] = useState(null); // { id, name }
+
+  function handleDelete(id, name) {
+    setDeleteConfirm({ id, name });
+  }
+
+  async function confirmDelete() {
+    await deleteProduct(deleteConfirm.id);
+    setDeleteConfirm(null);
   }
 
 
   return (
     <>
+    {deleteConfirm && (
+      <ConfirmModal
+        message={`Delete "${deleteConfirm.name}"?`}
+        onConfirm={confirmDelete}
+        onCancel={() => setDeleteConfirm(null)}
+      />
+    )}
     <div className="p-3 sm:p-6 space-y-4">
 
       {/* Top toolbar */}

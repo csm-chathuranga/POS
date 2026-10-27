@@ -8,6 +8,7 @@ import { useGetRolesQuery } from '../../features/roles/rolesApi';
 import { useSelector } from 'react-redux';
 import { selectCurrentUser, selectRole } from '../../features/auth/authSlice';
 import { useLocale } from '../../contexts/LocaleContext';
+import ConfirmModal from '../../components/ConfirmModal';
 
 const empty = { name: '', email: '', password: '', role: 'cashier' };
 
@@ -157,10 +158,16 @@ export default function UsersIndex() {
     } catch (e) { setErr(e?.data?.error || 'Failed'); }
   }
 
-  async function handleDelete(u) {
+  const [deleteConfirm, setDeleteConfirm] = useState(null); // { id, name }
+
+  function handleDelete(u) {
     if (u.id === me?.id) return;
-    if (!window.confirm(`Delete "${u.name}"?`)) return;
-    await del(u.id);
+    setDeleteConfirm({ id: u.id, name: u.name });
+  }
+
+  async function confirmDelete() {
+    await del(deleteConfirm.id);
+    setDeleteConfirm(null);
   }
 
   const set = f => e => setForm(p => ({ ...p, [f]: e.target.value }));
@@ -171,6 +178,14 @@ export default function UsersIndex() {
   };
 
   return (
+    <>
+    {deleteConfirm && (
+      <ConfirmModal
+        message={`Delete "${deleteConfirm.name}"?`}
+        onConfirm={confirmDelete}
+        onCancel={() => setDeleteConfirm(null)}
+      />
+    )}
     <div className="p-3 sm:p-6 space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-bold text-slate-800">{t('page.users')}</h1>
@@ -317,5 +332,6 @@ export default function UsersIndex() {
         <FeatureModal user={featureUser} onClose={() => setFeatureUser(null)} />
       )}
     </div>
+    </>
   );
 }

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import ConfirmModal from '../../components/ConfirmModal';
 import {
   useGetRolesQuery, useGetFeaturesQuery,
   useCreateRoleMutation, useUpdateRoleMutation,
@@ -83,8 +84,11 @@ export default function RolesPage() {
     } finally { setBusy(false); }
   }
 
-  async function handleDelete(id) {
-    if (!window.confirm('Delete this role? Users with this role will lose access.')) return;
+  const [deleteConfirm, setDeleteConfirm] = useState(null);
+
+  async function confirmDelete() {
+    const id = deleteConfirm;
+    setDeleteConfirm(null);
     setBusy(true); setError('');
     try {
       await deleteRole({ id }).unwrap();
@@ -93,6 +97,8 @@ export default function RolesPage() {
       setError(e?.data?.error || 'Failed to delete role');
     } finally { setBusy(false); }
   }
+
+  function handleDelete(id) { setDeleteConfirm(id); }
 
   const currentRole = (roles || []).find(r => r.id === selectedId);
   const grouped = {};
@@ -107,6 +113,14 @@ export default function RolesPage() {
   }
 
   return (
+    <>
+    {deleteConfirm && (
+      <ConfirmModal
+        message="Delete this role? Users with this role will lose access."
+        onConfirm={confirmDelete}
+        onCancel={() => setDeleteConfirm(null)}
+      />
+    )}
     <div className="p-4 sm:p-6 max-w-4xl space-y-6">
       <div>
         <h1 className="text-xl font-bold text-slate-800">Role Permissions</h1>
@@ -247,5 +261,6 @@ export default function RolesPage() {
         </div>
       )}
     </div>
+    </>
   );
 }

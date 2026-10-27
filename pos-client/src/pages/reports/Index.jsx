@@ -208,18 +208,9 @@ function SalesToday() {
     <thead><tr><th style="width:22%">විස්තරය<br>Description</th>${mHead}<th colspan="2">ණය වෙළඳාම<br>Credit</th><th colspan="2">එකතුව<br>Total</th></tr>
     <tr><th></th>${'<th>රු.</th><th>ශත</th>'.repeat(methods.length + 2)}</tr></thead>
     <tbody>
-      <tr><td class="l">දිනට මුදල තැන්පත් ණය<br>Today's sales</td>${mCells}${money(bal)}${money(total + bal)}</tr>
+      <tr><td class="l">දිනට මුදල තැන්පත් ණය<br>Today's sales</td>${mCells}${money(bal)}${money(total)}</tr>
       <tr><td class="l">පෙර දිනට මුදල තැන්පත් ණය<br>Previous days</td>${mBlank}${blank2}${blank2}</tr>
       <tr class="tot"><td class="l">අදට දිනට තැන්පත් ණය<br>Cumulative</td>${mBlank}${blank2}${blank2}</tr>
-    </tbody>
-  </table>
-
-  <div class="sec">ලැබීම් / Receipts – Sales (${sales.length})</div>
-  <table>
-    <thead><tr><th>#</th><th style="width:20%">බිල්පත් අංකය<br>Invoice</th><th style="width:20%">අයකැමි<br>Cashier</th><th colspan="2">එකතුව<br>Total</th><th colspan="2">ගෙවූ<br>Paid</th><th colspan="2">ශේෂය<br>Balance</th></tr>
-    <tr><th></th><th></th><th></th>${'<th>රු.</th><th>ශත</th>'.repeat(3)}</tr></thead>
-    <tbody>${saleRows}${filler}
-      <tr class="tot"><td colspan="3" class="r">මුළු එකතුව / Total (${summary.total_bills ?? 0} bills)</td>${money(total + bal)}${money(total)}${money(bal)}</tr>
     </tbody>
   </table>
 
