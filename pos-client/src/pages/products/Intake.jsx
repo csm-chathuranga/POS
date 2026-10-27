@@ -31,6 +31,7 @@ export default function ProductIntake() {
   const [savedCount, setSavedCount] = useState(0);
   const [lastSaved,  setLastSaved]  = useState('');
   const [form, setForm] = useState({ stock_qty: '', cost_price: '', selling_price: '', our_price: '', expiry_date: '', name_si: '' });
+  const [formError, setFormError] = useState('');
 
   const [browseOpen,  setBrowseOpen]  = useState(false);
   const [browseSearch, setBrowseSearch] = useState('');
@@ -133,6 +134,17 @@ export default function ProductIntake() {
   async function handleSave(e) {
     e.preventDefault();
     if (!product) return;
+    if (!(parseFloat(form.cost_price) > 0)) {
+      setFormError('මිලදී ගැනීමේ මිල (Cost Price) ඇතුල් කරන්න');
+      fCostRef.current?.focus();
+      return;
+    }
+    if (!(parseFloat(form.selling_price) > 0)) {
+      setFormError('විකිණුම් මිල (Selling Price) ඇතුල් කරන්න');
+      fSellRef.current?.focus();
+      return;
+    }
+    setFormError('');
     if (pricesDiffer()) {
       setBatchPrompt(true);
       return;
@@ -201,6 +213,7 @@ export default function ProductIntake() {
     setBarcode('');
     setNotFound(false);
     setForm({ stock_qty: '', cost_price: '', selling_price: '', our_price: '', expiry_date: '', name_si: '' });
+    setFormError('');
     setTimeout(() => barcodeRef.current?.focus(), 50);
   }
 
@@ -304,21 +317,21 @@ export default function ProductIntake() {
             </div>
             <div>
               <label className="block text-xs font-semibold text-slate-500 mb-1.5">මිලදී ගැනීමේ මිල</label>
-              <input type="number" step="0.01" min="0" required value={form.cost_price}
+              <input type="number" step="0.01" min="0.01" required value={form.cost_price}
                 ref={fCostRef}
-                onChange={e => setForm(f => ({ ...f, cost_price: e.target.value }))}
+                onChange={e => { setForm(f => ({ ...f, cost_price: e.target.value })); setFormError(''); }}
                 onFocus={e => e.target.select()}
                 onKeyDown={fNext(fSellRef)}
-                className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500" />
+                className={`w-full rounded-xl border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500 ${formError && !(parseFloat(form.cost_price) > 0) ? 'border-red-400 bg-red-50' : 'border-slate-200'}`} />
             </div>
             <div>
               <label className="block text-xs font-semibold text-slate-500 mb-1.5">විකිණුම් මිල</label>
-              <input type="number" step="0.01" min="0" required value={form.selling_price}
+              <input type="number" step="0.01" min="0.01" required value={form.selling_price}
                 ref={fSellRef}
-                onChange={e => setForm(f => ({ ...f, selling_price: e.target.value }))}
+                onChange={e => { setForm(f => ({ ...f, selling_price: e.target.value })); setFormError(''); }}
                 onFocus={e => e.target.select()}
                 onKeyDown={fNext(fOurRef)}
-                className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500" />
+                className={`w-full rounded-xl border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500 ${formError && !(parseFloat(form.selling_price) > 0) ? 'border-red-400 bg-red-50' : 'border-slate-200'}`} />
             </div>
             <div>
               <label className="block text-xs font-semibold text-slate-500 mb-1.5">අපේ මිල</label>
@@ -353,6 +366,9 @@ export default function ProductIntake() {
               style={{ fontFamily: "'Noto Sans Sinhala', sans-serif" }} />
           </div>
 
+          {formError && (
+            <p className="text-xs font-semibold text-red-600 bg-red-50 border border-red-200 rounded-xl px-3 py-2">{formError}</p>
+          )}
           <div className="flex gap-2 pt-1">
             <button type="button" onClick={reset}
               className="px-4 py-2.5 rounded-xl border border-slate-200 text-sm font-semibold text-slate-500 hover:bg-slate-50 transition-colors">
