@@ -32,6 +32,7 @@ export default function ProductIntake() {
   const [lastSaved,  setLastSaved]  = useState('');
   const [form, setForm] = useState({ stock_qty: '', cost_price: '', selling_price: '', our_price: '', expiry_date: '', name_si: '' });
   const [formError, setFormError] = useState('');
+  const [fieldErrors, setFieldErrors] = useState({});
 
   const [browseOpen,  setBrowseOpen]  = useState(false);
   const [browseSearch, setBrowseSearch] = useState('');
@@ -134,16 +135,16 @@ export default function ProductIntake() {
   async function handleSave(e) {
     e.preventDefault();
     if (!product) return;
-    if (!(parseFloat(form.cost_price) > 0)) {
-      setFormError('මිලදී ගැනීමේ මිල (Cost Price) ඇතුල් කරන්න');
-      fCostRef.current?.focus();
+    const errs = {};
+    if (!(parseFloat(form.stock_qty) >= 0) || form.stock_qty === '') errs.stock_qty     = 'තොගය ඇතුල් කරන්න';
+    if (!(parseFloat(form.cost_price) > 0))    errs.cost_price    = 'මිලදී ගැනීමේ මිල ඇතුල් කරන්න';
+    if (!(parseFloat(form.selling_price) > 0))  errs.selling_price = 'විකිණුම් මිල ඇතුල් කරන්න';
+    if (Object.keys(errs).length) {
+      setFieldErrors(errs);
+      (errs.stock_qty ? fStockRef : errs.cost_price ? fCostRef : fSellRef).current?.focus();
       return;
     }
-    if (!(parseFloat(form.selling_price) > 0)) {
-      setFormError('විකිණුම් මිල (Selling Price) ඇතුල් කරන්න');
-      fSellRef.current?.focus();
-      return;
-    }
+    setFieldErrors({});
     setFormError('');
     if (pricesDiffer()) {
       setBatchPrompt(true);
@@ -214,6 +215,7 @@ export default function ProductIntake() {
     setNotFound(false);
     setForm({ stock_qty: '', cost_price: '', selling_price: '', our_price: '', expiry_date: '', name_si: '' });
     setFormError('');
+    setFieldErrors({});
     setTimeout(() => barcodeRef.current?.focus(), 50);
   }
 
@@ -308,30 +310,33 @@ export default function ProductIntake() {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-semibold text-slate-500 mb-1.5">තොගය</label>
-              <input type="number" step="0.001" min="0" required value={form.stock_qty}
+              <input type="number" step="0.001" min="0" value={form.stock_qty}
                 ref={fStockRef}
-                onChange={e => setForm(f => ({ ...f, stock_qty: e.target.value }))}
+                onChange={e => { setForm(f => ({ ...f, stock_qty: e.target.value })); setFieldErrors(fe => ({ ...fe, stock_qty: '' })); }}
                 onFocus={e => e.target.select()}
                 onKeyDown={fNext(fCostRef)}
-                className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500" />
+                className={`w-full rounded-xl border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500 ${fieldErrors.stock_qty ? 'border-red-400 bg-red-50 focus:ring-red-400' : 'border-slate-200'}`} />
+              {fieldErrors.stock_qty && <p className="text-xs text-red-500 mt-1 font-medium">{fieldErrors.stock_qty}</p>}
             </div>
             <div>
               <label className="block text-xs font-semibold text-slate-500 mb-1.5">මිලදී ගැනීමේ මිල</label>
-              <input type="number" step="0.01" min="0.01" required value={form.cost_price}
+              <input type="number" step="0.01" min="0" value={form.cost_price}
                 ref={fCostRef}
-                onChange={e => { setForm(f => ({ ...f, cost_price: e.target.value })); setFormError(''); }}
+                onChange={e => { setForm(f => ({ ...f, cost_price: e.target.value })); setFieldErrors(fe => ({ ...fe, cost_price: '' })); }}
                 onFocus={e => e.target.select()}
                 onKeyDown={fNext(fSellRef)}
-                className={`w-full rounded-xl border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500 ${formError && !(parseFloat(form.cost_price) > 0) ? 'border-red-400 bg-red-50' : 'border-slate-200'}`} />
+                className={`w-full rounded-xl border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500 ${fieldErrors.cost_price ? 'border-red-400 bg-red-50 focus:ring-red-400' : 'border-slate-200'}`} />
+              {fieldErrors.cost_price && <p className="text-xs text-red-500 mt-1 font-medium">{fieldErrors.cost_price}</p>}
             </div>
             <div>
               <label className="block text-xs font-semibold text-slate-500 mb-1.5">විකිණුම් මිල</label>
-              <input type="number" step="0.01" min="0.01" required value={form.selling_price}
+              <input type="number" step="0.01" min="0" value={form.selling_price}
                 ref={fSellRef}
-                onChange={e => { setForm(f => ({ ...f, selling_price: e.target.value })); setFormError(''); }}
+                onChange={e => { setForm(f => ({ ...f, selling_price: e.target.value })); setFieldErrors(fe => ({ ...fe, selling_price: '' })); }}
                 onFocus={e => e.target.select()}
                 onKeyDown={fNext(fOurRef)}
-                className={`w-full rounded-xl border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500 ${formError && !(parseFloat(form.selling_price) > 0) ? 'border-red-400 bg-red-50' : 'border-slate-200'}`} />
+                className={`w-full rounded-xl border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500 ${fieldErrors.selling_price ? 'border-red-400 bg-red-50 focus:ring-red-400' : 'border-slate-200'}`} />
+              {fieldErrors.selling_price && <p className="text-xs text-red-500 mt-1 font-medium">{fieldErrors.selling_price}</p>}
             </div>
             <div>
               <label className="block text-xs font-semibold text-slate-500 mb-1.5">අපේ මිල</label>

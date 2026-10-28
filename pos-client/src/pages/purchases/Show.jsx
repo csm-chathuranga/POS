@@ -168,17 +168,19 @@ export default function PurchaseShow() {
     let sumCost = 0, sumRetail = 0;
     const rows = items.map(it => {
       const qty    = Number(it.qty) || 0;
-      const retail = Number(it.product?.selling_price) || 0;
+      const cost   = Number(it.cost_price) || 0;
+      const retail = Number(it.selling_price) || Number(it.product?.selling_price) || 0;
       sumCost   += Number(it.total) || 0;
       sumRetail += qty * retail;
       return `<tr>
         <td></td><td class="l">${it.product_name}</td><td></td>
         <td class="m">${fmtNum(qty)}</td>
+        ${money(cost)}${money(qty * cost)}
         ${money(retail)}${money(qty * retail)}
         <td></td></tr>`;
     }).join('');
     const blank = Array.from({ length: Math.max(ROWS - items.length, 0) })
-      .map(() => `<tr>${'<td>&nbsp;</td>'.repeat(9)}</tr>`).join('');
+      .map(() => `<tr>${'<td>&nbsp;</td>'.repeat(13)}</tr>`).join('');
     const sum = (a, b) => `${money(a)}${money(b)}`;
 
     const html = `<!DOCTYPE html>
@@ -214,8 +216,10 @@ export default function PurchaseShow() {
   </div>
   <table>
     <colgroup>
-      <col style="width:8%"><col style="width:30%"><col style="width:14%"><col style="width:9%">
-      <col style="width:9%"><col style="width:4%"><col style="width:10%"><col style="width:4%"><col style="width:12%">
+      <col style="width:5%"><col style="width:24%"><col style="width:10%"><col style="width:6%">
+      <col style="width:6%"><col style="width:3%"><col style="width:7%"><col style="width:3%">
+      <col style="width:6%"><col style="width:3%"><col style="width:7%"><col style="width:3%">
+      <col style="width:7%">
     </colgroup>
     <thead>
       <tr>
@@ -223,19 +227,21 @@ export default function PurchaseShow() {
         <th rowspan="3">විස්තරය<br>Description</th>
         <th rowspan="3">ආපසු එවිය යුතු නිස් භාජනවල විස්තරය<br>Empty containers to return</th>
         <th rowspan="3">ප්‍රමාණය<br>Qty</th>
+        <th colspan="4">මිල දී ගත් මිල<br>Cost Price</th>
         <th colspan="4">සිල්ලර ගබඩාවේ විකුණන මිල<br>Retail Selling Price</th>
         <th rowspan="3">වෙනත් කරුණු<br>Remarks</th>
       </tr>
       <tr>
         <th colspan="2">එකක මිල<br>Unit</th><th colspan="2">එකතුව<br>Total</th>
+        <th colspan="2">එකක මිල<br>Unit</th><th colspan="2">එකතුව<br>Total</th>
       </tr>
-      <tr>${'<th>රු.</th><th>ශත</th>'.repeat(2)}</tr>
+      <tr>${'<th>රු.</th><th>ශත</th>'.repeat(4)}</tr>
     </thead>
     <tbody>
       ${rows}${blank}
-      <tr class="tot"><td colspan="3" class="r">මෙම සටහනේ එකතුව / Total of this note</td><td></td><td colspan="2"></td>${money(sumRetail)}<td></td></tr>
-      <tr class="tot"><td colspan="3" class="r">පෙර සටහනේ එකතුව / Previous total</td><td></td><td colspan="2"></td><td colspan="2"></td><td></td></tr>
-      <tr class="tot"><td colspan="3" class="r">මුළු එකතුව / Grand total</td><td></td><td colspan="2"></td>${money(sumRetail)}<td></td></tr>
+      <tr class="tot"><td colspan="3" class="r">මෙම සටහනේ එකතුව / Total of this note</td><td></td><td colspan="2"></td>${money(sumCost)}<td colspan="2"></td>${money(sumRetail)}<td></td></tr>
+      <tr class="tot"><td colspan="3" class="r">පෙර සටහනේ එකතුව / Previous total</td><td></td><td colspan="2"></td><td colspan="2"></td><td colspan="2"></td><td colspan="2"></td><td></td></tr>
+      <tr class="tot"><td colspan="3" class="r">මුළු එකතුව / Grand total</td><td></td><td colspan="2"></td>${money(sumCost)}<td colspan="2"></td>${money(sumRetail)}<td></td></tr>
     </tbody>
   </table>
   <div class="foot">
@@ -308,7 +314,7 @@ export default function PurchaseShow() {
           <button onClick={handlePrintA4}
             className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors">
             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-            A4 Print
+            F16B Print
           </button>
         </div>
       </div>
@@ -339,7 +345,9 @@ export default function PurchaseShow() {
               <th className="px-5 py-3 text-left font-semibold">#</th>
               <th className="px-5 py-3 text-left font-semibold">{t('th.product')}</th>
               <th className="px-5 py-3 text-right font-semibold">{t('th.qty')}</th>
+              <th className="px-5 py-3 text-right font-semibold">Free</th>
               <th className="px-5 py-3 text-right font-semibold">{t('pur.unit_price')}</th>
+              <th className="px-5 py-3 text-right font-semibold">විකුණුම් මිල</th>
               <th className="px-5 py-3 text-right font-semibold">{t('th.total')}</th>
             </tr>
           </thead>
@@ -349,20 +357,25 @@ export default function PurchaseShow() {
                 <td className="px-5 py-3 text-slate-400">{i + 1}</td>
                 <td className="px-5 py-3 font-medium text-slate-800">{item.product_name}</td>
                 <td className="px-5 py-3 text-right text-slate-600">{fmtNum(item.qty)}</td>
+                <td className="px-5 py-3 text-right font-semibold text-green-600">{parseFloat(item.free_qty) > 0 ? fmtNum(item.free_qty) : '—'}</td>
                 <td className="px-5 py-3 text-right text-slate-600">{fmt(item.cost_price)}</td>
+                <td className="px-5 py-3 text-right text-slate-600">{fmt(item.selling_price)}</td>
                 <td className="px-5 py-3 text-right font-semibold text-slate-800">{fmt(item.total)}</td>
               </tr>
             ))}
             {items.length === 0 && (
-              <tr><td colSpan={5} className="px-5 py-8 text-center text-slate-400">{t('lbl.no_data')}</td></tr>
+              <tr><td colSpan={7} className="px-5 py-8 text-center text-slate-400">{t('lbl.no_data')}</td></tr>
             )}
             {items.length > 0 && (() => {
               const totalQty  = items.reduce((s, i) => s + parseFloat(i.qty || 0), 0);
+              const totalFree = items.reduce((s, i) => s + parseFloat(i.free_qty || 0), 0);
               const totalCost = items.reduce((s, i) => s + parseFloat(i.total || 0), 0);
               return (
                 <tr className="bg-slate-100 border-t-2 border-slate-300 font-bold text-slate-800">
                   <td colSpan={2} className="px-5 py-3 text-right text-xs uppercase tracking-wide text-slate-500">Totals</td>
                   <td className="px-5 py-3 text-right">{fmtNum(totalQty)}</td>
+                  <td className="px-5 py-3 text-right text-green-600">{totalFree > 0 ? fmtNum(totalFree) : ''}</td>
+                  <td className="px-5 py-3" />
                   <td className="px-5 py-3" />
                   <td className="px-5 py-3 text-right">{fmt(totalCost)}</td>
                 </tr>

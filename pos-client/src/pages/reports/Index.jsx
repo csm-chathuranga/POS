@@ -1,4 +1,5 @@
 ﻿import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useLocale } from '../../contexts/LocaleContext';
 import {
   useGetReportTodayQuery,
@@ -897,12 +898,14 @@ const TAB_ICONS = {
   stock:    <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>,
   credit:   <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 0 0 3-3V8a3 3 0 0 0-3-3H6a3 3 0 0 0-3 3v8a3 3 0 0 0 3 3z"/></svg>,
   movements:<svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4M17 8v12m0 0l4-4m-4 4l-4-4"/></svg>,
+  freeitems:<svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v13m0-13V6a4 4 0 00-4-4H5.45a4 4 0 00-3.969 3.545L1 10h5m6-2h3a4 4 0 014 4v1m-4-5V6a4 4 0 014-4h2.55a4 4 0 013.969 3.545L21 10h-5"/></svg>,
 };
 
 // ─── Main Page ─────────────────────────────────────────────────────────────────
 export default function Reports() {
   const { t } = useLocale();
   const [tab, setTab] = useState('today');
+  const navigate = useNavigate();
 
   const TABS = [
     { id: 'today',    label: t('rep.today') },
@@ -915,6 +918,7 @@ export default function Reports() {
     { id: 'stock',    label: t('rep.stock_summary') },
     { id: 'credit',    label: t('rep.credit') },
     { id: 'movements', label: 'Stock Movements' },
+    { id: 'freeitems', label: 'නොමිලේ ගැනීම්', link: '/purchases/free-items-report' },
   ];
 
   return (
@@ -928,7 +932,7 @@ export default function Reports() {
         {/* Mobile: horizontal scrolling tab strip */}
         <nav className="flex md:hidden overflow-x-auto gap-1 px-2 py-2 scrollbar-none">
           {TABS.map(tb => (
-            <button key={tb.id} onClick={() => setTab(tb.id)}
+            <button key={tb.id} onClick={() => tb.link ? navigate(tb.link) : setTab(tb.id)}
               className={`shrink-0 flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-lg transition-colors whitespace-nowrap
                 ${tab === tb.id
                   ? 'bg-blue-600 text-white'
@@ -941,7 +945,7 @@ export default function Reports() {
         {/* Desktop: vertical nav */}
         <nav className="hidden md:block p-2 space-y-0.5">
           {TABS.map(tb => (
-            <button key={tb.id} onClick={() => setTab(tb.id)}
+            <button key={tb.id} onClick={() => tb.link ? navigate(tb.link) : setTab(tb.id)}
               className={`w-full text-left flex items-center gap-2.5 px-3 py-2.5 text-sm font-medium rounded-lg transition-colors
                 ${tab === tb.id
                   ? 'bg-blue-600 text-white'

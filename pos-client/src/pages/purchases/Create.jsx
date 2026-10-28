@@ -177,12 +177,12 @@ export default function PurchaseCreate() {
             <table className="w-full text-sm">
               <thead className="text-xs text-slate-500 uppercase tracking-wider">
                 <tr>
-                  <th className="text-left pb-2 font-semibold">{t('th.product')}</th>
-                  <th className="text-right pb-2 font-semibold w-24">{t('th.qty')}</th>
-                  <th className="text-right pb-2 font-semibold w-20">Free</th>
-                  <th className="text-right pb-2 font-semibold w-28">{t('pur.unit_price')}</th>
-                  <th className="text-right pb-2 font-semibold w-28">{t('th.price')}</th>
-                  <th className="text-right pb-2 font-semibold w-28">{t('th.total')}</th>
+                  <th className="text-left py-2 px-2 font-semibold">{t('th.product')}</th>
+                  <th className="text-right py-2 px-2 font-semibold w-24">{t('th.qty')}</th>
+                  <th className="text-right py-2 px-2 font-semibold w-20">Free</th>
+                  <th className="text-right py-2 px-2 font-semibold w-28">{t('pur.unit_price')}</th>
+                  <th className="text-right py-2 px-2 font-semibold w-28">{t('th.price')}</th>
+                  <th className="text-right py-2 px-2 font-semibold w-28">{t('th.total')}</th>
                   <th className="w-8"></th>
                 </tr>
               </thead>
