@@ -162,13 +162,15 @@ function getModels(sequelize) {
   }, { tableName: 'purchases' });
 
   const PurchaseItem = sequelize.define('PurchaseItem', {
-    id:           { type: DataTypes.BIGINT.UNSIGNED, primaryKey: true, autoIncrement: true },
-    purchase_id:  { type: DataTypes.BIGINT.UNSIGNED, allowNull: false },
-    product_id:   { type: DataTypes.BIGINT.UNSIGNED, allowNull: false },
-    product_name: { type: DataTypes.STRING(191), allowNull: false },
-    qty:          { type: DataTypes.DECIMAL(10, 3), allowNull: false },
-    cost_price:   { type: DataTypes.DECIMAL(10, 2), allowNull: false },
-    total:        { type: DataTypes.DECIMAL(10, 2), allowNull: false },
+    id:            { type: DataTypes.BIGINT.UNSIGNED, primaryKey: true, autoIncrement: true },
+    purchase_id:   { type: DataTypes.BIGINT.UNSIGNED, allowNull: false },
+    product_id:    { type: DataTypes.BIGINT.UNSIGNED, allowNull: false },
+    product_name:  { type: DataTypes.STRING(191), allowNull: false },
+    qty:           { type: DataTypes.DECIMAL(10, 3), allowNull: false },
+    free_qty:      { type: DataTypes.DECIMAL(10, 3), defaultValue: 0 },
+    cost_price:    { type: DataTypes.DECIMAL(10, 2), allowNull: false },
+    selling_price: { type: DataTypes.DECIMAL(10, 2), defaultValue: 0 },
+    total:         { type: DataTypes.DECIMAL(10, 2), allowNull: false },
   }, { tableName: 'purchase_items' });
 
   const StockMovement = sequelize.define('StockMovement', {

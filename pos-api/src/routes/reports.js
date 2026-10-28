@@ -301,4 +301,40 @@ router.get('/daily-sales', auth, async (req, res) => {
   res.json({ dates, rows: Object.values(productMap) });
 });
 
+// GET /api/reports/free-items?date_from=&date_to=&supplier_id=
+router.get('/free-items', auth, async (req, res) => {
+  const db   = req.db;
+  const from = req.query.date_from || new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().slice(0, 10);
+  const to   = req.query.date_to   || new Date().toISOString().slice(0, 10);
+  const supplierFilter = req.query.supplier_id ? ' AND p.supplier_id = ?' : '';
+  const replacements   = req.query.supplier_id ? [from, to, req.query.supplier_id] : [from, to];
+
+  const [grnRows, productRows] = await Promise.all([
+    db.query(`
+      SELECT p.id as purchase_id, p.grn_no, p.purchase_date, s.name as supplier_name,
+             pi.product_id, pi.product_name, pi.qty, pi.free_qty, pi.cost_price, pi.selling_price,
+             (pi.free_qty * pi.cost_price) as free_value
+      FROM purchase_items pi
+      JOIN purchases p ON pi.purchase_id = p.id
+      LEFT JOIN suppliers s ON p.supplier_id = s.id
+      WHERE pi.free_qty > 0 AND p.purchase_date BETWEEN ? AND ?${supplierFilter}
+      ORDER BY p.purchase_date DESC, p.id DESC
+    `, { replacements, type: db.QueryTypes.SELECT }),
+
+    db.query(`
+      SELECT pi.product_id, pi.product_name,
+             SUM(pi.qty) as total_qty, SUM(pi.free_qty) as total_free_qty,
+             SUM(pi.free_qty * pi.cost_price) as total_free_value,
+             GROUP_CONCAT(DISTINCT p.grn_no ORDER BY p.id SEPARATOR ', ') as grn_nos
+      FROM purchase_items pi
+      JOIN purchases p ON pi.purchase_id = p.id
+      WHERE pi.free_qty > 0 AND p.purchase_date BETWEEN ? AND ?${supplierFilter}
+      GROUP BY pi.product_id, pi.product_name
+      ORDER BY total_free_qty DESC
+    `, { replacements, type: db.QueryTypes.SELECT }),
+  ]);
+
+  res.json({ grnRows, productRows, date_from: from, date_to: to });
+});
+
 module.exports = router;
