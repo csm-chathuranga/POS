@@ -78,6 +78,7 @@ export default function PurchaseCreate() {
     setItems(prev => prev.map((item, idx) => idx === i ? { ...item, [field]: value } : item));
   }
 
+  
   const subtotal   = items.reduce((sum, i) => sum + (parseFloat(i.cost_price) || 0) * (parseFloat(i.qty) || 0), 0);
   const discount   = Math.min(parseFloat(form.discount || 0), subtotal);
   const grandTotal = Math.max(0, subtotal - discount);
