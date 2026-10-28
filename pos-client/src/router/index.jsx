@@ -24,9 +24,10 @@ import DailyReport    from '../pages/sales/DailyReport';
 import CustomersIndex  from '../pages/customers/Index';
 import CustomerCredit  from '../pages/customers/Credit';
 import CreditIndex     from '../pages/credit/Index';
-import PurchasesIndex from '../pages/purchases/Index';
-import PurchasesCreate from '../pages/purchases/Create';
-import PurchasesShow   from '../pages/purchases/Show';
+import PurchasesIndex      from '../pages/purchases/Index';
+import PurchasesCreate     from '../pages/purchases/Create';
+import PurchasesShow       from '../pages/purchases/Show';
+import FreeItemsReport     from '../pages/purchases/FreeItemsReport';
 import Reports         from '../pages/reports/Index';
 import UsersIndex     from '../pages/users/Index';
 import SuppliersIndex      from '../pages/suppliers/Index';
@@ -143,9 +144,10 @@ export const router = createAppRouter([
         { path: 'customers',            element: <CustomersIndex /> },
         { path: 'customers/:id/credit', element: <CustomerCredit /> },
         { path: 'credit',               element: <CreditIndex /> },
-        { path: 'purchases',            element: <PurchasesIndex /> },
-        { path: 'purchases/create',     element: <PurchasesCreate /> },
-        { path: 'purchases/:id',        element: <PurchasesShow /> },
+        { path: 'purchases',                    element: <PurchasesIndex /> },
+        { path: 'purchases/create',            element: <PurchasesCreate /> },
+        { path: 'purchases/free-items-report', element: <FreeItemsReport /> },
+        { path: 'purchases/:id',               element: <PurchasesShow /> },
         { path: 'suppliers',              element: <SuppliersIndex /> },
         { path: 'suppliers/:id/credit',  element: <SupplierCredit /> },
         { path: 'supplier-credit',        element: <SupplierCreditIndex /> },

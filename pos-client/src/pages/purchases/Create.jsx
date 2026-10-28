@@ -14,11 +14,12 @@ const searchApi = api.injectEndpoints({
 
 const today = () => new Date().toISOString().slice(0, 10);
 const emptyItem = (p = null) => ({
-  product_id:   p?.id     ?? '',
-  product_name: p?.name   ?? '',
-  qty:          1,
-  cost_price:   p?.cost_price ?? '',
-  selling_price:p?.selling_price ?? '',
+  product_id:    p?.id     ?? '',
+  product_name:  p?.name   ?? '',
+  qty:           1,
+  free_qty:      0,
+  cost_price:    p?.cost_price ?? '',
+  selling_price: p?.selling_price ?? '',
 });
 
 export default function PurchaseCreate() {
@@ -177,6 +178,7 @@ export default function PurchaseCreate() {
                 <tr>
                   <th className="text-left pb-2 font-semibold">{t('th.product')}</th>
                   <th className="text-right pb-2 font-semibold w-24">{t('th.qty')}</th>
+                  <th className="text-right pb-2 font-semibold w-20">Free</th>
                   <th className="text-right pb-2 font-semibold w-28">{t('pur.unit_price')}</th>
                   <th className="text-right pb-2 font-semibold w-28">{t('th.price')}</th>
                   <th className="text-right pb-2 font-semibold w-28">{t('th.total')}</th>
@@ -194,6 +196,12 @@ export default function PurchaseCreate() {
                         onFocus={e => e.target.select()}
                         onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); searchRef.current?.focus(); } }}
                         className="w-full rounded border border-slate-200 px-2 py-1 text-sm text-right outline-none focus:ring-1 focus:ring-blue-500" />
+                    </td>
+                    <td className="py-2 pr-2">
+                      <input type="number" min="0" step="0.001" value={item.free_qty}
+                        onChange={e => updateItem(i, 'free_qty', e.target.value)}
+                        onFocus={e => e.target.select()}
+                        className="w-full rounded border border-green-200 bg-green-50 px-2 py-1 text-sm text-right outline-none focus:ring-1 focus:ring-green-500" />
                     </td>
                     <td className="py-2 pr-2">
                       <input type="number" min="0" step="0.01" value={item.cost_price}
@@ -221,12 +229,12 @@ export default function PurchaseCreate() {
               </tbody>
               <tfoot>
                 <tr className="border-t-2 border-slate-200">
-                  <td colSpan={4} className="pt-3 text-right text-sm text-slate-500 pr-2">{t('lbl.subtotal')}</td>
+                  <td colSpan={5} className="pt-3 text-right text-sm text-slate-500 pr-2">{t('lbl.subtotal')}</td>
                   <td className="pt-3 text-right text-sm font-semibold text-slate-700 pr-2">Rs. {fmt(subtotal)}</td>
                   <td></td>
                 </tr>
                 <tr>
-                  <td colSpan={4} className="pt-1 text-right text-sm text-slate-500 pr-2">Discount</td>
+                  <td colSpan={5} className="pt-1 text-right text-sm text-slate-500 pr-2">Discount</td>
                   <td className="pt-1 pr-2">
                     <input type="number" min="0" step="0.01" value={form.discount}
                       onChange={set('discount')} placeholder="0.00"
@@ -236,19 +244,19 @@ export default function PurchaseCreate() {
                   <td></td>
                 </tr>
                 <tr>
-                  <td colSpan={4} className="pt-2 text-right font-bold text-slate-700 pr-2">{t('pur.grand_total')}</td>
+                  <td colSpan={5} className="pt-2 text-right font-bold text-slate-700 pr-2">{t('pur.grand_total')}</td>
                   <td className="pt-2 text-right font-bold text-slate-800 pr-2">Rs. {fmt(grandTotal)}</td>
                   <td></td>
                 </tr>
                 {parseFloat(form.paid) > 0 && (
                   <>
                     <tr>
-                      <td colSpan={4} className="pt-1 text-right text-sm text-slate-500 pr-2">{t('th.paid')}</td>
+                      <td colSpan={5} className="pt-1 text-right text-sm text-slate-500 pr-2">{t('th.paid')}</td>
                       <td className="pt-1 text-right text-sm font-semibold text-green-600 pr-2">Rs. {fmt(form.paid)}</td>
                       <td></td>
                     </tr>
                     <tr>
-                      <td colSpan={4} className="pt-1 text-right text-sm text-slate-500 pr-2">{t('lbl.balance')}</td>
+                      <td colSpan={5} className="pt-1 text-right text-sm text-slate-500 pr-2">{t('lbl.balance')}</td>
                       <td className="pt-1 text-right text-sm font-semibold text-red-500 pr-2">Rs. {fmt(Math.max(0, grandTotal - parseFloat(form.paid)))}</td>
                       <td></td>
                     </tr>
