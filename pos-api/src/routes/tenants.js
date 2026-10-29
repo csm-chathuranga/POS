@@ -92,9 +92,17 @@ router.post('/provision', auth, async (req, res) => {
 
     // 6. Copy categories + products (only when toggle is on)
     if (copy_products) {
+    // Check which optional columns exist in pos_master.categories before copying
+    const [catCols] = await master.query(
+      `SELECT COLUMN_NAME FROM information_schema.COLUMNS
+       WHERE TABLE_SCHEMA = 'pos_master' AND TABLE_NAME = 'categories'
+         AND COLUMN_NAME IN ('image', 'name_si')`
+    );
+    const catColSet = new Set(catCols.map(r => r.COLUMN_NAME));
+    const catImageCol = catColSet.has('image') ? ', image' : '';
     await master.query(
-      `INSERT IGNORE INTO ${db}.categories (id, name, image, active, created_at, updated_at)
-       SELECT id, name, image, active, created_at, updated_at FROM pos_master.categories`
+      `INSERT IGNORE INTO ${db}.categories (id, name${catImageCol}, active, created_at, updated_at)
+       SELECT id, name${catImageCol}, active, created_at, updated_at FROM pos_master.categories`
     );
     const [[{ total: cCount }]] = await master.query(
       `SELECT COUNT(*) AS total FROM ${db}.categories`
@@ -103,6 +111,17 @@ router.post('/provision', auth, async (req, res) => {
 
     // 7. Copy products
     {
+      // Detect optional columns in pos_master.products that may not exist yet
+      const [prodCols] = await master.query(
+        `SELECT COLUMN_NAME FROM information_schema.COLUMNS
+         WHERE TABLE_SCHEMA = 'pos_master' AND TABLE_NAME = 'products'
+           AND COLUMN_NAME IN ('image','name_si','sku','description','promo_price',
+                               'promo_start_date','promo_end_date','our_price',
+                               'expiry_date','is_fast_moving','wholesale_price')`
+      );
+      const pc = new Set(prodCols.map(r => r.COLUMN_NAME));
+      const col = (c, fallback = 'NULL') => pc.has(c) ? c : fallback;
+
       await master.query(
         `INSERT IGNORE INTO ${db}.products
            (id, category_id, name, name_si, barcode, sku, description, image,
@@ -111,10 +130,12 @@ router.post('/provision', auth, async (req, res) => {
             stock_qty, alert_qty, unit, active, is_fast_moving,
             created_at, updated_at)
          SELECT
-           id, category_id, name, name_si, barcode, sku, description, image,
-           cost_price, selling_price, wholesale_price, promo_price,
-           promo_start_date, promo_end_date, our_price, expiry_date,
-           stock_qty, alert_qty, unit, active, is_fast_moving,
+           id, category_id, name, ${col('name_si')}, barcode, ${col('sku')},
+           ${col('description')}, ${col('image')},
+           cost_price, selling_price, ${col('wholesale_price', '0')},
+           ${col('promo_price')}, ${col('promo_start_date')}, ${col('promo_end_date')},
+           ${col('our_price')}, ${col('expiry_date')},
+           stock_qty, alert_qty, unit, active, ${col('is_fast_moving', '0')},
            created_at, updated_at
          FROM pos_master.products`
       );
