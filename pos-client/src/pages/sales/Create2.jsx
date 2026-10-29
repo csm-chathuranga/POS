@@ -1374,10 +1374,10 @@ export default function SalesCreate() {
                 )}
                 {payMethod === 'split' && (
                   <div className="flex flex-col gap-1">
-                    <div className="flex gap-1 bg-slate-100 rounded-lg p-0.5">
-                      {[['card','Cash+Card'],['credit','Cash+Credit']].map(([mode,lbl]) => (
+                    <div className="flex gap-2">
+                      {[['card','Cash+Card','bg-blue-500 hover:bg-blue-600'],['credit','Cash+Credit','bg-orange-500 hover:bg-orange-600']].map(([mode,lbl,colors]) => (
                         <button key={mode} onClick={() => setSplitMode(mode)}
-                          className={`flex-1 py-0.5 rounded-md text-xs font-semibold transition-all ${splitMode === mode ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500'}`}>{lbl}</button>
+                          className={`flex-1 py-2 rounded-lg text-sm font-bold transition-all shadow-sm ${splitMode === mode ? colors + ' text-white shadow-md scale-[1.02]' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}>{lbl}</button>
                       ))}
                     </div>
                     <input autoFocus type="number" min="0" step="0.01" value={splitCash} onChange={e => setSplitCash(e.target.value)} onFocus={e => e.target.select()} placeholder="Cash amount"

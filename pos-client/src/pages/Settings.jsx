@@ -513,6 +513,53 @@ export default function Settings() {
                     )}
                   </button>
 
+                  {/* Interface 3 — Touch Screen */}
+                  <button type="button" onClick={() => set('pos_interface', '4')}
+                    className={`flex-1 rounded-xl border-2 p-3 text-left transition-all ${form.pos_interface === '4' ? 'border-green-500 bg-green-50' : 'border-slate-200 hover:border-slate-300'}`}>
+                    <div className="w-full h-16 rounded-lg bg-slate-100 mb-2 overflow-hidden flex gap-1 p-1.5">
+                      {/* Left: category column with big tiles */}
+                      <div className="w-6 bg-green-100 rounded flex flex-col gap-0.5 p-0.5">
+                        <div className="h-3 bg-green-400 rounded" />
+                        <div className="h-2.5 bg-green-300 rounded" />
+                        <div className="h-2.5 bg-green-300 rounded" />
+                        <div className="h-2.5 bg-green-300 rounded" />
+                      </div>
+                      {/* Center: cart list rows */}
+                      <div className="flex-1 flex flex-col gap-0.5 justify-center">
+                        {[...Array(3)].map((_, i) => (
+                          <div key={i} className="flex items-center gap-0.5 bg-white rounded px-0.5 py-0.5">
+                            <div className="flex-1 h-1 bg-slate-200 rounded-full" />
+                            {/* +/- stepper hint */}
+                            <div className="w-1 h-2 bg-green-300 rounded-sm" />
+                            <div className="w-1.5 h-2 bg-slate-200 rounded-sm" />
+                            <div className="w-1 h-2 bg-green-300 rounded-sm" />
+                          </div>
+                        ))}
+                      </div>
+                      {/* Right: big numpad / payment buttons */}
+                      <div className="w-10 bg-white rounded flex flex-col gap-0.5 p-0.5">
+                        <div className="grid grid-cols-2 gap-0.5 flex-1">
+                          <div className="bg-green-400 rounded" />
+                          <div className="bg-blue-300 rounded" />
+                          <div className="bg-orange-300 rounded" />
+                          <div className="bg-violet-300 rounded" />
+                        </div>
+                        <div className="h-3 bg-green-500 rounded" />
+                      </div>
+                    </div>
+                    <p className="text-sm font-semibold text-slate-800 flex items-center gap-1.5">
+                      Interface 3
+                      <span className="text-xs bg-green-100 text-green-700 font-bold px-1.5 py-0.5 rounded-full">Touch</span>
+                    </p>
+                    <p className="text-xs text-slate-500 mt-0.5">Touch-optimised: large targets, numpad, +/− steppers</p>
+                    {form.pos_interface === '4' && (
+                      <span className="mt-1.5 inline-flex items-center gap-1 text-xs font-bold text-green-600">
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7"/></svg>
+                        Active
+                      </span>
+                    )}
+                  </button>
+
                 </div>
               </Card>
             </>

@@ -540,19 +540,23 @@ function Profit() {
           <TableWrap title={t('rep.profit')}>
             <table className="w-full text-sm">
               <thead className="bg-slate-50 text-xs text-slate-500 uppercase tracking-wider">
-                <tr><Th>{t('th.product')}</Th><Th right>{t('th.qty')}</Th><Th right>{t('th.revenue')}</Th><Th right>{t('th.cost')}</Th><Th right>{t('th.profit')}</Th></tr>
+                <tr><Th>{t('th.product')}</Th><Th right>{t('th.qty')}</Th><Th right>{t('th.revenue')}</Th><Th right>{t('th.cost')}</Th><Th right>{t('th.profit')}</Th><Th right>එකක ලාභය</Th></tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
-                {items.map((item, i) => (
+                {items.map((item, i) => {
+                  const perUnit = parseFloat(item.total_qty) > 0 ? parseFloat(item.gross_profit) / parseFloat(item.total_qty) : 0;
+                  return (
                   <tr key={i} className="hover:bg-slate-50">
                     <td className="px-4 py-2.5 font-medium text-slate-800">{item.product_name}</td>
                     <td className="px-4 py-2.5 text-right text-slate-500">{fmtQty(item.total_qty)}</td>
                     <td className="px-4 py-2.5 text-right">{fmt(item.net_revenue)}</td>
                     <td className="px-4 py-2.5 text-right text-red-400">{fmt(item.total_cost)}</td>
                     <td className="px-4 py-2.5 text-right font-semibold text-green-600">{fmt(item.gross_profit)}</td>
+                    <td className="px-4 py-2.5 text-right text-blue-600">{fmt(perUnit)}</td>
                   </tr>
-                ))}
-                {!items.length && <tr><td colSpan={5} className="px-4 py-8 text-center text-slate-400">{t('lbl.no_data')}</td></tr>}
+                  );
+                })}
+                {!items.length && <tr><td colSpan={6} className="px-4 py-8 text-center text-slate-400">{t('lbl.no_data')}</td></tr>}
               </tbody>
             </table>
           </TableWrap>

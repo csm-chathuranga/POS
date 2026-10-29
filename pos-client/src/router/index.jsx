@@ -19,6 +19,7 @@ import SalesIndex     from '../pages/sales/Index';
 import SalesCreate    from '../pages/sales/Create';
 import SalesCreate2   from '../pages/sales/Create2';
 import SalesCreate3   from '../pages/sales/Create3';
+import SalesCreate4   from '../pages/sales/create4';
 import SalesShow      from '../pages/sales/Show';
 import DailyReport    from '../pages/sales/DailyReport';
 import CustomersIndex  from '../pages/customers/Index';
@@ -60,7 +61,10 @@ function ProtectedRoute() {
 
 function POSRoute() {
   const iface = localStorage.getItem('pos_interface') || '2';
-  return iface === '3' ? <SalesCreate3 /> : iface === '2' ? <SalesCreate2 /> : <SalesCreate />;
+  if (iface === '4') return <SalesCreate4 />;
+  if (iface === '3') return <SalesCreate3 />;
+  if (iface === '2') return <SalesCreate2 />;
+  return <SalesCreate />;
 }
 
 const MGMT_FEATURES = ['reports', 'users', 'settings', 'data_import', 'role_permissions', 'invoices'];

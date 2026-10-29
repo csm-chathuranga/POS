@@ -95,7 +95,7 @@ export const translations = {
     'th.revenue':      'ආදායම',
     'th.profit':       'ලාභය',
     'th.rank':         'ශ්‍රේණිය',
-    'th.sales_count':  'විකිණූ ගණන',
+    'th.sales_count':  'ඉන්වොයිස් ගණන',
     'th.credit':       'ණය ශේෂය',
     'th.amount':       'මුදල',
     'th.supplier':     'සැපයුම්කරු',
