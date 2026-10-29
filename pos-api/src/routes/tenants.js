@@ -92,17 +92,17 @@ router.post('/provision', auth, async (req, res) => {
 
     // 6. Copy categories + products (only when toggle is on)
     if (copy_products) {
-    // Check which optional columns exist in pos_master.categories before copying
-    const [catCols] = await master.query(
+    // Detect which columns exist in pos_master.categories before copying
+    const [catColRows] = await master.query(
       `SELECT COLUMN_NAME FROM information_schema.COLUMNS
-       WHERE TABLE_SCHEMA = 'pos_master' AND TABLE_NAME = 'categories'
-         AND COLUMN_NAME IN ('image', 'name_si')`
+       WHERE TABLE_SCHEMA = 'pos_master' AND TABLE_NAME = 'categories'`
     );
-    const catColSet = new Set(catCols.map(r => r.COLUMN_NAME));
-    const catImageCol = catColSet.has('image') ? ', image' : '';
+    const catColSet = new Set(catColRows.map(r => r.COLUMN_NAME));
+    const catOptional = ['image', 'name_si', 'active'].filter(c => catColSet.has(c));
+    const catExtra = catOptional.length ? ', ' + catOptional.join(', ') : '';
     await master.query(
-      `INSERT IGNORE INTO ${db}.categories (id, name${catImageCol}, active, created_at, updated_at)
-       SELECT id, name${catImageCol}, active, created_at, updated_at FROM pos_master.categories`
+      `INSERT IGNORE INTO ${db}.categories (id, name${catExtra}, created_at, updated_at)
+       SELECT id, name${catExtra}, created_at, updated_at FROM pos_master.categories`
     );
     const [[{ total: cCount }]] = await master.query(
       `SELECT COUNT(*) AS total FROM ${db}.categories`
