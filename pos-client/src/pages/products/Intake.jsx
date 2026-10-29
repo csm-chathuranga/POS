@@ -47,7 +47,8 @@ export default function ProductIntake() {
   const [createProduct, { isLoading: creating }] = useCreateProductMutation();
   const [createProductBatch, { isLoading: savingBatch }] = useCreateProductBatchMutation();
 
-  const [batchPrompt, setBatchPrompt] = useState(false);
+  const [batchPrompt, setBatchPrompt] = useState(false); // kept for inactive-path fallback
+  const [savedAsBatch, setSavedAsBatch] = useState(false);
 
   const [qcOpen, setQcOpen] = useState(false);
   const EMPTY_QC = { name: '', name_si: '', barcode: '', cost_price: '', selling_price: '', our_price: '', stock_qty: '', unit: 'pcs' };
@@ -146,10 +147,13 @@ export default function ProductIntake() {
     }
     setFieldErrors({});
     setFormError('');
-    if (pricesDiffer()) {
-      setBatchPrompt(true);
+    // Active product with a changed price → auto-save as a new batch (no dialog)
+    if (product.active && pricesDiffer()) {
+      setSavedAsBatch(true);
+      await handleSaveAsBatch();
       return;
     }
+    setSavedAsBatch(false);
     await doUpdateProduct();
   }
 
@@ -182,7 +186,7 @@ export default function ProductIntake() {
     }).unwrap();
     clearProductCache();
     setSavedCount(c => c + 1);
-    setLastSaved(product.name);
+    setLastSaved(product.name + ' (batch)');
     setBatchPrompt(false);
     reset();
   }
@@ -216,6 +220,7 @@ export default function ProductIntake() {
     setForm({ stock_qty: '', cost_price: '', selling_price: '', our_price: '', expiry_date: '', name_si: '' });
     setFormError('');
     setFieldErrors({});
+    setSavedAsBatch(false);
     setTimeout(() => barcodeRef.current?.focus(), 50);
   }
 
@@ -243,7 +248,7 @@ export default function ProductIntake() {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
           </svg>
           <div>
-            <p className="text-sm font-bold text-green-700">{savedCount} item{savedCount > 1 ? 's' : ''} activated this session</p>
+            <p className="text-sm font-bold text-green-700">{savedCount} item{savedCount > 1 ? 's' : ''} saved this session</p>
             <p className="text-xs text-green-600 truncate">Last: {lastSaved}</p>
           </div>
         </div>
