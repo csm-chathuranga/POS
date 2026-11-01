@@ -57,7 +57,10 @@ router.patch('/:key/toggle', auth, role('admin'), async (req, res) => {
     await ensureCashAdvanceTable(req.db);
   }
 
-  await Setting.upsert({ key: settingKey, value: String(newValue) });
+  await req.db.query(
+    'INSERT INTO `settings` (`key`, `value`) VALUES (:key, :val) ON DUPLICATE KEY UPDATE `value` = VALUES(`value`)',
+    { replacements: { key: settingKey, val: String(newValue) } }
+  );
 
   if (mod.insertsFeature) {
     if (newValue) {
