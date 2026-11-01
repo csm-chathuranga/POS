@@ -13,7 +13,7 @@ router.use(auth, (req, res, next) => requireModule(req, res, next).catch(next));
 
 // ── Config ────────────────────────────────────────────────────────────────────
 
-router.get('/config', role('admin', 'custom'), async (req, res) => {
+router.get('/config', role('admin', 'manager'), async (req, res) => {
   const cfg = await req.models.SmsConfig.findOne();
   if (!cfg) return res.json(null);
   res.json({
@@ -24,7 +24,7 @@ router.get('/config', role('admin', 'custom'), async (req, res) => {
   });
 });
 
-router.post('/config', role('admin', 'custom'), async (req, res) => {
+router.post('/config', role('admin', 'manager'), async (req, res) => {
   const { user_id, api_key, sender_id, receipt_template } = req.body;
   if (!user_id || !sender_id || !receipt_template) {
     return res.status(422).json({ error: 'user_id, sender_id and receipt_template are required' });
@@ -44,7 +44,7 @@ router.post('/config', role('admin', 'custom'), async (req, res) => {
 
 // ── Test send ─────────────────────────────────────────────────────────────────
 
-router.post('/test', role('admin', 'custom'), async (req, res) => {
+router.post('/test', role('admin', 'manager'), async (req, res) => {
   const { phone } = req.body;
   if (!phone) return res.status(422).json({ error: 'phone is required' });
 
@@ -101,7 +101,7 @@ router.post('/send-receipt', async (req, res) => {
 
 // ── Customers with phone (for bulk picker) ────────────────────────────────────
 
-router.get('/customers-with-phone', role('admin', 'custom'), async (req, res) => {
+router.get('/customers-with-phone', role('admin', 'manager'), async (req, res) => {
   const customers = await req.models.Customer.findAll({
     where: req.db.literal('phone IS NOT NULL AND phone != ""'),
     attributes: ['id', 'name', 'phone'],
@@ -113,7 +113,7 @@ router.get('/customers-with-phone', role('admin', 'custom'), async (req, res) =>
 
 // ── Bulk SMS ──────────────────────────────────────────────────────────────────
 
-router.post('/bulk', role('admin', 'custom'), async (req, res) => {
+router.post('/bulk', role('admin', 'manager'), async (req, res) => {
   const { contacts, message } = req.body;
   if (!Array.isArray(contacts) || contacts.length === 0) {
     return res.status(422).json({ error: 'contacts array is required' });
@@ -145,7 +145,7 @@ router.post('/bulk', role('admin', 'custom'), async (req, res) => {
 
 // ── Account status ────────────────────────────────────────────────────────────
 
-router.get('/account-status', role('admin', 'custom'), async (req, res) => {
+router.get('/account-status', role('admin', 'manager'), async (req, res) => {
   const cfg = await req.models.SmsConfig.findOne();
   if (!cfg || !cfg.user_id) return res.status(400).json({ error: 'SMS not configured yet' });
   const { ok, data, error } = await getAccountStatus(cfg);
@@ -155,7 +155,7 @@ router.get('/account-status', role('admin', 'custom'), async (req, res) => {
 
 // ── Reload credit ─────────────────────────────────────────────────────────────
 
-router.post('/reload-credit', role('admin', 'custom'), async (req, res) => {
+router.post('/reload-credit', role('admin', 'manager'), async (req, res) => {
   const { amount, sender_id, client_reference, return_url, callback_url } = req.body;
   if (!amount || Number(amount) < 1000 || Number(amount) > 100000) {
     return res.status(422).json({ error: 'amount must be between 1,000 and 100,000' });
@@ -174,7 +174,7 @@ router.post('/reload-credit', role('admin', 'custom'), async (req, res) => {
 
 // ── Logs ──────────────────────────────────────────────────────────────────────
 
-router.get('/logs', role('admin', 'custom'), async (req, res) => {
+router.get('/logs', role('admin', 'manager'), async (req, res) => {
   const page  = parseInt(req.query.page || '1');
   const limit = 25;
   const { count, rows } = await req.models.SmsLog.findAndCountAll({
