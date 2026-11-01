@@ -198,7 +198,7 @@ function getModels(sequelize) {
     id:    { type: DataTypes.BIGINT.UNSIGNED, primaryKey: true, autoIncrement: true },
     key:   { type: DataTypes.STRING(191), allowNull: false, unique: true },
     value: { type: DataTypes.TEXT('long'), allowNull: true },
-  }, { tableName: 'settings' });
+  }, { tableName: 'settings', timestamps: false });
 
   const ProductBatch = sequelize.define('ProductBatch', {
     id:            { type: DataTypes.BIGINT.UNSIGNED, primaryKey: true, autoIncrement: true },
