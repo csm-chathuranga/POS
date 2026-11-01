@@ -64,7 +64,14 @@ router.patch('/:key/toggle', auth, role('admin'), async (req, res) => {
 
   if (mod.insertsFeature) {
     if (newValue) {
-      await Feature.upsert(mod.feature);
+      const f = mod.feature;
+      await req.db.query(
+        'INSERT INTO `features` (`key`, `label`, `path`, `group`, `sort_order`, `icon`, `offline_ok`) ' +
+        'VALUES (:key, :label, :path, :grp, :sort_order, :icon, :offline_ok) ' +
+        'ON DUPLICATE KEY UPDATE `label`=VALUES(`label`), `path`=VALUES(`path`), ' +
+        '`group`=VALUES(`group`), `sort_order`=VALUES(`sort_order`), `icon`=VALUES(`icon`), `offline_ok`=VALUES(`offline_ok`)',
+        { replacements: { key: f.key, label: f.label, path: f.path, grp: f.group, sort_order: f.sort_order, icon: f.icon || null, offline_ok: f.offline_ok ? 1 : 0 } }
+      );
     } else {
       await Feature.destroy({ where: { key: mod.feature.key } });
     }
