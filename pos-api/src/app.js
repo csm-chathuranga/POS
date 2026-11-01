@@ -67,7 +67,7 @@ function wrapAsync(router) {
 }
 
 // Apply async wrapper to all mounted routers
-['auth', 'dashboard', 'products', 'categories', 'suppliers', 'customers', 'sales', 'purchases', 'settings', 'users', 'reports', 'employees', 'accounting', 'loading-sheets', 'coop-city', 'sms', 'attendance', 'van-sales'].forEach(name => {
+['auth', 'dashboard', 'products', 'categories', 'suppliers', 'customers', 'sales', 'purchases', 'settings', 'users', 'reports', 'employees', 'accounting', 'loading-sheets', 'coop-city', 'sms', 'attendance', 'van-sales', 'admin-modules', 'roles', 'features', 'notifications', 'imagekit', 'tenants'].forEach(name => {
   try { wrapAsync(require(`./routes/${name}`)); } catch {}
 });
 
