@@ -55,8 +55,8 @@ async function ensureSmsTables(sequelize) {
   `);
   // Seed default template row if table is empty
   await sequelize.query(`
-    INSERT INTO \`sms_config\` (\`id\`, \`user_id\`, \`api_key\`, \`sender_id\`, \`receipt_template\`)
-    SELECT 1, '', '', '', 'Dear {customer}, your receipt {invoice_no} total Rs. {total} has been processed. Thank you!'
+    INSERT INTO \`sms_config\` (\`id\`, \`user_id\`, \`api_key\`, \`sender_id\`, \`receipt_template\`, \`updated_at\`)
+    SELECT 1, '', '', '', 'Dear {customer}, your receipt {invoice_no} total Rs. {total} has been processed. Thank you!', NOW()
     WHERE NOT EXISTS (SELECT 1 FROM \`sms_config\` LIMIT 1);
   `);
 }
