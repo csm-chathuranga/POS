@@ -13,7 +13,7 @@ router.use(auth, (req, res, next) => requireModule(req, res, next).catch(next));
 
 // ── Config ────────────────────────────────────────────────────────────────────
 
-router.get('/config', role('admin'), async (req, res) => {
+router.get('/config', role('admin', 'custom'), async (req, res) => {
   const cfg = await req.models.SmsConfig.findOne();
   if (!cfg) return res.json(null);
   res.json({
@@ -24,7 +24,7 @@ router.get('/config', role('admin'), async (req, res) => {
   });
 });
 
-router.post('/config', role('admin'), async (req, res) => {
+router.post('/config', role('admin', 'custom'), async (req, res) => {
   const { user_id, api_key, sender_id, receipt_template } = req.body;
   if (!user_id || !sender_id || !receipt_template) {
     return res.status(422).json({ error: 'user_id, sender_id and receipt_template are required' });
