@@ -12,6 +12,7 @@ import { enqueueCategoryCreate, enqueueCategoryEdit, getPendingQueueByTypes } fr
 import ConfirmModal from '../../components/ConfirmModal';
 
 const empty = { name: '', image: '' };
+const PAGE_SIZE = 15;
 
 export default function CategoriesIndex() {
   const { t } = useLocale();
@@ -23,6 +24,8 @@ export default function CategoriesIndex() {
   const [offlineCategories, setOfflineCategories] = useState([]);
   const [pendingCategories, setPendingCategories] = useState([]);
   const [confirmDelete, setConfirmDelete]         = useState(null);
+  const [search, setSearch]             = useState('');
+  const [page, setPage]                 = useState(1);
   const fileRef = useRef();
 
   const { register, handleSubmit: rhfSubmit, formState: { errors }, reset, setFocus, setValue } = useForm({ defaultValues: empty });
@@ -37,6 +40,11 @@ export default function CategoriesIndex() {
   const { data: serverCategories = [], isLoading, refetch } = useGetCategoriesQuery(undefined, { skip: !isOnline });
   const baseCategories = isOnline ? serverCategories : offlineCategories;
   const categories = [...pendingCategories, ...baseCategories.filter(c => !pendingCategories.some(p => p.id === c.id))];
+
+  const filtered = categories.filter(c => c.name.toLowerCase().includes(search.toLowerCase()));
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+  const paginated = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
   const [create, { isLoading: creating }] = useCreateCategoryMutation();
   const [update, { isLoading: updating }] = useUpdateCategoryMutation();
   const [del]                             = useDeleteCategoryMutation();
@@ -123,14 +131,26 @@ export default function CategoriesIndex() {
 
   return (
     <div className="p-3 sm:p-6 space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center gap-2 justify-between">
         <h1 className="text-xl font-bold text-slate-800">{t('page.categories')}</h1>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           {!isOnline && (
             <span className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 border border-amber-200 rounded-lg text-amber-700 text-xs font-medium">
               <span className="w-1.5 h-1.5 rounded-full bg-amber-500" /> Offline
             </span>
           )}
+          <div className="relative">
+            <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z"/></svg>
+            <input
+              value={search}
+              onChange={e => { setSearch(e.target.value); setPage(1); }}
+              placeholder="Search categories…"
+              className="pl-9 pr-3 py-2 rounded-lg border border-slate-200 text-sm outline-none focus:ring-2 focus:ring-blue-500 w-52"
+            />
+            {search && (
+              <button onClick={() => { setSearch(''); setPage(1); }} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-lg leading-none">&times;</button>
+            )}
+          </div>
           <button onClick={openCreate}
             className="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition-colors">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4"/></svg>
@@ -142,17 +162,22 @@ export default function CategoriesIndex() {
       {/* Mobile cards */}
       <div className="md:hidden space-y-2">
         {isLoading && <div className="p-8 text-center text-slate-400 text-sm bg-white rounded-xl border">{t('lbl.loading')}</div>}
-        {!isLoading && categories.length === 0 && (
-          <div className="p-8 text-center text-slate-400 text-sm bg-white rounded-xl border">No categories yet</div>
+        {!isLoading && filtered.length === 0 && (
+          <div className="p-8 text-center text-slate-400 text-sm bg-white rounded-xl border">{search ? `No results for "${search}"` : 'No categories yet'}</div>
         )}
-        {categories.map(c => (
+        {paginated.map(c => (
           <div key={c.id} className="bg-white rounded-xl border shadow-sm p-4 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <CatAvatar cat={c} />
               <div>
-                <p className="font-semibold text-slate-800">{c.name}</p>
+                <div className="flex items-center gap-2">
+                  <p className="font-semibold text-slate-800">{c.name}</p>
+                  {c.show_in_pos
+                    ? <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-green-100 text-green-700 border border-green-200">POS</span>
+                    : <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-400 border border-slate-200">Hidden</span>
+                  }
+                </div>
                 {(c._offline || c._pending) && <p className="text-[10px] text-amber-600 font-medium mt-0.5">Pending sync</p>}
-                <p className="text-[10px] text-slate-400 mt-0.5">{c.show_in_pos ? '✓ Shown in POS' : 'Hidden from POS'}</p>
               </div>
             </div>
             <div className="flex gap-1.5 items-center">
@@ -195,18 +220,24 @@ export default function CategoriesIndex() {
               </tr>
             </thead>
             <tbody>
-              {categories.length === 0 && (
-                <tr><td colSpan={4} className="px-4 py-8 text-center text-slate-400">No categories yet</td></tr>
+              {filtered.length === 0 && (
+                <tr><td colSpan={5} className="px-4 py-8 text-center text-slate-400">{search ? `No results for "${search}"` : 'No categories yet'}</td></tr>
               )}
-              {categories.map((c, i) => (
+              {paginated.map((c, i) => (
                 <tr key={c.id} className="odd:bg-white even:bg-slate-50 hover:bg-blue-50 border-b border-slate-100 transition-colors">
-                  <td className="px-4 py-3 text-slate-400 text-xs">{i + 1}</td>
+                  <td className="px-4 py-3 text-slate-400 text-xs">{(safePage - 1) * PAGE_SIZE + i + 1}</td>
                   <td className="px-4 py-3">
                     <CatAvatar cat={c} size="sm" />
                   </td>
                   <td className="px-4 py-3">
-                    <span className="font-medium text-slate-800">{c.name}</span>
-                    {(c._offline || c._pending) && <span className="ml-2 text-[10px] text-amber-600 font-medium">Pending sync</span>}
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium text-slate-800">{c.name}</span>
+                      {c.show_in_pos
+                        ? <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-green-100 text-green-700 border border-green-200">POS</span>
+                        : <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-400 border border-slate-200">Hidden</span>
+                      }
+                      {(c._offline || c._pending) && <span className="text-[10px] text-amber-600 font-medium">Pending sync</span>}
+                    </div>
                   </td>
                   <td className="px-4 py-3 text-center">
                     <button
@@ -239,6 +270,39 @@ export default function CategoriesIndex() {
           </table>
         )}
       </div>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between text-sm">
+          <span className="text-slate-500 text-xs">
+            Showing {(safePage - 1) * PAGE_SIZE + 1}–{Math.min(safePage * PAGE_SIZE, filtered.length)} of {filtered.length}
+          </span>
+          <div className="flex items-center gap-1">
+            <button onClick={() => setPage(1)} disabled={safePage === 1}
+              className="px-2 py-1 rounded border border-slate-200 text-xs text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed">«</button>
+            <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={safePage === 1}
+              className="px-3 py-1 rounded border border-slate-200 text-xs text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed">‹ Prev</button>
+            {Array.from({ length: totalPages }, (_, i) => i + 1)
+              .filter(p => p === 1 || p === totalPages || Math.abs(p - safePage) <= 1)
+              .reduce((acc, p, idx, arr) => {
+                if (idx > 0 && p - arr[idx - 1] > 1) acc.push('…');
+                acc.push(p);
+                return acc;
+              }, [])
+              .map((p, idx) => p === '…'
+                ? <span key={`gap-${idx}`} className="px-1 text-slate-400 text-xs">…</span>
+                : <button key={p} onClick={() => setPage(p)}
+                    className={`px-3 py-1 rounded border text-xs font-semibold transition-colors ${safePage === p ? 'bg-blue-600 text-white border-blue-600' : 'border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
+                    {p}
+                  </button>
+              )}
+            <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={safePage === totalPages}
+              className="px-3 py-1 rounded border border-slate-200 text-xs text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed">Next ›</button>
+            <button onClick={() => setPage(totalPages)} disabled={safePage === totalPages}
+              className="px-2 py-1 rounded border border-slate-200 text-xs text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed">»</button>
+          </div>
+        </div>
+      )}
 
       {confirmDelete && (
         <ConfirmModal
