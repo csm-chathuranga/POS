@@ -177,6 +177,7 @@ export default function CategoriesIndex() {
                     : <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-400 border border-slate-200">Hidden</span>
                   }
                 </div>
+                {c.createdAt && <p className="text-[10px] text-slate-400 mt-0.5">{new Date(c.createdAt).toLocaleDateString('en-LK', { day: '2-digit', month: 'short', year: 'numeric' })}</p>}
                 {(c._offline || c._pending) && <p className="text-[10px] text-amber-600 font-medium mt-0.5">Pending sync</p>}
               </div>
             </div>
@@ -215,6 +216,7 @@ export default function CategoriesIndex() {
                 <th className="px-4 py-3 text-left font-semibold w-10">#</th>
                 <th className="px-4 py-3 text-left font-semibold">Image</th>
                 <th className="px-4 py-3 text-left font-semibold">{t('cust.name')}</th>
+                <th className="px-4 py-3 text-left font-semibold">Created</th>
                 <th className="px-4 py-3 text-center font-semibold">Show in POS</th>
                 <th className="px-4 py-3 text-right font-semibold">{t('th.actions')}</th>
               </tr>
@@ -238,6 +240,9 @@ export default function CategoriesIndex() {
                       }
                       {(c._offline || c._pending) && <span className="text-[10px] text-amber-600 font-medium">Pending sync</span>}
                     </div>
+                  </td>
+                  <td className="px-4 py-3 text-slate-500 text-xs whitespace-nowrap">
+                    {c.createdAt ? new Date(c.createdAt).toLocaleDateString('en-LK', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}
                   </td>
                   <td className="px-4 py-3 text-center">
                     <button
