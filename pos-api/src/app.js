@@ -24,6 +24,7 @@ app.use(tenant);
 app.get('/api/ping', (req, res) => res.json({ ok: true }));
 
 // Routes
+app.use('/api/public',    require('./routes/public'));
 app.use('/api/auth',      require('./routes/auth'));
 app.use('/api/me',        require('./routes/auth')); // /api/me is in auth router
 app.use('/api/dashboard', require('./routes/dashboard'));
