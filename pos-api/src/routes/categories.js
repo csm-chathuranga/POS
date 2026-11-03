@@ -62,7 +62,18 @@ router.put('/:id', auth, role('admin', 'manager'), async (req, res) => {
     const name = String(req.body.name || '').trim();
     if (!name) return res.status(422).json({ error: 'Name is required' });
     const image = req.body.image !== undefined ? (req.body.image || null) : cat.image;
-    await cat.update({ name, image });
+    const show_in_pos = req.body.show_in_pos !== undefined ? Boolean(req.body.show_in_pos) : cat.show_in_pos;
+    await cat.update({ name, image, show_in_pos });
+    res.json(cat);
+  } catch (e) { res.status(422).json({ error: e.message }); }
+});
+
+router.patch('/:id/pos', auth, role('admin', 'manager'), async (req, res) => {
+  try {
+    const { Category } = req.models;
+    const cat = await Category.findByPk(req.params.id);
+    if (!cat) return res.status(404).json({ error: 'Not found' });
+    await cat.update({ show_in_pos: Boolean(req.body.show_in_pos) });
     res.json(cat);
   } catch (e) { res.status(422).json({ error: e.message }); }
 });

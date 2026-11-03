@@ -3,6 +3,7 @@ import { useForm } from 'react-hook-form';
 import {
   useGetCategoriesQuery, useCreateCategoryMutation,
   useUpdateCategoryMutation, useDeleteCategoryMutation,
+  useToggleCategoryPOSMutation,
 } from '../../features/categories/categoriesApi';
 import { useLocale } from '../../contexts/LocaleContext';
 import { useConnectivity } from '../../contexts/ConnectivityContext';
@@ -39,6 +40,7 @@ export default function CategoriesIndex() {
   const [create, { isLoading: creating }] = useCreateCategoryMutation();
   const [update, { isLoading: updating }] = useUpdateCategoryMutation();
   const [del]                             = useDeleteCategoryMutation();
+  const [togglePOS]                       = useToggleCategoryPOSMutation();
 
   function openCreate() {
     reset(empty);
@@ -150,9 +152,16 @@ export default function CategoriesIndex() {
               <div>
                 <p className="font-semibold text-slate-800">{c.name}</p>
                 {(c._offline || c._pending) && <p className="text-[10px] text-amber-600 font-medium mt-0.5">Pending sync</p>}
+                <p className="text-[10px] text-slate-400 mt-0.5">{c.show_in_pos ? '✓ Shown in POS' : 'Hidden from POS'}</p>
               </div>
             </div>
-            <div className="flex gap-1.5">
+            <div className="flex gap-1.5 items-center">
+              <button
+                onClick={() => isOnline && togglePOS({ id: c.id, show_in_pos: !c.show_in_pos })}
+                disabled={!isOnline}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${c.show_in_pos ? 'bg-blue-600' : 'bg-slate-300'} ${!isOnline ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}>
+                <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${c.show_in_pos ? 'translate-x-6' : 'translate-x-1'}`} />
+              </button>
               <button onClick={() => openEdit(c)}
                 className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold bg-amber-500 text-white hover:bg-amber-600 rounded-lg transition-colors">
                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2v-5m-1.414-9.414a2 2 0 1 1 2.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
@@ -181,6 +190,7 @@ export default function CategoriesIndex() {
                 <th className="px-4 py-3 text-left font-semibold w-10">#</th>
                 <th className="px-4 py-3 text-left font-semibold">Image</th>
                 <th className="px-4 py-3 text-left font-semibold">{t('cust.name')}</th>
+                <th className="px-4 py-3 text-center font-semibold">Show in POS</th>
                 <th className="px-4 py-3 text-right font-semibold">{t('th.actions')}</th>
               </tr>
             </thead>
@@ -197,6 +207,15 @@ export default function CategoriesIndex() {
                   <td className="px-4 py-3">
                     <span className="font-medium text-slate-800">{c.name}</span>
                     {(c._offline || c._pending) && <span className="ml-2 text-[10px] text-amber-600 font-medium">Pending sync</span>}
+                  </td>
+                  <td className="px-4 py-3 text-center">
+                    <button
+                      onClick={() => isOnline && togglePOS({ id: c.id, show_in_pos: !c.show_in_pos })}
+                      disabled={!isOnline}
+                      title={c.show_in_pos ? 'Shown in POS — click to hide' : 'Hidden from POS — click to show'}
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${c.show_in_pos ? 'bg-blue-600' : 'bg-slate-300'} ${!isOnline ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}>
+                      <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${c.show_in_pos ? 'translate-x-6' : 'translate-x-1'}`} />
+                    </button>
                   </td>
                   <td className="px-4 py-3 text-right">
                     <div className="flex items-center justify-end gap-1.5">

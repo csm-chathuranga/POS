@@ -29,6 +29,10 @@ export const categoriesApi = api.injectEndpoints({
       query: () => ({ url: '/categories/truncate', method: 'POST', body: { confirm: 'TRUNCATE_CATEGORIES' } }),
       invalidatesTags: [{ type: 'Categories', id: 'LIST' }],
     }),
+    toggleCategoryPOS: build.mutation({
+      query: ({ id, show_in_pos }) => ({ url: `/categories/${id}/pos`, method: 'PATCH', body: { show_in_pos } }),
+      invalidatesTags: (r, e, { id }) => [{ type: 'Categories', id }, { type: 'Categories', id: 'LIST' }],
+    }),
   }),
 });
 
@@ -39,4 +43,5 @@ export const {
   useDeleteCategoryMutation,
   useImportCategoriesMutation,
   useTruncateCategoriesMutation,
+  useToggleCategoryPOSMutation,
 } = categoriesApi;

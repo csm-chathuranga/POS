@@ -1,0 +1,1 @@
+ALTER TABLE categories ADD COLUMN show_in_pos TINYINT(1) NOT NULL DEFAULT 0;

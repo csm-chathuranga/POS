@@ -576,12 +576,15 @@ export default function SalesCreate() {
 
   // ─── Derived ─────────────────────────────────────────────────────────────────
   const categories = useMemo(() => {
-    if (allCategories.length > 0)
-      return [...allCategories].sort((a, b) => a.name.localeCompare(b.name)).slice(0, 10);
+    if (allCategories.length > 0) {
+      const pinned = allCategories.filter(c => c.show_in_pos);
+      const base = pinned.length > 0 ? pinned : allCategories;
+      return [...base].sort((a, b) => a.name.localeCompare(b.name)).slice(0, 20);
+    }
     // offline fallback: derive from loaded products
     const map = new Map();
     products.forEach(p => { if (p.category_id && p.category?.name) map.set(p.category_id, p.category.name); });
-    return [...map.entries()].map(([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name)).slice(0, 10);
+    return [...map.entries()].map(([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name)).slice(0, 20);
   }, [allCategories, products]);
 
   const dropdownItems = useMemo(() => {
@@ -1477,11 +1480,11 @@ export default function SalesCreate() {
                 {Icon.pause} <span>{t('pos.hold_btn')}</span>
               </button>
               <button disabled={cart.length === 0 || total === 0 || submitting} onClick={() => handleCompleteSale(true)}
-                className="w-16 h-16 shrink-0 flex flex-col items-center justify-center gap-1 bg-gradient-to-br from-teal-400 to-teal-600 hover:from-teal-300 hover:to-teal-500 text-white disabled:cursor-not-allowed rounded-xl text-xs font-bold transition-all shadow-[0_4px_14px_rgba(20,184,166,0.5)]">
-                {Icon.save} <span>F11</span>
+                className="shrink-0 flex flex-col items-center justify-center gap-1 px-4 h-16 bg-gradient-to-br from-teal-400 to-teal-600 hover:from-teal-300 hover:to-teal-500 text-white disabled:cursor-not-allowed rounded-xl text-xs font-bold transition-all shadow-[0_4px_14px_rgba(20,184,166,0.5)]">
+                {Icon.save} <span>Save (F11)</span>
               </button>
               <button disabled={cart.length === 0 || total === 0 || submitting} onClick={() => handleCompleteSale(false, true)}
-                className="flex-[2] flex flex-col items-center justify-center gap-1 py-3 bg-gradient-to-br from-green-600 to-green-800 hover:from-green-500 hover:to-green-700 text-white rounded-xl font-bold text-sm transition-all shadow-[0_4px_14px_rgba(22,163,74,0.5)] disabled:cursor-not-allowed">
+                className="flex-1 flex flex-col items-center justify-center gap-1 py-2 bg-gradient-to-br from-green-600 to-green-800 hover:from-green-500 hover:to-green-700 text-white rounded-xl font-bold text-sm transition-all shadow-[0_4px_14px_rgba(22,163,74,0.5)] disabled:cursor-not-allowed">
                 {Icon.print} <span>{t('pos.complete_sale')} <span className="text-xs opacity-70">F10</span></span>
               </button>
               {smsEnabled && (
