@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
+import SearchableSelect from '../SearchableSelect';
 import { useForm } from 'react-hook-form';
 import { useSelector } from 'react-redux';
 import { selectToken } from '../../features/auth/authSlice';
@@ -247,10 +248,12 @@ export default function ProductForm({ initial = {}, onSubmit, isSaving }) {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-sm font-medium text-slate-600 mb-1.5">{t('prod.category')}</label>
-              <select {...register('category_id')} className={inp}>
-                <option value="">— {t('prod.select_category')} —</option>
-                {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-              </select>
+              <SearchableSelect
+                value={watch('category_id') || ''}
+                onChange={val => setValue('category_id', val, { shouldValidate: true })}
+                options={categories.map(c => ({ value: String(c.id), label: c.name }))}
+                placeholder={`— ${t('prod.select_category')} —`}
+              />
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-600 mb-1.5">

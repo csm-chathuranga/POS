@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import SearchableSelect from '../../components/SearchableSelect';
 import JsBarcode from 'jsbarcode';
 import { Link } from 'react-router-dom';
 import { useSelector } from 'react-redux';
@@ -295,18 +296,18 @@ export default function ProductsIndex() {
         </div>
 
         {/* Category */}
-        <select
-          value={catId}
-          onChange={e => {
-            setCatId(e.target.value);
-            setApplied(a => ({ ...a, category_id: e.target.value }));
-            setPage(1);
-          }}
-          className="rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500 bg-white max-w-48"
-        >
-          <option value="">{t('lbl.all')} {t('prod.category')}</option>
-          {displayCategories.map(c => <option key={c.id} value={c.id}>{c.name?.length > 50 ? c.name.slice(0, 50) + '…' : c.name}</option>)}
-        </select>
+        <div className="w-48">
+          <SearchableSelect
+            value={catId}
+            onChange={val => {
+              setCatId(val);
+              setApplied(a => ({ ...a, category_id: val }));
+              setPage(1);
+            }}
+            options={displayCategories.map(c => ({ value: String(c.id), label: c.name?.length > 50 ? c.name.slice(0, 50) + '…' : c.name }))}
+            placeholder={`${t('lbl.all')} ${t('prod.category')}`}
+          />
+        </div>
 
         {/* All / Low Stock / Promo toggle */}
         <div className="flex rounded-lg border border-slate-200 overflow-hidden bg-white">
