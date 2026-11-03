@@ -53,6 +53,7 @@ import RolesPage        from '../pages/settings/Roles';
 import InvoicesIndex    from '../pages/invoices/Index';
 import InvoiceCreate    from '../pages/invoices/Create';
 import InvoiceShow      from '../pages/invoices/Show';
+import PublicInvoice    from '../pages/sales/PublicInvoice';
 
 function ProtectedRoute() {
   const token = useSelector(selectToken);
@@ -129,6 +130,10 @@ export const router = createAppRouter([
   {
     path: '/sms-payment-done',
     element: <SmsPaymentDone />,
+  },
+  {
+    path: '/invoice/:invoice_no',
+    element: <PublicInvoice />,
   },
   {
     element: <ProtectedRoute />,

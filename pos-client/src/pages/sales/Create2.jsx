@@ -1006,7 +1006,12 @@ export default function SalesCreate() {
       setCart([]); setCustomer(null); setCustQuery(''); setBillDisc(''); setCashPaid('');
 
 
-      if (!saveOnly) {
+      if (withSms && customer?.phone) {
+        const invoiceLink = window.location.origin + '/invoice/' + result.invoice_no;
+        const shopName = settings?.shop_name || '';
+        const msg = `Dear ${customer.name},\nYour invoice ${result.invoice_no} total Rs.${Number(total).toFixed(2)}${shopName ? ' from ' + shopName : ''}.\nView: ${invoiceLink}`;
+        setSmsPending({ phone: customer.phone, message: msg, saleId: result.id, result, cartSnapshot, payments, subtotal, totalDisc, total, paid, customerName: customer?.name, autoPrint: false });
+      } else if (!saveOnly) {
         if (redirectAndPrint && result?.id) {
           navigate('/sales/' + result.id, { state: { autoPrint: true } });
         } else {
