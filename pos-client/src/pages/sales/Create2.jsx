@@ -1574,7 +1574,7 @@ export default function SalesCreate() {
         const q = drawerSearch.trim().toLowerCase();
         const drawerProducts = products.filter(p => {
           if (p.active === false) return false;
-          if (drawerCategory.id !== null && p.category_id !== drawerCategory.id) return false;
+          if (drawerCategory.id !== null && String(p.category_id) !== String(drawerCategory.id)) return false;
           if (!q) return true;
           return p.name.toLowerCase().includes(q) || (p.name_si && p.name_si.includes(q)) || (p.barcode && p.barcode.toLowerCase().includes(q));
         });
