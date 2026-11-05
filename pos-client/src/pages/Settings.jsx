@@ -153,10 +153,12 @@ export default function Settings() {
         pos_auto_scale:         '1',
         pos_scale_value:        '100',
         pos_interface:          '1',
+        purchase_interface:     '1',
         ...data,
       };
       setForm(merged);
       if (merged.pos_interface) localStorage.setItem('pos_interface', merged.pos_interface);
+      if (merged.purchase_interface) localStorage.setItem('purchase_interface', merged.purchase_interface);
       localStorage.setItem('use_manager_dashboard', merged.use_manager_dashboard || 'false');
     }
   }, [data]);
@@ -165,6 +167,7 @@ export default function Settings() {
     setForm(f => ({ ...f, [key]: val }));
     if (key === 'interface_language') setLocale(val);
     if (key === 'pos_interface') localStorage.setItem('pos_interface', val);
+    if (key === 'purchase_interface') localStorage.setItem('purchase_interface', val);
     if (key === 'use_manager_dashboard') localStorage.setItem('use_manager_dashboard', val);
   }
   const bool = key => form[key] === 'true' || form[key] === true;
@@ -560,6 +563,58 @@ export default function Settings() {
                     )}
                   </button>
 
+                </div>
+              </Card>
+
+              <Card title="Purchase Entry Interface" className="md:col-span-2">
+                <p className="text-xs text-slate-500 mb-4">Choose which interface is used when creating a new purchase (GRN).</p>
+                <div className="flex gap-3">
+                  <button type="button" onClick={() => set('purchase_interface', '1')}
+                    className={`flex-1 rounded-xl border-2 p-3 text-left transition-all ${(form.purchase_interface ?? '2') === '1' ? 'border-blue-500 bg-blue-50' : 'border-slate-200 hover:border-slate-300'}`}>
+                    <div className="w-full h-16 rounded-lg bg-slate-100 mb-2 overflow-hidden p-1.5 flex flex-col gap-1">
+                      <div className="h-2 bg-slate-300 rounded-full w-1/2" />
+                      <div className="flex-1 bg-white rounded flex flex-col gap-1 p-1">
+                        <div className="h-1 bg-slate-200 rounded-full" />
+                        <div className="h-1 bg-slate-200 rounded-full w-3/4" />
+                        <div className="h-1 bg-slate-200 rounded-full w-2/3" />
+                      </div>
+                    </div>
+                    <p className="text-sm font-semibold text-slate-800">Classic Form</p>
+                    <p className="text-xs text-slate-500 mt-0.5">Traditional form layout with table</p>
+                    {(form.purchase_interface ?? '2') === '1' && (
+                      <span className="mt-1.5 inline-flex items-center gap-1 text-xs font-bold text-blue-600">
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7"/></svg>
+                        Active
+                      </span>
+                    )}
+                  </button>
+
+                  <button type="button" onClick={() => set('purchase_interface', '2')}
+                    className={`flex-1 rounded-xl border-2 p-3 text-left transition-all ${(form.purchase_interface ?? '2') === '2' ? 'border-emerald-500 bg-emerald-50' : 'border-slate-200 hover:border-slate-300'}`}>
+                    <div className="w-full h-16 rounded-lg bg-slate-100 mb-2 overflow-hidden flex gap-1 p-1.5">
+                      <div className="flex-1 bg-white rounded flex flex-col gap-1 p-1">
+                        <div className="h-1.5 bg-slate-300 rounded-full w-2/3" />
+                        <div className="flex-1 flex flex-col gap-0.5 justify-center">
+                          <div className="h-1 bg-emerald-200 rounded-full" />
+                          <div className="h-1 bg-emerald-200 rounded-full w-4/5" />
+                          <div className="h-1 bg-emerald-200 rounded-full w-3/5" />
+                        </div>
+                      </div>
+                      <div className="w-8 bg-emerald-100 rounded flex flex-col gap-1 p-0.5">
+                        <div className="h-2 bg-emerald-400 rounded" />
+                        <div className="h-1.5 bg-emerald-300 rounded" />
+                        <div className="h-4 bg-emerald-500 rounded mt-auto" />
+                      </div>
+                    </div>
+                    <p className="text-sm font-semibold text-slate-800">POS Style</p>
+                    <p className="text-xs text-slate-500 mt-0.5">Split-screen: items left, details right</p>
+                    {(form.purchase_interface ?? '2') === '2' && (
+                      <span className="mt-1.5 inline-flex items-center gap-1 text-xs font-bold text-emerald-600">
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7"/></svg>
+                        Active
+                      </span>
+                    )}
+                  </button>
                 </div>
               </Card>
             </>

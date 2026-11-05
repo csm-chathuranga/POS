@@ -27,6 +27,7 @@ import CustomerCredit  from '../pages/customers/Credit';
 import CreditIndex     from '../pages/credit/Index';
 import PurchasesIndex      from '../pages/purchases/Index';
 import PurchasesCreate     from '../pages/purchases/Create';
+import PurchasesCreate2    from '../pages/purchases/Create2';
 import PurchasesShow       from '../pages/purchases/Show';
 import FreeItemsReport     from '../pages/purchases/FreeItemsReport';
 import Reports         from '../pages/reports/Index';
@@ -58,6 +59,12 @@ import PublicInvoice    from '../pages/sales/PublicInvoice';
 function ProtectedRoute() {
   const token = useSelector(selectToken);
   return token ? <Outlet /> : <Navigate to="/login" replace />;
+}
+
+function PurchaseRoute() {
+  const iface = localStorage.getItem('purchase_interface') || '1';
+  if (iface === '2') return <PurchasesCreate2 />;
+  return <PurchasesCreate />;
 }
 
 function POSRoute() {
@@ -154,7 +161,7 @@ export const router = createAppRouter([
         { path: 'customers/:id/credit', element: <CustomerCredit /> },
         { path: 'credit',               element: <CreditIndex /> },
         { path: 'purchases',                    element: <PurchasesIndex /> },
-        { path: 'purchases/create',            element: <PurchasesCreate /> },
+        { path: 'purchases/create',            element: <PurchaseRoute /> },
         { path: 'purchases/free-items-report', element: <FreeItemsReport /> },
         { path: 'purchases/:id',               element: <PurchasesShow /> },
         { path: 'suppliers',              element: <SuppliersIndex /> },
