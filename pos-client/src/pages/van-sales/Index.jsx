@@ -545,32 +545,37 @@ function TripsSection({ onNew }) {
   return (
     <div className="space-y-5">
       {/* Date filter bar */}
-      <div className="flex items-center gap-3 bg-white border border-slate-200 rounded-xl px-4 py-3">
-        <svg className="w-4 h-4 text-slate-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-        </svg>
-        <span className="text-xs font-semibold text-slate-500 shrink-0">From</span>
+      <div className="flex items-center gap-3 bg-white border border-slate-200 rounded-2xl px-4 py-3 shadow-sm">
+        <div className="w-7 h-7 rounded-lg bg-blue-100 flex items-center justify-center shrink-0">
+          <svg className="w-3.5 h-3.5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+          </svg>
+        </div>
+        <span className="text-xs font-bold text-slate-500 shrink-0">From</span>
         <input type="date" value={from} onChange={e => setFrom(e.target.value)}
           className="border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs focus:ring-2 focus:ring-blue-500 outline-none" />
-        <span className="text-xs font-semibold text-slate-400 shrink-0">To</span>
+        <span className="text-xs font-bold text-slate-400 shrink-0">To</span>
         <input type="date" value={to} onChange={e => setTo(e.target.value)}
           className="border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs focus:ring-2 focus:ring-blue-500 outline-none" />
         {(from || to) && (
           <button onClick={() => { setFrom(''); setTo(''); }}
-            className="ml-auto text-xs text-slate-400 hover:text-red-500 font-semibold flex items-center gap-1">
+            className="ml-auto text-xs text-red-400 hover:text-red-600 font-bold flex items-center gap-1 px-2 py-1 rounded-lg hover:bg-red-50 transition-colors">
             <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
             Clear
           </button>
         )}
-        <span className="ml-auto text-xs text-slate-400 tabular-nums">{total} trip{total !== 1 ? 's' : ''}</span>
+        <span className={`ml-auto text-xs font-bold px-2.5 py-1 rounded-full tabular-nums ${total > 0 ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-500'}`}>
+          {total} trip{total !== 1 ? 's' : ''}
+        </span>
       </div>
 
       {active.length > 0 && (
         <div>
-          <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wide mb-3 flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-green-500 inline-block"></span>
-            Active Trips
-          </h3>
+          <div className="flex items-center gap-2 mb-3">
+            <div className="h-6 w-1 rounded-full bg-green-500"></div>
+            <h3 className="text-sm font-bold text-slate-700">Active Trips</h3>
+            <span className="text-xs font-bold bg-green-100 text-green-700 px-2 py-0.5 rounded-full">{active.length}</span>
+          </div>
           <div className="space-y-2">
             {active.map(t => <TripCard key={t.id} t={t} onDelete={setConfirmDelete} />)}
           </div>
@@ -578,26 +583,30 @@ function TripsSection({ onNew }) {
       )}
       {closed.length > 0 && (
         <div>
-          <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wide mb-3 flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-slate-400 inline-block"></span>
-            Closed Trips
-          </h3>
+          <div className="flex items-center gap-2 mb-3">
+            <div className="h-6 w-1 rounded-full bg-slate-400"></div>
+            <h3 className="text-sm font-bold text-slate-700">Closed Trips</h3>
+            <span className="text-xs font-bold bg-slate-200 text-slate-600 px-2 py-0.5 rounded-full">{closed.length}</span>
+          </div>
           <div className="space-y-2">
             {closed.map(t => <TripCard key={t.id} t={t} onDelete={setConfirmDelete} />)}
           </div>
         </div>
       )}
       {total === 0 && (
-        <div className="text-center py-20 text-slate-400">
-          <div className="w-14 h-14 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-            <svg className="w-7 h-7 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+        <div className="text-center py-24">
+          <div className="w-20 h-20 rounded-3xl mx-auto mb-5 flex items-center justify-center" style={{ background: 'linear-gradient(135deg,#dbeafe,#e0e7ff)' }}>
+            <svg className="w-10 h-10 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z"/>
               <path strokeLinecap="round" strokeLinejoin="round" d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10l2.25 0M13 16H9m4 0h5m-9-5h9M5 11V7h7v4"/>
             </svg>
           </div>
-          <p className="font-semibold text-slate-500">{(from || to) ? 'No trips in this date range' : 'No trips yet'}</p>
+          <p className="text-lg font-bold text-slate-700 mb-1">{(from || to) ? 'No trips in this date range' : 'No trips yet'}</p>
+          <p className="text-sm text-slate-400 mb-5">{(from || to) ? 'Try a different date range' : 'Start your first van delivery trip'}</p>
           {!from && !to && (
-            <button onClick={onNew} className="mt-4 px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-xl hover:bg-blue-700">
+            <button onClick={onNew}
+              className="px-6 py-2.5 text-sm font-bold rounded-xl text-white shadow-lg transition-all"
+              style={{ background: 'linear-gradient(135deg,#2563eb,#4f46e5)' }}>
               + New Trip
             </button>
           )}
@@ -620,11 +629,10 @@ function TripCard({ t, onDelete }) {
   const isActive = t.status === 'active';
   return (
     <Link to={`/van-sales/${t.id}`}
-      className={`block rounded-xl p-4 transition-all group border ${
-        isActive
-          ? 'bg-blue-600 border-blue-600 hover:bg-blue-700'
-          : 'bg-white border-slate-200 hover:border-slate-300 hover:shadow-sm'
-      }`}>
+      className={`block rounded-2xl p-4 transition-all group border-0 shadow-sm hover:shadow-md ${
+        isActive ? 'text-white' : 'bg-white border-l-4 border-l-slate-300'
+      }`}
+      style={isActive ? { background: 'linear-gradient(135deg,#2563eb 0%,#4f46e5 100%)' } : {}}>
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <div className="flex items-center gap-2 flex-wrap mb-1">
@@ -803,53 +811,64 @@ export default function VanSalesIndex() {
   const [showCreate, setShowCreate] = useState(false);
 
   return (
-    <div className="flex h-full min-h-screen bg-slate-50">
+    <div className="flex h-full min-h-screen bg-slate-100">
       {/* Sidebar */}
-      <aside className="w-52 shrink-0 bg-white border-r border-slate-100 flex flex-col">
-        <div className="px-4 py-5 border-b border-slate-100">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center shrink-0">
-              <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+      <aside className="w-56 shrink-0 flex flex-col" style={{ background: 'linear-gradient(180deg,#0f172a 0%,#1e293b 100%)' }}>
+        <div className="px-4 py-5 border-b border-white/10">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: 'linear-gradient(135deg,#3b82f6,#6366f1)' }}>
+              <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z"/>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10l2.25 0M13 16H9m4 0h5m-9-5h9M5 11V7h7v4"/>
               </svg>
             </div>
-            <span className="font-bold text-slate-800 text-sm">Van Sales</span>
+            <div>
+              <span className="font-bold text-white text-sm block leading-tight">Van Sales</span>
+              <span className="text-slate-400 text-[10px]">Distribution</span>
+            </div>
           </div>
         </div>
 
-        <nav className="flex-1 p-3 space-y-0.5">
+        <nav className="flex-1 p-3 space-y-1">
           {NAV_ITEMS.map(item => (
             <button key={item.key} onClick={() => setSection(item.key)}
-              className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all ${
                 section === item.key
-                  ? 'bg-blue-50 text-blue-700'
-                  : 'text-slate-600 hover:bg-slate-50 hover:text-slate-800'
+                  ? 'bg-blue-600 text-white shadow-lg'
+                  : 'text-slate-400 hover:bg-white/10 hover:text-white'
               }`}>
               {item.icon}
               {item.label}
             </button>
           ))}
         </nav>
-
       </aside>
 
       {/* Main content */}
       <main className="flex-1 min-w-0 overflow-y-auto flex flex-col">
-        <div className="flex items-center justify-between px-6 py-4 bg-white border-b border-slate-100">
-          <h1 className="text-base font-bold text-slate-800">
-            {section === 'vans' ? 'Van Management' : 'Trips'}
-          </h1>
-          {section === 'trips' && (
-            <button onClick={() => setShowCreate(true)}
-              className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-xl hover:bg-blue-700 shadow-sm transition-all">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4"/>
-              </svg>
-              New Trip
-            </button>
-          )}
+        {/* Gradient header banner */}
+        <div className="shrink-0 px-6 py-5" style={{ background: 'linear-gradient(135deg,#1d4ed8 0%,#4f46e5 100%)' }}>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-xl font-bold text-white">
+                {section === 'vans' ? 'Van Management' : 'Van Trips'}
+              </h1>
+              <p className="text-blue-200 text-xs mt-0.5">
+                {section === 'vans' ? 'Register and manage your fleet' : 'Track loads, refills and settlements'}
+              </p>
+            </div>
+            {section === 'trips' && (
+              <button onClick={() => setShowCreate(true)}
+                className="flex items-center gap-1.5 px-4 py-2.5 bg-white text-blue-700 text-sm font-bold rounded-xl hover:bg-blue-50 shadow-lg transition-all">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4"/>
+                </svg>
+                New Trip
+              </button>
+            )}
+          </div>
         </div>
+
         <div className="flex-1 p-6">
           {section === 'trips' && <TripsSection onNew={() => setShowCreate(true)} />}
           {section === 'vans'  && <VansSection />}
