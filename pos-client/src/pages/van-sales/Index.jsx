@@ -576,7 +576,7 @@ function TripsSection({ onNew }) {
             <h3 className="text-sm font-bold text-slate-700">Active Trips</h3>
             <span className="text-xs font-bold bg-green-100 text-green-700 px-2 py-0.5 rounded-full">{active.length}</span>
           </div>
-          <div className="space-y-2">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
             {active.map(t => <TripCard key={t.id} t={t} onDelete={setConfirmDelete} />)}
           </div>
         </div>
@@ -588,7 +588,7 @@ function TripsSection({ onNew }) {
             <h3 className="text-sm font-bold text-slate-700">Closed Trips</h3>
             <span className="text-xs font-bold bg-slate-200 text-slate-600 px-2 py-0.5 rounded-full">{closed.length}</span>
           </div>
-          <div className="space-y-2">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
             {closed.map(t => <TripCard key={t.id} t={t} onDelete={setConfirmDelete} />)}
           </div>
         </div>

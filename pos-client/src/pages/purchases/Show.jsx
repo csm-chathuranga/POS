@@ -275,7 +275,7 @@ export default function PurchaseShow() {
 
   const items   = purchase.items || [];
   const balance = parseFloat(purchase.total || 0) - parseFloat(purchase.paid || 0);
-  const canReturn = (role === 'admin' || role === 'manager') && items.length > 0;
+  const canReturn = (role === 'admin' || role === 'manager' || role === 'custom') && items.length > 0;
 
   return (
     <div className="p-3 sm:p-6 space-y-5">

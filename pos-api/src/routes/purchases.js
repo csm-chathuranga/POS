@@ -157,7 +157,7 @@ router.delete('/:id', auth, role('admin', 'manager', 'custom'), async (req, res)
 
   res.json({ message: 'Deleted' });
 });
-router.post('/:id/return', auth, role('admin', 'manager'), async (req, res) => {
+router.post('/:id/return', auth, role('admin', 'manager', 'custom'), async (req, res) => {
   const { Purchase, PurchaseItem, PurchaseReturn, Product, StockMovement, Supplier } = req.models;
   const purchase = await Purchase.findByPk(req.params.id, {
     include: [{ model: PurchaseItem, as: 'items' }],
