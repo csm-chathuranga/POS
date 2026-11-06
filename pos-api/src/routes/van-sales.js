@@ -153,6 +153,42 @@ router.post('/', async (req, res) => {
   res.status(201).json(await loadTrip(req.models, trip.id));
 });
 
+// ── Vans CRUD ─────────────────────────────────────────────────────────────────
+
+router.get('/vans', async (req, res) => {
+  const rows = await req.db.query('SELECT * FROM vans WHERE active = 1 ORDER BY name ASC', { type: req.db.QueryTypes.SELECT });
+  res.json(rows);
+});
+
+router.post('/vans', role('admin'), async (req, res) => {
+  const { name, vehicle_no } = req.body;
+  if (!name?.trim()) return res.status(422).json({ error: 'name is required' });
+  const [id] = await req.db.query(
+    'INSERT INTO vans (name, vehicle_no) VALUES (?, ?)',
+    { replacements: [name.trim(), (vehicle_no || '').trim()], type: req.db.QueryTypes.INSERT }
+  );
+  const [van] = await req.db.query('SELECT * FROM vans WHERE id = ?', { replacements: [id], type: req.db.QueryTypes.SELECT });
+  res.status(201).json(van);
+});
+
+router.put('/vans/:id', role('admin'), async (req, res) => {
+  const { name, vehicle_no } = req.body;
+  if (!name?.trim()) return res.status(422).json({ error: 'name is required' });
+  await req.db.query(
+    'UPDATE vans SET name = ?, vehicle_no = ?, updated_at = NOW() WHERE id = ?',
+    { replacements: [name.trim(), (vehicle_no || '').trim(), req.params.id], type: req.db.QueryTypes.UPDATE }
+  );
+  const [van] = await req.db.query('SELECT * FROM vans WHERE id = ?', { replacements: [req.params.id], type: req.db.QueryTypes.SELECT });
+  if (!van) return res.status(404).json({ error: 'Van not found' });
+  res.json(van);
+});
+
+router.delete('/vans/:id', role('admin'), async (req, res) => {
+  await req.db.query('UPDATE vans SET active = 0, updated_at = NOW() WHERE id = ?',
+    { replacements: [req.params.id], type: req.db.QueryTypes.UPDATE });
+  res.json({ ok: true });
+});
+
 // ── GET /api/van-sales/:id ────────────────────────────────────────────────────
 
 router.get('/:id', async (req, res) => {

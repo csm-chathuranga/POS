@@ -1,6 +1,16 @@
 // Creates van-sales tables in the tenant DB. Safe to re-run.
 async function ensureVanSalesTables(sequelize) {
   await sequelize.query(`
+    CREATE TABLE IF NOT EXISTS \`vans\` (
+      \`id\`         BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+      \`name\`       VARCHAR(191)    NOT NULL,
+      \`vehicle_no\` VARCHAR(100)    NOT NULL DEFAULT '',
+      \`active\`     TINYINT(1)      NOT NULL DEFAULT 1,
+      \`created_at\` DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      \`updated_at\` DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+  `);
+  await sequelize.query(`
     CREATE TABLE IF NOT EXISTS \`van_trips\` (
       \`id\`          BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
       \`driver_name\` VARCHAR(191)    NOT NULL DEFAULT '',

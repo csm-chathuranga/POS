@@ -10,6 +10,10 @@ export const vanSalesApi = api.injectEndpoints({
     addRefill:      build.mutation({ query: ({ id, ...body }) => ({ url: `/van-sales/${id}/refill`, method: 'POST', body }), invalidatesTags: (r, e, { id }) => [{ type: 'VanTrips', id }, 'VanTrips'] }),
     unloadTrip:     build.mutation({ query: ({ id, ...body }) => ({ url: `/van-sales/${id}/unload`, method: 'POST', body }), invalidatesTags: (r, e, { id }) => [{ type: 'VanTrips', id }, 'VanTrips'] }),
     deleteVanTrip:  build.mutation({ query: id => ({ url: `/van-sales/${id}`, method: 'DELETE' }), invalidatesTags: ['VanTrips'] }),
+    getVans:        build.query({ query: () => '/van-sales/vans', providesTags: ['Vans'] }),
+    createVan:      build.mutation({ query: body => ({ url: '/van-sales/vans', method: 'POST', body }), invalidatesTags: ['Vans'] }),
+    updateVan:      build.mutation({ query: ({ id, ...body }) => ({ url: `/van-sales/vans/${id}`, method: 'PUT', body }), invalidatesTags: ['Vans'] }),
+    deleteVan:      build.mutation({ query: id => ({ url: `/van-sales/vans/${id}`, method: 'DELETE' }), invalidatesTags: ['Vans'] }),
   }),
 });
 
@@ -22,4 +26,8 @@ export const {
   useAddRefillMutation,
   useUnloadTripMutation,
   useDeleteVanTripMutation,
+  useGetVansQuery,
+  useCreateVanMutation,
+  useUpdateVanMutation,
+  useDeleteVanMutation,
 } = vanSalesApi;
