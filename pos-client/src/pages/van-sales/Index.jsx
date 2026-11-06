@@ -1,9 +1,10 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { Link, useNavigate } from 'react-router-dom';
 import { useGetVanTripsQuery, useCreateVanTripMutation, useDeleteVanTripMutation, useGetVansQuery, useCreateVanMutation, useUpdateVanMutation, useDeleteVanMutation } from '../../features/van-sales/vanSalesApi';
 import { useGetProductsQuery } from '../../features/products/productsApi';
 import { useGetEmployeesQuery } from '../../features/employees/employeesApi';
+import { useGetCategoriesQuery } from '../../features/categories/categoriesApi';
 
 const fmt  = n => Number(n || 0).toLocaleString('en-LK', { minimumFractionDigits: 2 });
 const fmtD = d => d ? new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
@@ -226,32 +227,50 @@ function VanPicker({ value, onChange }) {
 
 // ── Create Modal ───────────────────────────────────────────────────────────────
 
-const EMPTY_ITEM = { variant_name: '', quantity: '', unit_price: '', unit_cost: '' };
-
 function CreateModal({ onClose }) {
   const navigate = useNavigate();
   const today = new Date().toISOString().slice(0, 10);
-  const [driver, setDriver]   = useState('');
-  const [vehicle, setVehicle] = useState('');
-  const [date, setDate]       = useState(today);
-  const [notes, setNotes]     = useState('');
-  const [items, setItems]     = useState([{ ...EMPTY_ITEM }]);
-  const [err, setErr]         = useState('');
+  const [driver, setDriver]     = useState('');
+  const [vehicle, setVehicle]   = useState('');
+  const [date, setDate]         = useState(today);
+  const [notes, setNotes]       = useState('');
+  const [items, setItems]       = useState([]);
+  const [err, setErr]           = useState('');
+  const [catFilter, setCatFilter] = useState('all');
+  const [search, setSearch]     = useState('');
   const [create, { isLoading }] = useCreateVanTripMutation();
-  const qtyRefs = useRef([]);
 
-  function setItem(i, k, v) { setItems(prev => prev.map((x, idx) => idx === i ? { ...x, [k]: v } : x)); }
-  function setItemFromProduct(i, p) {
-    setItems(prev => prev.map((x, idx) => idx === i ? { ...x, ...p } : x));
+  const { data: productsData } = useGetProductsQuery({ active: 1, limit: 500 });
+  const { data: categories = [] } = useGetCategoriesQuery();
+  const products = productsData?.data || [];
+
+  const filtered = useMemo(() => products.filter(p => {
+    const matchCat = catFilter === 'all' || p.category_id === catFilter;
+    const matchSearch = !search || p.name.toLowerCase().includes(search.toLowerCase());
+    return matchCat && matchSearch;
+  }), [products, catFilter, search]);
+
+  function addProduct(p) {
+    setItems(prev => {
+      const hit = prev.find(x => x.variant_name === p.name);
+      if (hit) return prev.map(x => x.variant_name === p.name ? { ...x, quantity: String(Number(x.quantity) + 1) } : x);
+      return [...prev, { variant_name: p.name, quantity: '1', unit_price: String(p.selling_price || 0), unit_cost: String(p.cost_price || 0) }];
+    });
   }
-  function addItem()     { setItems(prev => [...prev, { ...EMPTY_ITEM }]); }
-  function removeItem(i) { setItems(prev => prev.filter((_, idx) => idx !== i)); }
 
-  async function handleSubmit(e) {
-    e.preventDefault();
+  function updateItem(name, key, val) {
+    setItems(prev => prev.map(x => x.variant_name === name ? { ...x, [key]: val } : x));
+  }
+
+  function removeItem(name) {
+    setItems(prev => prev.filter(x => x.variant_name !== name));
+  }
+
+  async function handleSubmit() {
     setErr('');
-    const validItems = items.filter(x => x.variant_name?.trim() && x.quantity);
-    if (!validItems.length) return setErr('Add at least one item with a name and quantity');
+    if (!driver) return setErr('Driver name is required');
+    const validItems = items.filter(x => x.variant_name && Number(x.quantity) > 0);
+    if (!validItems.length) return setErr('Select at least one product with quantity > 0');
     try {
       const trip = await create({ driver_name: driver, vehicle_no: vehicle, start_date: date, notes, items: validItems }).unwrap();
       onClose();
@@ -261,78 +280,163 @@ function CreateModal({ onClose }) {
     }
   }
 
+  const getQty = name => Number(items.find(x => x.variant_name === name)?.quantity || 0);
+  const totalItems = items.reduce((s, x) => s + Number(x.quantity || 0), 0);
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[92vh] flex flex-col">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-3">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-6xl h-[92vh] flex flex-col">
+
+        {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 shrink-0">
           <h2 className="text-lg font-bold text-slate-800">New Van Trip</h2>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 text-xl font-bold leading-none">&times;</button>
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 text-2xl font-bold leading-none">&times;</button>
         </div>
 
-        <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
-          <div className="px-6 py-4 space-y-4 overflow-y-auto flex-1">
-            {err && <p className="text-sm text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2">{err}</p>}
+        <div className="flex flex-1 min-h-0">
 
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1">Driver Name *</label>
-                <DriverPicker value={driver} onChange={setDriver} />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1">Vehicle</label>
-                <VanPicker value={vehicle} onChange={setVehicle} />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1">Start Date *</label>
-                <input type="date" value={date} onChange={e => setDate(e.target.value)} required
-                  className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1">Notes</label>
-                <input value={notes} onChange={e => setNotes(e.target.value)}
-                  className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
-              </div>
-            </div>
+          {/* ── Left: product tile grid ───────────────────────── */}
+          <div className="flex-1 flex flex-col border-r border-slate-100 min-w-0">
 
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-semibold text-slate-600 uppercase tracking-wide">Initial Load Items *</span>
-                <button type="button" onClick={addItem}
-                  className="text-xs font-semibold text-blue-600 hover:text-blue-800">+ Add Row</button>
-              </div>
-              <div className="space-y-2">
-                <div className="grid grid-cols-[1fr_90px_130px_28px] gap-3 text-xs font-semibold text-slate-400 uppercase tracking-wide px-1">
-                  <span>Product / Variant</span><span>Qty</span><span>Selling Price</span><span></span>
-                </div>
-                {items.map((item, i) => (
-                  <div key={i} className="grid grid-cols-[1fr_90px_130px_28px] gap-3 items-center">
-                    <ProductPicker
-                      value={item.variant_name}
-                      onSelect={p => setItemFromProduct(i, p)}
-                      afterSelect={() => qtyRefs.current[i]?.focus()}
-                    />
-                    <input ref={el => qtyRefs.current[i] = el}
-                      type="number" value={item.quantity} onChange={e => setItem(i, 'quantity', e.target.value)}
-                      min="0" placeholder="0" className="border border-slate-200 rounded-lg px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none text-right" />
-                    <input type="number" value={item.unit_price} onChange={e => setItem(i, 'unit_price', e.target.value)}
-                      min="0" step="0.01" placeholder="0.00" className="border border-slate-200 rounded-lg px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none text-right" />
-                    {items.length > 1
-                      ? <button type="button" onClick={() => removeItem(i)} className="text-red-400 hover:text-red-600 text-lg leading-none font-bold">&times;</button>
-                      : <span />}
-                  </div>
+            {/* Search + category tabs */}
+            <div className="px-4 pt-3 pb-2 shrink-0 space-y-2 border-b border-slate-100">
+              <input value={search} onChange={e => setSearch(e.target.value)}
+                placeholder="Search products…"
+                className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
+              <div className="flex gap-1.5 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none' }}>
+                <button onClick={() => setCatFilter('all')}
+                  className={`shrink-0 px-3 py-1 rounded-lg text-xs font-semibold transition-colors ${catFilter === 'all' ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
+                  All
+                </button>
+                {categories.map(cat => (
+                  <button key={cat.id} onClick={() => setCatFilter(cat.id)}
+                    className={`shrink-0 px-3 py-1 rounded-lg text-xs font-semibold transition-colors ${catFilter === cat.id ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
+                    {cat.name}
+                  </button>
                 ))}
               </div>
             </div>
+
+            {/* Tiles */}
+            <div className="flex-1 overflow-y-auto p-3">
+              <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 gap-2">
+                {filtered.map(p => {
+                  const qty = getQty(p.name);
+                  const inCart = qty > 0;
+                  return (
+                    <button key={p.id} type="button" onClick={() => addProduct(p)}
+                      className={`relative p-3 rounded-xl border-2 text-left transition-all active:scale-95 ${
+                        inCart
+                          ? 'border-blue-500 bg-blue-50 shadow-sm'
+                          : 'border-slate-200 bg-white hover:border-blue-300 hover:bg-slate-50'
+                      }`}>
+                      {inCart && (
+                        <span className="absolute top-1.5 right-1.5 w-5 h-5 bg-blue-600 text-white text-[10px] font-bold rounded-full flex items-center justify-center leading-none">
+                          {qty}
+                        </span>
+                      )}
+                      <p className="text-xs font-semibold text-slate-800 leading-snug pr-5 line-clamp-2">{p.name}</p>
+                      <p className="text-[10px] text-slate-400 mt-1.5 tabular-nums">Rs. {fmt(p.selling_price)}</p>
+                    </button>
+                  );
+                })}
+                {filtered.length === 0 && (
+                  <div className="col-span-5 text-center py-16 text-slate-400 text-sm">No products found</div>
+                )}
+              </div>
+            </div>
           </div>
 
-          <div className="px-6 py-4 border-t border-slate-100 flex justify-end gap-3 shrink-0">
-            <button type="button" onClick={onClose} className="px-4 py-2 text-sm font-semibold text-slate-600 hover:text-slate-800">Cancel</button>
-            <button type="submit" disabled={isLoading}
-              className="px-5 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 disabled:opacity-60">
-              {isLoading ? 'Creating…' : 'Open Trip'}
-            </button>
+          {/* ── Right: trip details + cart ───────────────────── */}
+          <div className="w-80 shrink-0 flex flex-col bg-slate-50/50">
+            <div className="flex-1 overflow-y-auto px-5 py-4 space-y-3">
+
+              {err && <p className="text-xs text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2">{err}</p>}
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Driver Name *</label>
+                <DriverPicker value={driver} onChange={setDriver} />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Vehicle</label>
+                <VanPicker value={vehicle} onChange={setVehicle} />
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Start Date *</label>
+                  <input type="date" value={date} onChange={e => setDate(e.target.value)} required
+                    className="w-full border border-slate-200 rounded-lg px-2 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-white" />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Notes</label>
+                  <input value={notes} onChange={e => setNotes(e.target.value)}
+                    className="w-full border border-slate-200 rounded-lg px-2 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-white" />
+                </div>
+              </div>
+
+              {/* Cart */}
+              <div className="pt-1">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Load Items</span>
+                  {totalItems > 0 && (
+                    <span className="text-xs font-bold text-blue-600 bg-blue-100 px-2 py-0.5 rounded-full">
+                      {totalItems} units
+                    </span>
+                  )}
+                </div>
+
+                {items.length === 0 ? (
+                  <div className="text-center py-8 bg-white rounded-xl border border-dashed border-slate-200">
+                    <svg className="w-8 h-8 text-slate-200 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 10.5V6a3.75 3.75 0 10-7.5 0v4.5m11.356-1.993l1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 01-1.12-1.243l1.264-12A1.125 1.125 0 015.513 7.5h12.974c.576 0 1.059.435 1.119 1.007z"/>
+                    </svg>
+                    <p className="text-xs text-slate-400">Tap a product tile to add</p>
+                  </div>
+                ) : (
+                  <div className="space-y-1.5">
+                    {items.map(item => (
+                      <div key={item.variant_name} className="bg-white rounded-xl border border-slate-200 p-2.5">
+                        <div className="flex items-center justify-between mb-1.5">
+                          <span className="text-xs font-semibold text-slate-700 truncate flex-1 mr-1">{item.variant_name}</span>
+                          <button onClick={() => removeItem(item.variant_name)}
+                            className="text-slate-300 hover:text-red-500 text-base font-bold leading-none shrink-0 transition-colors">&times;</button>
+                        </div>
+                        <div className="grid grid-cols-2 gap-1.5">
+                          <div>
+                            <p className="text-[10px] text-slate-400 mb-0.5">Qty</p>
+                            <input type="number" value={item.quantity}
+                              onChange={e => updateItem(item.variant_name, 'quantity', e.target.value)}
+                              min="0"
+                              className="w-full border border-slate-200 rounded-lg px-2 py-1 text-xs text-right focus:ring-1 focus:ring-blue-500 outline-none" />
+                          </div>
+                          <div>
+                            <p className="text-[10px] text-slate-400 mb-0.5">Price</p>
+                            <input type="number" value={item.unit_price}
+                              onChange={e => updateItem(item.variant_name, 'unit_price', e.target.value)}
+                              min="0" step="0.01"
+                              className="w-full border border-slate-200 rounded-lg px-2 py-1 text-xs text-right focus:ring-1 focus:ring-blue-500 outline-none" />
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="px-5 py-4 border-t border-slate-200 flex gap-2 shrink-0">
+              <button type="button" onClick={onClose}
+                className="flex-1 px-4 py-2.5 text-sm font-semibold text-slate-600 border border-slate-200 rounded-xl hover:bg-slate-100 bg-white">
+                Cancel
+              </button>
+              <button type="button" onClick={handleSubmit} disabled={isLoading}
+                className="flex-1 px-4 py-2.5 bg-blue-600 text-white text-sm font-semibold rounded-xl hover:bg-blue-700 disabled:opacity-60 transition-colors">
+                {isLoading ? 'Opening…' : 'Open Trip'}
+              </button>
+            </div>
           </div>
-        </form>
+        </div>
       </div>
     </div>
   );
