@@ -227,6 +227,21 @@ function VanPicker({ value, onChange }) {
 
 // ── Create Modal ───────────────────────────────────────────────────────────────
 
+const TILE_COLORS = [
+  ['#f472b6','#f43f5e'],
+  ['#60a5fa','#2563eb'],
+  ['#c084fc','#9333ea'],
+  ['#fbbf24','#f97316'],
+  ['#34d399','#14b8a6'],
+  ['#22d3ee','#3b82f6'],
+  ['#a78bfa','#7c3aed'],
+  ['#e879f9','#ec4899'],
+  ['#a3e635','#22c55e'],
+  ['#fb923c','#ef4444'],
+  ['#2dd4bf','#06b6d4'],
+  ['#818cf8','#4f46e5'],
+];
+
 function CreateModal({ onClose }) {
   const navigate = useNavigate();
   const today = new Date().toISOString().slice(0, 10);
@@ -320,23 +335,40 @@ function CreateModal({ onClose }) {
             {/* Tiles */}
             <div className="flex-1 overflow-y-auto p-3">
               <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 gap-2">
-                {filtered.map(p => {
+                {filtered.map((p, idx) => {
                   const qty = getQty(p.name);
                   const inCart = qty > 0;
+                  const color = TILE_COLORS[p.id % TILE_COLORS.length];
                   return (
                     <button key={p.id} type="button" onClick={() => addProduct(p)}
-                      className={`relative p-3 rounded-xl border-2 text-left transition-all active:scale-95 ${
-                        inCart
-                          ? 'border-blue-500 bg-blue-50 shadow-sm'
-                          : 'border-slate-200 bg-white hover:border-blue-300 hover:bg-slate-50'
+                      className={`relative rounded-xl overflow-hidden text-left transition-all active:scale-95 border-2 ${
+                        inCart ? 'border-blue-500 shadow-lg' : 'border-transparent hover:shadow-md'
                       }`}>
+                      {/* Image or color header */}
+                      {p.image ? (
+                        <div className="relative h-20 overflow-hidden">
+                          <img src={p.image} alt={p.name} className="w-full h-full object-cover" />
+                          {inCart && <div className="absolute inset-0 bg-blue-600/25" />}
+                        </div>
+                      ) : (
+                        <div className="h-20 flex items-center justify-center relative" style={{ background: `linear-gradient(135deg, ${color[0]}, ${color[1]})` }}>
+                          <span className="text-white text-3xl font-black drop-shadow-sm select-none">
+                            {p.name.charAt(0).toUpperCase()}
+                          </span>
+                          {inCart && <div className="absolute inset-0 bg-black/15" />}
+                        </div>
+                      )}
+                      {/* Qty badge */}
                       {inCart && (
-                        <span className="absolute top-1.5 right-1.5 w-5 h-5 bg-blue-600 text-white text-[10px] font-bold rounded-full flex items-center justify-center leading-none">
+                        <span className="absolute top-1.5 right-1.5 min-w-[22px] h-[22px] bg-blue-600 text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1 shadow-md">
                           {qty}
                         </span>
                       )}
-                      <p className="text-xs font-semibold text-slate-800 leading-snug pr-5 line-clamp-2">{p.name}</p>
-                      <p className="text-[10px] text-slate-400 mt-1.5 tabular-nums">Rs. {fmt(p.selling_price)}</p>
+                      {/* Text */}
+                      <div className="p-2 bg-white">
+                        <p className="text-[11px] font-semibold text-slate-800 leading-snug line-clamp-2 min-h-[2.4rem]">{p.name}</p>
+                        <p className="text-[10px] text-slate-400 mt-0.5 tabular-nums">Rs. {fmt(p.selling_price)}</p>
+                      </div>
                     </button>
                   );
                 })}
