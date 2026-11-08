@@ -532,9 +532,15 @@ function DeleteModal({ trip, onConfirm, onClose, isLoading }) {
 function TripsSection({ onNew }) {
   const { data: trips = [], isLoading } = useGetVanTripsQuery();
   const [deleteTrip, { isLoading: isDeleting }] = useDeleteVanTripMutation();
-  const [from, setFrom]           = useState('');
+  const defaultFrom = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  const [from, setFrom]           = useState(defaultFrom);
   const [to, setTo]               = useState('');
+  const [driverFilter, setDriverFilter] = useState('');
+  const [vanFilter, setVanFilter]       = useState('');
   const [confirmDelete, setConfirmDelete] = useState(null);
+
+  const drivers = useMemo(() => [...new Set(trips.map(t => t.driver_name).filter(Boolean))].sort(), [trips]);
+  const vans    = useMemo(() => [...new Set(trips.map(t => t.vehicle_no).filter(Boolean))].sort(), [trips]);
 
   async function handleDelete() {
     try {
@@ -552,6 +558,8 @@ function TripsSection({ onNew }) {
     const d = t.start_date?.slice(0, 10);
     if (from && d < from) return false;
     if (to   && d > to)   return false;
+    if (driverFilter && t.driver_name !== driverFilter) return false;
+    if (vanFilter    && t.vehicle_no  !== vanFilter)    return false;
     return true;
   };
 
@@ -561,8 +569,8 @@ function TripsSection({ onNew }) {
 
   return (
     <div className="space-y-5">
-      {/* Date filter bar */}
-      <div className="flex items-center gap-3 bg-white border border-slate-200 rounded-2xl px-4 py-3 shadow-sm">
+      {/* Filter bar */}
+      <div className="flex flex-wrap items-center gap-3 bg-white border border-slate-200 rounded-2xl px-4 py-3 shadow-sm">
         <div className="w-7 h-7 rounded-lg bg-blue-100 flex items-center justify-center shrink-0">
           <svg className="w-3.5 h-3.5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
@@ -574,9 +582,25 @@ function TripsSection({ onNew }) {
         <span className="text-xs font-bold text-slate-400 shrink-0">To</span>
         <input type="date" value={to} onChange={e => setTo(e.target.value)}
           className="border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs focus:ring-2 focus:ring-blue-500 outline-none" />
-        {(from || to) && (
-          <button onClick={() => { setFrom(''); setTo(''); }}
-            className="ml-auto text-xs text-red-400 hover:text-red-600 font-bold flex items-center gap-1 px-2 py-1 rounded-lg hover:bg-red-50 transition-colors">
+
+        {drivers.length > 0 && (
+          <select value={driverFilter} onChange={e => setDriverFilter(e.target.value)}
+            className="border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs focus:ring-2 focus:ring-blue-500 outline-none bg-white text-slate-700">
+            <option value="">All Drivers</option>
+            {drivers.map(d => <option key={d} value={d}>{d}</option>)}
+          </select>
+        )}
+        {vans.length > 0 && (
+          <select value={vanFilter} onChange={e => setVanFilter(e.target.value)}
+            className="border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs focus:ring-2 focus:ring-blue-500 outline-none bg-white text-slate-700">
+            <option value="">All Vans</option>
+            {vans.map(v => <option key={v} value={v}>{v}</option>)}
+          </select>
+        )}
+
+        {(from !== defaultFrom || to || driverFilter || vanFilter) && (
+          <button onClick={() => { setFrom(defaultFrom); setTo(''); setDriverFilter(''); setVanFilter(''); }}
+            className="text-xs text-red-400 hover:text-red-600 font-bold flex items-center gap-1 px-2 py-1 rounded-lg hover:bg-red-50 transition-colors">
             <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
             Clear
           </button>
