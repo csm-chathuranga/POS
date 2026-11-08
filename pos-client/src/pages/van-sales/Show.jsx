@@ -264,7 +264,7 @@ function RefillModal({ tripId, existingItems: seedItems, onClose }) {
 
 // ── Unload Modal ───────────────────────────────────────────────────────────────
 
-function UnloadModal({ trip, onClose }) {
+function UnloadModal({ trip, onClose, onDone }) {
   const variantNames = [...new Set(
     (trip.loads || []).flatMap(l => (l.items || []).map(i => i.variant_name))
   )];
@@ -281,7 +281,7 @@ function UnloadModal({ trip, onClose }) {
     if (!valid.length) return setErr('Enter at least one returned quantity');
     try {
       await unload({ id: trip.id, date, items: valid }).unwrap();
-      onClose();
+      onDone();
     } catch (ex) { setErr(ex?.data?.error || 'Failed to unload'); }
   }
 
@@ -454,20 +454,15 @@ function StockTab({ trip }) {
 
 function DailyTab({ trip, onAdd, onEdit }) {
   const records       = trip.daily_records || [];
-  const totalAdvance  = records.reduce((s, r) => s + Number(r.advance_given), 0);
   const totalHandover = records.reduce((s, r) => s + Number(r.cash_handover), 0);
 
   return (
     <div className="space-y-4">
       {records.length > 0 && (
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 gap-3">
           <div className="bg-slate-700 rounded-xl p-3 text-center">
             <div className="text-xl font-bold text-white tabular-nums">{records.length}</div>
             <div className="text-xs text-slate-400 mt-0.5">Days Recorded</div>
-          </div>
-          <div className="bg-amber-500 rounded-xl p-3 text-center">
-            <div className="text-sm font-bold text-white tabular-nums">{fmt(totalAdvance)}</div>
-            <div className="text-xs text-amber-100 mt-0.5">Total Advance</div>
           </div>
           <div className="bg-emerald-500 rounded-xl p-3 text-center">
             <div className="text-sm font-bold text-white tabular-nums">{fmt(totalHandover)}</div>
@@ -484,7 +479,7 @@ function DailyTab({ trip, onAdd, onEdit }) {
             </svg>
           </div>
           <p className="text-sm font-medium text-slate-500">No daily records yet</p>
-          {trip.status === 'active' && <p className="text-xs mt-1">Add today's advance and cash handover</p>}
+          {trip.status === 'active' && <p className="text-xs mt-1">Add today's cash handover</p>}
         </div>
       ) : (
         <div className="overflow-x-auto rounded-xl overflow-hidden border border-slate-200">
@@ -492,24 +487,17 @@ function DailyTab({ trip, onAdd, onEdit }) {
             <thead>
               <tr className="bg-slate-800 text-xs font-semibold text-slate-300 uppercase tracking-wide">
                 <th className="text-left px-4 py-3">Date</th>
-                <th className="text-right px-4 py-3">Advance</th>
                 <th className="text-right px-4 py-3">Cash In</th>
-                <th className="text-right px-4 py-3">Diff</th>
                 <th className="text-left px-4 py-3">Notes</th>
                 {trip.status === 'active' && <th className="px-4 py-3 w-12"></th>}
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 bg-white">
               {records.map(r => {
-                const diff = Number(r.cash_handover) - Number(r.advance_given);
                 return (
                   <tr key={r.id} className="hover:bg-slate-50/50">
                     <td className="px-4 py-3 font-medium text-slate-700">{fmtD(r.date)}</td>
-                    <td className="px-4 py-3 text-right text-amber-600 font-medium">{fmt(r.advance_given)}</td>
                     <td className="px-4 py-3 text-right text-green-600 font-medium">{fmt(r.cash_handover)}</td>
-                    <td className={`px-4 py-3 text-right font-semibold ${diff >= 0 ? 'text-green-700' : 'text-red-500'}`}>
-                      {diff >= 0 ? '+' : ''}{fmt(diff)}
-                    </td>
                     <td className="px-4 py-3 text-slate-400 text-xs">{r.notes || '—'}</td>
                     {trip.status === 'active' && (
                       <td className="px-4 py-3">
@@ -523,11 +511,7 @@ function DailyTab({ trip, onAdd, onEdit }) {
             <tfoot>
               <tr className="bg-slate-100 font-bold text-slate-700 text-sm border-t-2 border-slate-200">
                 <td className="px-4 py-3">Total</td>
-                <td className="px-4 py-3 text-right text-amber-700">{fmt(totalAdvance)}</td>
                 <td className="px-4 py-3 text-right text-green-700">{fmt(totalHandover)}</td>
-                <td className={`px-4 py-3 text-right ${totalHandover - totalAdvance >= 0 ? 'text-green-700' : 'text-red-600'}`}>
-                  {totalHandover - totalAdvance >= 0 ? '+' : ''}{fmt(totalHandover - totalAdvance)}
-                </td>
                 <td colSpan={trip.status === 'active' ? 2 : 1}></td>
               </tr>
             </tfoot>
@@ -814,7 +798,7 @@ export default function VanSalesShow() {
       {dailyModal  && <DailyModal tripId={id} onClose={() => setDailyModal(false)} />}
       {editRecord  && <DailyModal tripId={id} existing={editRecord} onClose={() => setEditRecord(null)} />}
       {refillModal && <RefillModal tripId={id} existingItems={existingItems} onClose={() => setRefillModal(false)} />}
-      {unloadModal && <UnloadModal trip={trip} onClose={() => setUnloadModal(false)} />}
+      {unloadModal && <UnloadModal trip={trip} onClose={() => setUnloadModal(false)} onDone={() => { setUnloadModal(false); setTab('settlement'); }} />}
 
       {reopenConfirm && createPortal(
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
