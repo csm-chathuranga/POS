@@ -269,6 +269,42 @@ router.post('/:id/unload', async (req, res) => {
   res.json(await loadTrip(req.models, trip.id));
 });
 
+// ── POST /api/van-sales/:id/reopen ───────────────────────────────────────────
+router.post('/:id/reopen', auth, role('admin'), async (req, res) => {
+  const { VanTrip, VanUnloadItem } = req.models;
+  const trip = await VanTrip.findByPk(req.params.id);
+  if (!trip) return res.status(404).json({ error: 'Trip not found' });
+  if (trip.status !== 'closed') return res.status(400).json({ error: 'Trip is not closed' });
+
+  const unloadItems = await VanUnloadItem.findAll({ where: { trip_id: trip.id }, raw: true });
+
+  // Reverse the stock that was returned during unload
+  const { Product, StockMovement } = req.models;
+  for (const item of unloadItems) {
+    const qty = parseFloat(item.qty_returned) || 0;
+    if (!item.variant_name || !qty) continue;
+    const product = await Product.findOne({ where: { name: item.variant_name } });
+    if (!product) continue;
+    const before = parseFloat(product.stock_qty);
+    const after  = Math.max(0, before - qty);
+    await product.update({ stock_qty: after });
+    await StockMovement.create({
+      product_id: product.id,
+      user_id:    req.user.id,
+      type:       'out',
+      qty,
+      stock_before: before,
+      stock_after:  after,
+      reference:  `VAN-${trip.id}`,
+      note:       'Van trip reopened — reversed unload',
+    });
+  }
+
+  await VanUnloadItem.destroy({ where: { trip_id: trip.id } });
+  await trip.update({ status: 'active', end_date: null });
+  res.json(await loadTrip(req.models, trip.id));
+});
+
 // ── GET /api/van-sales/:id/settlement ─────────────────────────────────────────
 
 router.get('/:id/settlement', async (req, res) => {

@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   useGetVanTripQuery, useGetSettlementQuery,
-  useAddDailyRecordMutation, useAddRefillMutation, useUnloadTripMutation,
+  useAddDailyRecordMutation, useAddRefillMutation, useUnloadTripMutation, useReopenTripMutation,
 } from '../../features/van-sales/vanSalesApi';
 import { useGetProductsQuery } from '../../features/products/productsApi';
 
@@ -655,6 +655,7 @@ export default function VanSalesShow() {
   const [editRecord, setEditRecord] = useState(null);
   const [refillModal, setRefillModal] = useState(false);
   const [unloadModal, setUnloadModal] = useState(false);
+  const [reopen, { isLoading: reopening }] = useReopenTripMutation();
 
   if (isLoading) return (
     <div className="flex h-screen items-center justify-center bg-slate-50">
@@ -795,7 +796,20 @@ export default function VanSalesShow() {
               </button>
             </div>
           ) : (
-            <span className="text-xs font-semibold bg-slate-100 text-slate-500 px-3 py-1.5 rounded-full shrink-0">Trip Closed</span>
+            <div className="flex items-center gap-2 shrink-0">
+              <span className="text-xs font-semibold bg-slate-100 text-slate-500 px-3 py-1.5 rounded-full">Trip Closed</span>
+              <button
+                onClick={async () => {
+                  if (!window.confirm('Reopen this trip? The unload will be reversed and stock will be re-deducted.')) return;
+                  try { await reopen(id).unwrap(); }
+                  catch (e) { alert(e?.data?.error || 'Failed to reopen'); }
+                }}
+                disabled={reopening}
+                className="flex items-center gap-1.5 px-3 py-2 bg-green-600 text-white text-xs font-semibold rounded-xl hover:bg-green-700 disabled:opacity-60 transition-all shadow-sm">
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                {reopening ? 'Reopening…' : 'Reopen Trip'}
+              </button>
+            </div>
           )}
         </div>
 
