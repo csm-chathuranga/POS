@@ -656,6 +656,7 @@ export default function VanSalesShow() {
   const [refillModal, setRefillModal] = useState(false);
   const [unloadModal, setUnloadModal] = useState(false);
   const [reopen, { isLoading: reopening }] = useReopenTripMutation();
+  const [reopenConfirm, setReopenConfirm] = useState(false);
 
   if (isLoading) return (
     <div className="flex h-screen items-center justify-center bg-slate-50">
@@ -799,11 +800,7 @@ export default function VanSalesShow() {
             <div className="flex items-center gap-2 shrink-0">
               <span className="text-xs font-semibold bg-slate-100 text-slate-500 px-3 py-1.5 rounded-full">Trip Closed</span>
               <button
-                onClick={async () => {
-                  if (!window.confirm('Reopen this trip? The unload will be reversed and stock will be re-deducted.')) return;
-                  try { await reopen(id).unwrap(); }
-                  catch (e) { alert(e?.data?.error || 'Failed to reopen'); }
-                }}
+                onClick={() => setReopenConfirm(true)}
                 disabled={reopening}
                 className="flex items-center gap-1.5 px-3 py-2 bg-green-600 text-white text-xs font-semibold rounded-xl hover:bg-green-700 disabled:opacity-60 transition-all shadow-sm">
                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
@@ -824,6 +821,41 @@ export default function VanSalesShow() {
       {editRecord  && <DailyModal tripId={id} existing={editRecord} onClose={() => setEditRecord(null)} />}
       {refillModal && <RefillModal tripId={id} existingItems={existingItems} onClose={() => setRefillModal(false)} />}
       {unloadModal && <UnloadModal trip={trip} onClose={() => setUnloadModal(false)} />}
+
+      {reopenConfirm && createPortal(
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm mx-4 overflow-hidden">
+            <div className="bg-green-600 px-6 py-4">
+              <h2 className="font-bold text-white text-lg">Reopen Trip?</h2>
+              <p className="text-green-100 text-xs mt-0.5">This will reverse the unload and re-activate the trip</p>
+            </div>
+            <div className="px-6 py-5 space-y-3">
+              <p className="text-sm text-slate-600">
+                The unload records will be deleted and stock will be re-deducted as if the van is still out.
+                You can then redo the unload correctly.
+              </p>
+              <div className="flex gap-2 pt-1">
+                <button onClick={() => setReopenConfirm(false)}
+                  className="flex-1 px-4 py-2.5 text-sm font-semibold text-slate-600 border border-slate-200 rounded-xl hover:bg-slate-50">
+                  Cancel
+                </button>
+                <button
+                  disabled={reopening}
+                  onClick={async () => {
+                    try {
+                      await reopen(id).unwrap();
+                      setReopenConfirm(false);
+                    } catch (e) { alert(e?.data?.error || 'Failed to reopen'); }
+                  }}
+                  className="flex-1 px-4 py-2.5 bg-green-600 text-white text-sm font-semibold rounded-xl hover:bg-green-700 disabled:opacity-60">
+                  {reopening ? 'Reopening…' : 'Yes, Reopen'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
     </div>
   );
 }
