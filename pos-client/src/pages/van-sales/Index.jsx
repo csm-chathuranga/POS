@@ -447,8 +447,8 @@ function CreateModal({ onClose }) {
                   </div>
                 ) : (
                   <div className="space-y-1.5">
-                    {items.map(item => (
-                      <div key={item.variant_name} className="bg-white rounded-xl border border-slate-200 px-2.5 py-2">
+                    {items.map((item, idx) => (
+                      <div key={item.variant_name} className={`rounded-xl border px-2.5 py-2 ${idx === 0 ? 'bg-green-50 border-green-300' : 'bg-white border-slate-200'}`}>
                         <div className="flex items-center gap-2">
                           <span className="text-xs font-semibold text-slate-700 truncate flex-1 min-w-0">{item.variant_name}</span>
                           <input type="number" value={item.quantity}
