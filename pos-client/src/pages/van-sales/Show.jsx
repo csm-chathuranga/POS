@@ -596,7 +596,7 @@ function SettlementTab({ tripId }) {
           </tbody>
           <tfoot>
             <tr className="bg-slate-100 font-bold text-slate-700 border-t-2 border-slate-200">
-              <td className="px-4 py-3" colSpan={5}>Total</td>
+              <td className="px-4 py-3" colSpan={6}>Total</td>
               <td className="px-4 py-3 text-right text-blue-700">{fmt(s.gross_sales)}</td>
             </tr>
           </tfoot>
