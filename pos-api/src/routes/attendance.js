@@ -85,6 +85,13 @@ router.post('/sync', role('admin', 'manager'), async (req, res) => {
     const employee_id = empMap[ev.device_employee_id];
     if (!employee_id) continue;
     try {
+      // also check employee_id+punch_time to avoid duplicating CSV-imported records (which have no event_id)
+      const existing = await AttendanceRecord.findOne({ where: { employee_id, punch_time: ev.punch_time } });
+      if (existing) {
+        // if existing has no event_id, stamp it so future syncs skip via unique key
+        if (!existing.event_id && ev.event_id) await existing.update({ event_id: ev.event_id });
+        continue;
+      }
       await AttendanceRecord.create({ ...ev, employee_id, source: 'device' });
       saved++;
     } catch { /* duplicate event_id — skip */ }
