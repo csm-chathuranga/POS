@@ -48,6 +48,14 @@ export default function PurchaseCreate() {
   const qtyRefs   = useRef({});
   const [trigger] = searchApi.useLazySearchProductsQuery();
 
+  // ── Inline return state ──────────────────────────────────────────────────────
+  const [returnOpen,    setReturnOpen]    = useState(false);
+  const [returnType,    setReturnType]    = useState('damaged');
+  const [returnItems,   setReturnItems]   = useState([]);
+  const [returnSearch,  setReturnSearch]  = useState('');
+  const [returnResults, setReturnResults] = useState([]);
+  const [triggerReturn] = searchApi.useLazySearchProductsQuery();
+
   async function doSearch(q) {
     if (!q.trim()) { setResults([]); setActiveIdx(-1); return; }
     const r = await trigger(q);
@@ -90,7 +98,15 @@ export default function PurchaseCreate() {
     if (!form.supplier_id) return setErr('Please select a supplier');
     if (!items.length) return setErr(t('pur.add_row'));
     try {
-      await create({ ...form, subtotal, discount, total: grandTotal, items }).unwrap();
+      const payload = { ...form, subtotal, discount, total: grandTotal, items };
+      if (returnItems.length > 0) {
+        payload.return_items = returnItems.map(i => ({
+          product_id: i.product_id, product_name: i.product_name,
+          qty: parseFloat(i.qty), cost_price: parseFloat(i.cost_price) || 0,
+        }));
+        payload.return_type = returnType;
+      }
+      await create(payload).unwrap();
       navigate('/purchases');
     } catch (e) { setErr(e?.data?.error || t('lbl.error')); }
   }
@@ -265,6 +281,104 @@ export default function PurchaseCreate() {
                 )}
               </tfoot>
             </table>
+          </div>
+        )}
+      </div>
+
+      {/* ── Inline Return Items ─────────────────────────────────────────────── */}
+      <div className="bg-white rounded-xl shadow-sm border border-orange-100">
+        <button type="button" onClick={() => setReturnOpen(o => !o)}
+          className="w-full flex items-center justify-between px-5 py-3 text-sm font-semibold text-orange-700 hover:bg-orange-50 rounded-xl transition-colors">
+          <span className="flex items-center gap-2">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/>
+            </svg>
+            Return Items to Supplier (Damaged / Expired)
+            {returnItems.length > 0 && (
+              <span className="bg-orange-100 text-orange-700 text-xs font-bold px-2 py-0.5 rounded-full">{returnItems.length}</span>
+            )}
+          </span>
+          <svg className={`w-4 h-4 transition-transform ${returnOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7"/>
+          </svg>
+        </button>
+        {returnOpen && (
+          <div className="px-5 pb-5 space-y-3 border-t border-orange-100">
+            <div className="flex items-center gap-3 pt-3">
+              <label className="text-xs font-semibold text-slate-600 shrink-0">Return Type</label>
+              <select value={returnType} onChange={e => setReturnType(e.target.value)}
+                className="rounded-lg border border-slate-200 px-3 py-1.5 text-sm outline-none focus:ring-2 focus:ring-orange-400">
+                <option value="damaged">Damaged</option>
+                <option value="expired">Expired</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+            <div className="relative">
+              <input value={returnSearch}
+                onChange={async e => {
+                  setReturnSearch(e.target.value);
+                  if (e.target.value.trim()) {
+                    const r = await triggerReturn(e.target.value);
+                    setReturnResults(r.data || []);
+                  } else { setReturnResults([]); }
+                }}
+                placeholder="Search product to return…"
+                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-orange-400"
+              />
+              {returnResults.length > 0 && (
+                <div className="absolute z-20 left-0 right-0 mt-1 bg-white rounded-xl shadow-lg border border-slate-200 max-h-48 overflow-y-auto">
+                  {returnResults.map(p => (
+                    <button key={p.id} type="button"
+                      onClick={() => {
+                        if (!returnItems.find(i => i.product_id === p.id))
+                          setReturnItems(prev => [...prev, { product_id: p.id, product_name: p.name, qty: '1', cost_price: String(p.cost_price || '0') }]);
+                        setReturnSearch(''); setReturnResults([]);
+                      }}
+                      className="w-full text-left px-4 py-2.5 border-b border-slate-100 last:border-0 hover:bg-orange-50 text-sm flex justify-between">
+                      <span className="font-medium text-slate-800">{p.name}</span>
+                      <span className="text-xs text-slate-400">Rs.{parseFloat(p.cost_price).toFixed(2)}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+            {returnItems.length > 0 && (
+              <table className="w-full text-sm">
+                <thead className="text-xs text-slate-500 uppercase tracking-wider">
+                  <tr>
+                    <th className="text-left py-1 px-1 font-semibold">Product</th>
+                    <th className="text-right py-1 px-1 font-semibold w-20">Qty</th>
+                    <th className="text-right py-1 px-1 font-semibold w-28">Cost Price</th>
+                    <th className="w-6"/>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {returnItems.map((item, i) => (
+                    <tr key={item.product_id}>
+                      <td className="py-1.5 px-1 font-medium text-slate-800">{item.product_name}</td>
+                      <td className="py-1.5 px-1">
+                        <input type="number" min="0.001" step="0.001" value={item.qty}
+                          onChange={e => setReturnItems(p => p.map((it, idx) => idx === i ? { ...it, qty: e.target.value } : it))}
+                          onFocus={e => e.target.select()}
+                          className="w-full rounded border border-slate-200 px-2 py-1 text-sm text-right outline-none focus:ring-1 focus:ring-orange-400" />
+                      </td>
+                      <td className="py-1.5 px-1">
+                        <input type="number" min="0" step="0.01" value={item.cost_price}
+                          onChange={e => setReturnItems(p => p.map((it, idx) => idx === i ? { ...it, cost_price: e.target.value } : it))}
+                          onFocus={e => e.target.select()}
+                          className="w-full rounded border border-slate-200 px-2 py-1 text-sm text-right outline-none focus:ring-1 focus:ring-orange-400" />
+                      </td>
+                      <td className="py-1.5 px-1 text-center">
+                        <button type="button" onClick={() => setReturnItems(p => p.filter((_, idx) => idx !== i))}
+                          className="text-red-400 hover:text-red-600">
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12"/></svg>
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
           </div>
         )}
       </div>

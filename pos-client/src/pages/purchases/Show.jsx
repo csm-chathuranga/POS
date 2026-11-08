@@ -385,6 +385,56 @@ export default function PurchaseShow() {
         </table></div>
       </div>
 
+      {/* Supplier Returns linked to this GRN */}
+      {(() => {
+        const srnList = purchase.supplierReturns || [];
+        const prnList = purchase.returns || [];
+        const hasAny  = srnList.length > 0 || prnList.length > 0;
+        if (!hasAny) return null;
+        const TYPE_CLS = { damaged: 'bg-red-100 text-red-700', expired: 'bg-orange-100 text-orange-700', other: 'bg-slate-100 text-slate-600' };
+        return (
+          <div className="bg-white rounded-xl border border-slate-100 shadow-sm overflow-hidden">
+            <div className="px-5 py-3 border-b border-slate-100">
+              <h2 className="font-bold text-slate-700 text-sm">Returns</h2>
+            </div>
+            <div className="divide-y divide-slate-50">
+              {srnList.map(srn => (
+                <div key={srn.id} className="px-5 py-3 space-y-2">
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <span className="text-sm font-bold text-orange-600">{srn.srn_no}</span>
+                    <span className={`text-xs px-2.5 py-0.5 rounded-full font-semibold capitalize ${TYPE_CLS[srn.return_type] || TYPE_CLS.other}`}>{srn.return_type}</span>
+                    <span className="text-xs text-slate-400">{fmtDate(srn.created_at)}</span>
+                    <span className="ml-auto text-sm font-bold text-slate-800">{fmt(srn.total)}</span>
+                  </div>
+                  {(srn.items || []).length > 0 && (
+                    <div className="text-xs text-slate-500 space-y-0.5 pl-2 border-l-2 border-orange-200">
+                      {srn.items.map((it, i) => (
+                        <div key={i} className="flex justify-between">
+                          <span>{it.product_name}</span>
+                          <span className="font-semibold">{fmtNum(it.qty)} × {fmt(it.cost_price)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {srn.notes && <p className="text-xs text-slate-400 italic">{srn.notes}</p>}
+                </div>
+              ))}
+              {prnList.map(prn => (
+                <div key={prn.id} className="px-5 py-3 space-y-2">
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <span className="text-sm font-bold text-red-600">{prn.return_no}</span>
+                    <span className="text-xs px-2.5 py-0.5 rounded-full font-semibold bg-red-100 text-red-700">GRN Return</span>
+                    <span className="text-xs text-slate-400">{fmtDate(prn.created_at)}</span>
+                    <span className="ml-auto text-sm font-bold text-slate-800">{fmt(prn.total)}</span>
+                  </div>
+                  {prn.reason && <p className="text-xs text-slate-400 italic">{prn.reason}</p>}
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      })()}
+
       {/* Summary */}
       <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-5 ml-auto max-w-xs w-full space-y-2">
         <div className="flex justify-between text-sm text-slate-600">

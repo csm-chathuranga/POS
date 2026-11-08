@@ -184,11 +184,13 @@ router.post('/import-csv', role('admin', 'manager'), async (req, res) => {
     }
   }
 
-  // SLT = UTC+5:30
+  // SLT = UTC+5:30 — parse as local SLT then convert to UTC
   const SLT_OFFSET_MS = (5 * 60 + 30) * 60 * 1000;
   function sltToUtc(str) {
-    const d = new Date(str.replace(' ', 'T') + 'Z');
-    return new Date(d.getTime() - SLT_OFFSET_MS).toISOString();
+    // str is SLT local time e.g. "2026-11-06 16:31:03"
+    // parse as UTC (treat digits literally) then subtract 5h30 to get true UTC
+    const asUtc = new Date(str.replace(' ', 'T') + 'Z');
+    return new Date(asUtc.getTime() - SLT_OFFSET_MS).toISOString();
   }
 
   let saved = 0, skipped = 0, noMatch = 0;

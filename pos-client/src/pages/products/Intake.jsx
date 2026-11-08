@@ -6,6 +6,7 @@ import { useSelector } from 'react-redux';
 import { selectToken } from '../../features/auth/authSlice';
 import { getApiUrl } from '../../config/runtimeConfig';
 import { clearProductCache } from '../../hooks/useProductCache';
+import { singlishToSinhala } from '../../utils/singlish';
 
 const API = getApiUrl();
 
@@ -371,9 +372,18 @@ export default function ProductIntake() {
               ref={fNameSiRef}
               onChange={e => setForm(f => ({ ...f, name_si: e.target.value }))}
               onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); fSaveRef.current?.click(); } }}
-              placeholder="Enter Sinhala name"
+              placeholder="නමේ (Singlish or සිංහල)"
               className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500"
               style={{ fontFamily: "'Noto Sans Sinhala', sans-serif" }} />
+            {/[a-zA-Z]/.test(form.name_si || '') && (
+              <button type="button"
+                onClick={() => setForm(f => ({ ...f, name_si: singlishToSinhala(f.name_si) }))}
+                className="mt-1.5 inline-flex items-center px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-700 text-sm font-medium hover:bg-blue-200 transition-colors cursor-pointer"
+                style={{ fontFamily: "'Noto Sans Sinhala', sans-serif" }}
+              >
+                {singlishToSinhala(form.name_si)}
+              </button>
+            )}
           </div>
 
           {formError && (
@@ -421,9 +431,18 @@ export default function ProductIntake() {
                   ref={qcNameSiRef}
                   onChange={e => setQcForm(f => ({ ...f, name_si: e.target.value }))}
                   onKeyDown={qcNext(qcBarcodeRef)}
-                  placeholder="සිංහල නම ඇතුල් කරන්න"
+                  placeholder="නමේ (Singlish or සිංහල)"
                   className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500"
                   style={{ fontFamily: "'Noto Sans Sinhala', sans-serif" }} />
+                {/[a-zA-Z]/.test(qcForm.name_si || '') && (
+                  <button type="button"
+                    onClick={() => setQcForm(f => ({ ...f, name_si: singlishToSinhala(f.name_si) }))}
+                    className="mt-1.5 inline-flex items-center px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-700 text-xs font-medium hover:bg-blue-200 transition-colors cursor-pointer"
+                    style={{ fontFamily: "'Noto Sans Sinhala', sans-serif" }}
+                  >
+                    {singlishToSinhala(qcForm.name_si)}
+                  </button>
+                )}
               </div>
               <div>
                 <label className="block text-xs font-semibold text-slate-500 mb-1">බාකෝඩ්</label>

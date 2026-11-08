@@ -147,6 +147,27 @@ function getModels(sequelize) {
     items:       { type: DataTypes.JSON, allowNull: false },
   }, { tableName: 'purchase_returns' });
 
+  const SupplierReturn = sequelize.define('SupplierReturn', {
+    id:          { type: DataTypes.BIGINT.UNSIGNED, primaryKey: true, autoIncrement: true },
+    srn_no:      { type: DataTypes.STRING(191), allowNull: false, unique: true },
+    purchase_id: { type: DataTypes.BIGINT.UNSIGNED, allowNull: true },
+    supplier_id: { type: DataTypes.BIGINT.UNSIGNED, allowNull: true },
+    user_id:     { type: DataTypes.BIGINT.UNSIGNED, allowNull: false },
+    return_type: { type: DataTypes.ENUM('damaged', 'expired', 'other'), defaultValue: 'other' },
+    notes:       { type: DataTypes.TEXT, allowNull: true },
+    total:       { type: DataTypes.DECIMAL(12, 2), defaultValue: 0 },
+  }, { tableName: 'supplier_returns' });
+
+  const SupplierReturnItem = sequelize.define('SupplierReturnItem', {
+    id:                 { type: DataTypes.BIGINT.UNSIGNED, primaryKey: true, autoIncrement: true },
+    supplier_return_id: { type: DataTypes.BIGINT.UNSIGNED, allowNull: false },
+    product_id:         { type: DataTypes.BIGINT.UNSIGNED, allowNull: false },
+    product_name:       { type: DataTypes.STRING(191), allowNull: false },
+    qty:                { type: DataTypes.DECIMAL(12, 3), allowNull: false },
+    cost_price:         { type: DataTypes.DECIMAL(12, 2), defaultValue: 0 },
+    total:              { type: DataTypes.DECIMAL(12, 2), defaultValue: 0 },
+  }, { tableName: 'supplier_return_items', timestamps: false });
+
   const Purchase = sequelize.define('Purchase', {
     id:            { type: DataTypes.BIGINT.UNSIGNED, primaryKey: true, autoIncrement: true },
     grn_no:        { type: DataTypes.STRING(191), allowNull: false, unique: true },
@@ -470,6 +491,14 @@ function getModels(sequelize) {
   PurchaseItem.belongsTo(Product, { foreignKey: 'product_id', as: 'product' });
   Purchase.hasMany(PurchaseReturn, { foreignKey: 'purchase_id', as: 'returns' });
 
+  SupplierReturn.hasMany(SupplierReturnItem, { foreignKey: 'supplier_return_id', as: 'items' });
+  SupplierReturnItem.belongsTo(SupplierReturn, { foreignKey: 'supplier_return_id', as: 'supplierReturn' });
+  SupplierReturn.belongsTo(Supplier,  { foreignKey: 'supplier_id', as: 'supplier' });
+  SupplierReturn.belongsTo(User,      { foreignKey: 'user_id',     as: 'user' });
+  SupplierReturn.belongsTo(Purchase,  { foreignKey: 'purchase_id', as: 'purchase' });
+  Purchase.hasMany(SupplierReturn,    { foreignKey: 'purchase_id', as: 'supplierReturns' });
+  SupplierReturnItem.belongsTo(Product, { foreignKey: 'product_id', as: 'product' });
+
   Supplier.hasMany(SupplierPayment, { foreignKey: 'supplier_id', as: 'payments' });
   SupplierPayment.belongsTo(Supplier, { foreignKey: 'supplier_id', as: 'supplier' });
   SupplierPayment.belongsTo(User, { foreignKey: 'user_id', as: 'user' });
@@ -517,6 +546,7 @@ function getModels(sequelize) {
     CoopStore, CoopStockTransfer, CoopStockTransferItem,
     SmsConfig, SmsLog,
     VanTrip, VanLoad, VanLoadItem, VanDailyRecord, VanUnloadItem,
+    SupplierReturn, SupplierReturnItem,
   };
 }
 

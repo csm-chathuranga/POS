@@ -34,7 +34,7 @@ router.get('/', auth, async (req, res) => {
 
 router.post('/', auth, role('admin', 'manager'), async (req, res) => {
   const { Purchase, PurchaseItem, Product, StockMovement, Supplier } = req.models;
-  const { items = [], ...data } = req.body;
+  const { items = [], return_items = [], return_type: inlineReturnType = 'other', ...data } = req.body;
 
   if (!data.supplier_id) return res.status(422).json({ error: 'Please select a supplier' });
   if (!items.length)     return res.status(422).json({ error: 'Please add at least one item' });
@@ -82,16 +82,49 @@ router.post('/', auth, role('admin', 'manager'), async (req, res) => {
   // Post to accounting journal (no-op if module disabled or accounts not seeded)
   postPurchase(req.models, { purchase, total: totalAmt, paid: data.paid, user_id: req.user.id });
 
+  // Handle inline return items submitted with the GRN (damaged/expired goods returned on the spot)
+  if (return_items.length > 0) {
+    const { SupplierReturn, SupplierReturnItem } = req.models;
+    const lastSrn = await SupplierReturn.findOne({ order: [['id', 'DESC']], attributes: ['srn_no'] });
+    const srnNum  = parseInt(lastSrn?.srn_no?.split('-').pop() || '0') + 1;
+    const srn_no  = `SRN-${String(srnNum).padStart(4, '0')}`;
+    const retTotal = return_items.reduce((s, i) => s + (parseFloat(i.cost_price) || 0) * (parseFloat(i.qty) || 0), 0);
+    const ret = await SupplierReturn.create({
+      srn_no, purchase_id: purchase.id, supplier_id: data.supplier_id || null, user_id: req.user.id,
+      return_type: inlineReturnType, notes: `Inline return from ${grn_no}`, total: retTotal,
+    });
+    for (const item of return_items) {
+      const qty = parseFloat(item.qty) || 0;
+      const cp  = parseFloat(item.cost_price) || 0;
+      await SupplierReturnItem.create({
+        supplier_return_id: ret.id, product_id: item.product_id,
+        product_name: item.product_name, qty, cost_price: cp, total: qty * cp,
+      });
+      const product = await Product.findByPk(item.product_id);
+      if (product) {
+        const before = parseFloat(product.stock_qty);
+        const after  = Math.max(0, before - qty);
+        await product.update({ stock_qty: after });
+        await StockMovement.create({
+          product_id: product.id, user_id: req.user.id,
+          type: 'return', qty, stock_before: before, stock_after: after, reference: srn_no,
+        });
+      }
+    }
+  }
+
   res.status(201).json(purchase);
 });
 
 router.get('/:id', auth, async (req, res) => {
-  const { Purchase, PurchaseItem, Product, Supplier, User } = req.models;
+  const { Purchase, PurchaseItem, PurchaseReturn, Product, Supplier, User, SupplierReturn, SupplierReturnItem } = req.models;
   const purchase = await Purchase.findByPk(req.params.id, {
     include: [
-      { model: PurchaseItem, as: 'items', include: [{ model: Product, as: 'product', attributes: ['id', 'selling_price'] }] },
-      { model: Supplier,     as: 'supplier', attributes: ['id', 'name'] },
-      { model: User,         as: 'user',     attributes: ['id', 'name'] },
+      { model: PurchaseItem,    as: 'items',           include: [{ model: Product, as: 'product', attributes: ['id', 'selling_price'] }] },
+      { model: Supplier,        as: 'supplier',        attributes: ['id', 'name'] },
+      { model: User,            as: 'user',            attributes: ['id', 'name'] },
+      { model: PurchaseReturn,  as: 'returns',         attributes: ['id', 'return_no', 'reason', 'total', 'items', 'created_at'] },
+      { model: SupplierReturn,  as: 'supplierReturns', include: [{ model: SupplierReturnItem, as: 'items' }] },
     ],
   });
   if (!purchase) return res.status(404).json({ error: 'Not found' });

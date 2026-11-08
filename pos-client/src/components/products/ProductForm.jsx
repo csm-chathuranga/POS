@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
+import { singlishToSinhala } from '../../utils/singlish';
 import SearchableSelect from '../SearchableSelect';
 import { useForm } from 'react-hook-form';
 import { useSelector } from 'react-redux';
@@ -273,7 +274,17 @@ export default function ProductForm({ initial = {}, onSubmit, isSaving }) {
           <div className="grid gap-3" style={{ gridTemplateColumns: '2fr 2fr 1fr' }}>
             <div>
               <label className="block text-sm font-medium text-slate-600 mb-1.5">{t('prod.name_si')}</label>
-              <input {...register('name_si')} placeholder="නමේ" className={inp} />
+              <input {...register('name_si')} placeholder="නමේ (Singlish or සිංහල)" className={inp} style={{ fontFamily: "'Noto Sans Sinhala', sans-serif" }} />
+              {/[a-zA-Z]/.test(watch('name_si') || '') && (
+                <button
+                  type="button"
+                  onClick={() => setValue('name_si', singlishToSinhala(watch('name_si')))}
+                  className="mt-1.5 inline-flex items-center px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-700 text-sm font-medium hover:bg-blue-200 transition-colors cursor-pointer"
+                  style={{ fontFamily: "'Noto Sans Sinhala', sans-serif" }}
+                >
+                  {singlishToSinhala(watch('name_si'))}
+                </button>
+              )}
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-600 mb-1.5">{t('prod.barcode')}</label>

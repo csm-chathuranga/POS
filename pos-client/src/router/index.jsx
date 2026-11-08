@@ -33,8 +33,11 @@ import FreeItemsReport     from '../pages/purchases/FreeItemsReport';
 import Reports         from '../pages/reports/Index';
 import UsersIndex     from '../pages/users/Index';
 import SuppliersIndex      from '../pages/suppliers/Index';
-import SupplierCredit      from '../pages/suppliers/Credit';
-import SupplierCreditIndex from '../pages/supplier-credit/Index';
+import SupplierCredit        from '../pages/suppliers/Credit';
+import SupplierCreditIndex   from '../pages/supplier-credit/Index';
+import SupplierReturnsIndex  from '../pages/supplier-returns/Index';
+import SupplierReturnsCreate from '../pages/supplier-returns/Create';
+import SupplierReturnsShow   from '../pages/supplier-returns/Show';
 import CategoriesIndex  from '../pages/categories/Index';
 import ImportDataPage    from '../pages/admin/ImportData';
 import ProvisionTenant  from '../pages/admin/ProvisionTenant';
@@ -166,7 +169,10 @@ export const router = createAppRouter([
         { path: 'purchases/:id',               element: <PurchasesShow /> },
         { path: 'suppliers',              element: <SuppliersIndex /> },
         { path: 'suppliers/:id/credit',  element: <SupplierCredit /> },
-        { path: 'supplier-credit',        element: <SupplierCreditIndex /> },
+        { path: 'supplier-credit',         element: <SupplierCreditIndex /> },
+        { path: 'supplier-returns',        element: <SupplierReturnsIndex /> },
+        { path: 'supplier-returns/create', element: <SupplierReturnsCreate /> },
+        { path: 'supplier-returns/:id',    element: <SupplierReturnsShow /> },
         { path: 'categories',           element: <CategoriesIndex /> },
         {
           element: <AdminRoute />,

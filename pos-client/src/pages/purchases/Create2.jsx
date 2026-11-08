@@ -103,6 +103,12 @@ export default function PurchaseCreate2() {
   const [items, setItems]   = useState([]);
   const [search, setSearch] = useState('');
   const [err, setErr]       = useState('');
+
+  // ── Inline return state ──────────────────────────────────────────────────────
+  const [returnOpen,  setReturnOpen]  = useState(false);
+  const [returnType,  setReturnType]  = useState('damaged');
+  const [returnItems, setReturnItems] = useState([]);
+  const [returnSearch, setReturnSearch] = useState('');
   const searchRef = useRef(null);
 
   useEffect(() => { searchRef.current?.focus(); }, []);
@@ -150,7 +156,15 @@ export default function PurchaseCreate2() {
     if (!form.supplier_id) return setErr('Please select a supplier');
     if (!items.length) return setErr(t('pur.add_row'));
     try {
-      await create({ ...form, subtotal, discount, total: grandTotal, items }).unwrap();
+      const payload = { ...form, subtotal, discount, total: grandTotal, items };
+      if (returnItems.length > 0) {
+        payload.return_items = returnItems.map(i => ({
+          product_id: i.product_id, product_name: i.product_name,
+          qty: parseFloat(i.qty), cost_price: parseFloat(i.cost_price) || 0,
+        }));
+        payload.return_type = returnType;
+      }
+      await create(payload).unwrap();
       navigate('/purchases');
     } catch (e) { setErr(e?.data?.error || t('lbl.error')); }
   }
@@ -296,6 +310,82 @@ export default function PurchaseCreate2() {
             <label className="block text-xs font-semibold text-slate-500 mb-1">{t('lbl.note')}</label>
             <input value={form.note} onChange={set('note')} placeholder={t('pur.optional_note')}
               className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-emerald-500" />
+          </div>
+
+          {/* ── Return Items ──────────────────────────────────────────────── */}
+          <div className="rounded-xl border border-orange-100 overflow-hidden">
+            <button type="button" onClick={() => setReturnOpen(o => !o)}
+              className="w-full flex items-center justify-between px-3 py-2 text-xs font-semibold text-orange-700 hover:bg-orange-50 transition-colors">
+              <span className="flex items-center gap-1.5">
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/>
+                </svg>
+                Return Items
+                {returnItems.length > 0 && <span className="bg-orange-100 text-orange-700 text-xs font-bold px-1.5 py-0.5 rounded-full">{returnItems.length}</span>}
+              </span>
+              <svg className={`w-3.5 h-3.5 transition-transform ${returnOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7"/>
+              </svg>
+            </button>
+            {returnOpen && (
+              <div className="px-3 pb-3 space-y-2 border-t border-orange-100 bg-orange-50/30">
+                <div className="flex items-center gap-2 pt-2">
+                  <label className="text-xs font-semibold text-slate-600 shrink-0">Type</label>
+                  <select value={returnType} onChange={e => setReturnType(e.target.value)}
+                    className="flex-1 rounded-lg border border-slate-200 px-2 py-1 text-xs outline-none focus:ring-1 focus:ring-orange-400">
+                    <option value="damaged">Damaged</option>
+                    <option value="expired">Expired</option>
+                    <option value="other">Other</option>
+                  </select>
+                </div>
+                <div className="relative">
+                  <input value={returnSearch}
+                    onChange={e => setReturnSearch(e.target.value)}
+                    placeholder="Filter product…"
+                    className="w-full rounded-lg border border-slate-200 px-2 py-1.5 text-xs outline-none focus:ring-1 focus:ring-orange-400"
+                  />
+                  {returnSearch.trim().length >= 1 && (() => {
+                    const q = returnSearch.trim().toLowerCase();
+                    const matches = allProducts.filter(p =>
+                      p.name?.toLowerCase().includes(q) || (p.barcode && p.barcode.toLowerCase().includes(q))
+                    ).slice(0, 8);
+                    return matches.length > 0 ? (
+                      <div className="absolute z-20 left-0 right-0 mt-1 bg-white rounded-xl shadow-lg border border-slate-200 max-h-40 overflow-y-auto">
+                        {matches.map(p => (
+                          <button key={p.id} type="button"
+                            onMouseDown={() => {
+                              if (!returnItems.find(i => i.product_id === p.id))
+                                setReturnItems(prev => [...prev, { product_id: p.id, product_name: p.name, qty: '1', cost_price: String(p.cost_price || '0') }]);
+                              setReturnSearch('');
+                            }}
+                            className="w-full text-left px-3 py-2 border-b border-slate-100 last:border-0 hover:bg-orange-50 text-xs flex justify-between">
+                            <span className="font-medium text-slate-800 truncate">{p.name}</span>
+                            <span className="text-slate-400 shrink-0 ml-2">Rs.{fmt(p.cost_price)}</span>
+                          </button>
+                        ))}
+                      </div>
+                    ) : null;
+                  })()}
+                </div>
+                {returnItems.map((item, i) => (
+                  <div key={item.product_id} className="flex items-center gap-1.5 bg-white rounded-lg px-2 py-1.5 border border-slate-100">
+                    <span className="flex-1 text-xs font-medium text-slate-800 truncate">{item.product_name}</span>
+                    <input type="number" min="0.001" step="0.001" value={item.qty}
+                      onChange={e => setReturnItems(p => p.map((it, idx) => idx === i ? { ...it, qty: e.target.value } : it))}
+                      onFocus={e => e.target.select()}
+                      className="w-14 rounded border border-slate-200 px-1 py-1 text-xs text-right outline-none focus:ring-1 focus:ring-orange-400" />
+                    <input type="number" min="0" step="0.01" value={item.cost_price}
+                      onChange={e => setReturnItems(p => p.map((it, idx) => idx === i ? { ...it, cost_price: e.target.value } : it))}
+                      onFocus={e => e.target.select()}
+                      className="w-20 rounded border border-slate-200 px-1 py-1 text-xs text-right outline-none focus:ring-1 focus:ring-orange-400" />
+                    <button type="button" onClick={() => setReturnItems(p => p.filter((_, idx) => idx !== i))}
+                      className="text-red-400 hover:text-red-600 shrink-0">
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           <hr className="border-slate-100" />
