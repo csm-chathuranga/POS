@@ -250,6 +250,7 @@ function CreateModal({ onClose }) {
   const [date, setDate]         = useState(today);
   const [notes, setNotes]       = useState('');
   const [items, setItems]       = useState([]);
+  const [markup, setMarkup]     = useState(10);
   const [err, setErr]           = useState('');
   const [catFilter, setCatFilter] = useState('all');
   const [search, setSearch]     = useState('');
@@ -269,8 +270,15 @@ function CreateModal({ onClose }) {
     setItems(prev => {
       const hit = prev.find(x => x.variant_name === p.name);
       if (hit) return prev.map(x => x.variant_name === p.name ? { ...x, quantity: String(Number(x.quantity) + 1) } : x);
-      return [...prev, { variant_name: p.name, quantity: '1', unit_price: String(p.selling_price || 0), unit_cost: String(p.cost_price || 0) }];
+      const base = parseFloat(p.selling_price) || 0;
+      return [{ variant_name: p.name, quantity: '1', base_price: base, unit_price: String(base + (parseFloat(markup) || 0)), unit_cost: String(p.cost_price || 0) }, ...prev];
     });
+  }
+
+  function handleMarkupChange(val) {
+    setMarkup(val);
+    const m = parseFloat(val) || 0;
+    setItems(prev => prev.map(x => ({ ...x, unit_price: String((x.base_price || 0) + m) })));
   }
 
   function updateItem(name, key, val) {
@@ -380,7 +388,7 @@ function CreateModal({ onClose }) {
           </div>
 
           {/* ── Right: trip details + cart ───────────────────── */}
-          <div className="w-80 shrink-0 flex flex-col bg-slate-50/50">
+          <div className="w-96 shrink-0 flex flex-col bg-slate-50/50">
             <div className="flex-1 overflow-y-auto px-5 py-4 space-y-3">
 
               {err && <p className="text-xs text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2">{err}</p>}
@@ -406,6 +414,19 @@ function CreateModal({ onClose }) {
                 </div>
               </div>
 
+              {/* Markup */}
+              <div className="flex items-center gap-2">
+                <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide shrink-0">Price Markup (Rs.)</label>
+                <input
+                  type="number"
+                  value={markup}
+                  onChange={e => handleMarkupChange(e.target.value)}
+                  onFocus={e => e.target.select()}
+                  min="0" step="1"
+                  className="w-20 border border-slate-200 rounded-lg px-2 py-1.5 text-sm text-right focus:ring-2 focus:ring-blue-500 outline-none bg-white ml-auto"
+                />
+              </div>
+
               {/* Cart */}
               <div className="pt-1">
                 <div className="flex items-center justify-between mb-2">
@@ -427,27 +448,23 @@ function CreateModal({ onClose }) {
                 ) : (
                   <div className="space-y-1.5">
                     {items.map(item => (
-                      <div key={item.variant_name} className="bg-white rounded-xl border border-slate-200 p-2.5">
-                        <div className="flex items-center justify-between mb-1.5">
-                          <span className="text-xs font-semibold text-slate-700 truncate flex-1 mr-1">{item.variant_name}</span>
+                      <div key={item.variant_name} className="bg-white rounded-xl border border-slate-200 px-2.5 py-2">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-semibold text-slate-700 truncate flex-1 min-w-0">{item.variant_name}</span>
+                          <input type="number" value={item.quantity}
+                            onChange={e => updateItem(item.variant_name, 'quantity', e.target.value)}
+                            onFocus={e => e.target.select()}
+                            min="0"
+                            placeholder="Qty"
+                            className="w-14 border border-slate-200 rounded-lg px-1.5 py-1 text-xs text-right focus:ring-1 focus:ring-blue-500 outline-none shrink-0" />
+                          <input type="number" value={item.unit_price}
+                            onChange={e => updateItem(item.variant_name, 'unit_price', e.target.value)}
+                            onFocus={e => e.target.select()}
+                            min="0" step="0.01"
+                            placeholder="Price"
+                            className="w-20 border border-slate-200 rounded-lg px-1.5 py-1 text-xs text-right focus:ring-1 focus:ring-blue-500 outline-none shrink-0" />
                           <button onClick={() => removeItem(item.variant_name)}
                             className="text-slate-300 hover:text-red-500 text-base font-bold leading-none shrink-0 transition-colors">&times;</button>
-                        </div>
-                        <div className="grid grid-cols-2 gap-1.5">
-                          <div>
-                            <p className="text-[10px] text-slate-400 mb-0.5">Qty</p>
-                            <input type="number" value={item.quantity}
-                              onChange={e => updateItem(item.variant_name, 'quantity', e.target.value)}
-                              min="0"
-                              className="w-full border border-slate-200 rounded-lg px-2 py-1 text-xs text-right focus:ring-1 focus:ring-blue-500 outline-none" />
-                          </div>
-                          <div>
-                            <p className="text-[10px] text-slate-400 mb-0.5">Price</p>
-                            <input type="number" value={item.unit_price}
-                              onChange={e => updateItem(item.variant_name, 'unit_price', e.target.value)}
-                              min="0" step="0.01"
-                              className="w-full border border-slate-200 rounded-lg px-2 py-1 text-xs text-right focus:ring-1 focus:ring-blue-500 outline-none" />
-                          </div>
                         </div>
                       </div>
                     ))}
