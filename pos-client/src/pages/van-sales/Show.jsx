@@ -544,14 +544,10 @@ function SettlementTab({ tripId }) {
   return (
     <div className="space-y-5">
       {/* Financial summary cards */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         <div className="bg-blue-600 text-white rounded-xl p-4">
           <div className="text-xs font-semibold text-blue-200 uppercase tracking-wide mb-1">Gross Sales</div>
           <div className="text-lg font-bold tabular-nums">Rs. {fmt(s.gross_sales)}</div>
-        </div>
-        <div className="bg-amber-50 border border-amber-100 rounded-xl p-4">
-          <div className="text-xs font-semibold text-amber-500 uppercase tracking-wide mb-1">Advances Given</div>
-          <div className="text-lg font-bold text-amber-700 tabular-nums">Rs. {fmt(s.total_advances)}</div>
         </div>
         <div className="bg-green-50 border border-green-100 rounded-xl p-4">
           <div className="text-xs font-semibold text-green-500 uppercase tracking-wide mb-1">Cash Collected</div>
