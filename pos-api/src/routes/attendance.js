@@ -160,6 +160,47 @@ router.get('/debug-device', role('admin', 'manager'), async (req, res) => {
   }
 });
 
+// ── CSV Import ────────────────────────────────────────────────────────────────
+
+router.post('/import-csv', role('admin', 'manager'), async (req, res) => {
+  const { AttendanceRecord, Employee } = req.models;
+  const { records } = req.body; // [{ device_employee_id, punch_time_slt }]
+  if (!Array.isArray(records) || !records.length)
+    return res.status(422).json({ error: 'records array required' });
+
+  const employees = await Employee.findAll({ where: { active: true } });
+  const empMap = {};
+  for (const e of employees) {
+    if (e.device_employee_id) {
+      empMap[e.device_employee_id] = e.id;
+      empMap[String(parseInt(e.device_employee_id, 10))] = e.id;
+    }
+  }
+
+  // SLT = UTC+5:30
+  const SLT_OFFSET_MS = (5 * 60 + 30) * 60 * 1000;
+  function sltToUtc(str) {
+    const d = new Date(str.replace(' ', 'T') + 'Z');
+    return new Date(d.getTime() - SLT_OFFSET_MS).toISOString();
+  }
+
+  let saved = 0, skipped = 0, noMatch = 0;
+  for (const r of records) {
+    const employee_id = empMap[r.device_employee_id];
+    if (!employee_id) { noMatch++; continue; }
+    const punch_time = sltToUtc(r.punch_time_slt);
+    // check duplicate by employee_id + punch_time
+    const existing = await AttendanceRecord.findOne({ where: { employee_id, punch_time } });
+    if (existing) { skipped++; continue; }
+    try {
+      await AttendanceRecord.create({ employee_id, punch_time, direction: 'unknown', source: 'device' });
+      saved++;
+    } catch { skipped++; }
+  }
+
+  res.json({ saved, skipped, noMatch, total: records.length });
+});
+
 // ── Records ───────────────────────────────────────────────────────────────────
 
 router.get('/records', async (req, res) => {

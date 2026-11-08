@@ -6,6 +6,7 @@ import {
   useSyncAttendanceMutation, useGetAttendanceRecordsQuery,
   useGetAttendanceSummaryQuery,
   useGetAdvancesQuery, useAddAdvanceMutation, useDeleteAdvanceMutation,
+  useImportAttendanceCsvMutation,
 } from '../../features/employees/employeesApi';
 
 const fmt = n => Number(n || 0).toLocaleString('en-LK', { minimumFractionDigits: 2 });
@@ -898,14 +899,79 @@ function MonthAttendanceModal({ employee, month, records, onClose }) {
   );
 }
 
+// ── CSV Import Modal ──────────────────────────────────────────────────────────
+
+function CsvImportModal({ onClose }) {
+  const [importCsv, { isLoading }] = useImportAttendanceCsvMutation();
+  const [result, setResult] = useState(null);
+  const [err, setErr]       = useState('');
+
+  function parseCsv(text) {
+    const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+    return lines.slice(1).map(line => {
+      const cols = line.split(',');
+      const deviceId  = cols[0]?.replace(/^'/, '').trim();
+      const timeStr   = cols[3]?.trim();
+      if (!deviceId || !timeStr) return null;
+      return { device_employee_id: deviceId, punch_time_slt: timeStr };
+    }).filter(Boolean);
+  }
+
+  async function handleFile(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    setErr(''); setResult(null);
+    const text = await file.text();
+    const records = parseCsv(text);
+    if (!records.length) { setErr('No valid records found in file.'); return; }
+    try {
+      const res = await importCsv({ records }).unwrap();
+      setResult(res);
+    } catch (ex) {
+      setErr(ex?.data?.error || 'Import failed');
+    }
+  }
+
+  return (
+    <Modal title="Import IVMS CSV" onClose={onClose}>
+      <div className="space-y-4">
+        <p className="text-xs text-slate-500">
+          Export attendance from IVMS (Original Records Report) and select the CSV file below.
+          Times are automatically converted from Sri Lanka time.
+        </p>
+        <div>
+          <label className="block text-xs font-semibold text-slate-600 mb-1.5">Select CSV file</label>
+          <input type="file" accept=".csv" onChange={handleFile} disabled={isLoading}
+            className="w-full text-sm text-slate-600 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-blue-50 file:text-blue-700 file:font-semibold hover:file:bg-blue-100" />
+        </div>
+        {isLoading && <p className="text-xs text-blue-600 font-semibold">Importing…</p>}
+        {err && <p className="text-xs text-red-600">{err}</p>}
+        {result && (
+          <div className="rounded-lg bg-green-50 border border-green-200 p-3 text-xs space-y-1">
+            <p className="font-bold text-green-700">Import complete</p>
+            <p className="text-slate-600">Saved: <strong>{result.saved}</strong></p>
+            <p className="text-slate-600">Duplicate/skipped: <strong>{result.skipped}</strong></p>
+            {result.noMatch > 0 && <p className="text-amber-600">No employee match: <strong>{result.noMatch}</strong> (set Device Employee ID on those employees)</p>}
+          </div>
+        )}
+        <button onClick={onClose}
+          className="w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-semibold rounded-xl">
+          Close
+        </button>
+      </div>
+    </Modal>
+  );
+}
+
 // ── Attendance section ────────────────────────────────────────────────────────
 
 function AttendanceSection() {
   const currentMonth = new Date().toISOString().slice(0, 7);
   const [month, setMonth]         = useState(currentMonth);
-  const [syncMsg, setSyncMsg]       = useState(null);
-  const [dayDetail, setDayDetail]   = useState(null); // { employee, day }
-  const [monthDetail, setMonthDetail] = useState(null); // employee
+  const [syncMsg, setSyncMsg]         = useState(null);
+  const [showImport, setShowImport]   = useState(false);
+  const [dayDetail, setDayDetail]     = useState(null);
+  const [monthDetail, setMonthDetail] = useState(null);
 
   const { data: employees = [] }  = useGetEmployeesQuery();
   const { data: records  = [], isLoading } = useGetAttendanceRecordsQuery({ month });
@@ -955,6 +1021,10 @@ function AttendanceSection() {
         <div className="flex items-center gap-3">
           {syncMsg?.ok  && <span className="text-xs text-green-600 font-semibold">{syncMsg.ok}</span>}
           {syncMsg?.err && <span className="text-xs text-red-600">{syncMsg.err}</span>}
+          <button onClick={() => setShowImport(true)}
+            className="inline-flex items-center gap-1.5 px-4 py-2 bg-slate-100 text-slate-700 text-sm font-semibold rounded-xl hover:bg-slate-200 transition-colors">
+            ↑ Import CSV
+          </button>
           <button onClick={handleSync} disabled={syncing}
             className="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-xl hover:bg-blue-700 disabled:opacity-50 transition-colors">
             {syncing ? 'Syncing…' : '↻ Sync Device'}
@@ -1049,6 +1119,7 @@ function AttendanceSection() {
         Green = present (click for times) &nbsp;&bull;&nbsp; Red = absent &nbsp;&bull;&nbsp; Blue = Sunday with scan (not counted) &nbsp;&bull;&nbsp; Gray = Sunday
       </p>
 
+      {showImport && <CsvImportModal onClose={() => setShowImport(false)} />}
       {dayDetail && (
         <DayPunchModal
           employee={dayDetail.employee}

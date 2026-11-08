@@ -79,6 +79,10 @@ export const employeesApi = api.injectEndpoints({
       query: id => ({ url: `/attendance/records/${id}`, method: 'DELETE' }),
       invalidatesTags: ['Attendance'],
     }),
+    importAttendanceCsv: build.mutation({
+      query: body => ({ url: '/attendance/import-csv', method: 'POST', body }),
+      invalidatesTags: ['Attendance'],
+    }),
   }),
   overrideExisting: false,
 });
@@ -101,4 +105,5 @@ export const {
   useGetAttendanceSummaryQuery,
   useAddAttendanceRecordMutation,
   useDeleteAttendanceRecordMutation,
+  useImportAttendanceCsvMutation,
 } = employeesApi;
