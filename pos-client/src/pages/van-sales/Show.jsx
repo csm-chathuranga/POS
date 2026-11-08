@@ -105,7 +105,6 @@ function ProductPicker({ value, onSelect, afterSelect }) {
 function DailyModal({ tripId, existing, onClose }) {
   const init = existing || {};
   const [date, setDate]         = useState(init.date || today());
-  const [advance, setAdvance]   = useState(init.advance_given ?? 5000);
   const [handover, setHandover] = useState(init.cash_handover ?? '');
   const [notes, setNotes]       = useState(init.notes || '');
   const [err, setErr]           = useState('');
@@ -114,7 +113,7 @@ function DailyModal({ tripId, existing, onClose }) {
   async function handleSubmit(e) {
     e.preventDefault(); setErr('');
     try {
-      await save({ id: tripId, date, advance_given: advance, cash_handover: handover || 0, notes }).unwrap();
+      await save({ id: tripId, date, advance_given: 0, cash_handover: handover || 0, notes }).unwrap();
       onClose();
     } catch (ex) { setErr(ex?.data?.error || 'Failed to save'); }
   }
@@ -126,7 +125,7 @@ function DailyModal({ tripId, existing, onClose }) {
           <div className="flex items-center justify-between">
             <div>
               <h2 className="font-bold text-white text-lg">{existing ? 'Edit Record' : 'Daily Record'}</h2>
-              <p className="text-blue-100 text-xs mt-0.5">Record daily advance & cash handover</p>
+              <p className="text-blue-100 text-xs mt-0.5">Record daily cash handover</p>
             </div>
             <button onClick={onClose} className="text-white/70 hover:text-white text-2xl font-bold leading-none w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white/10">&times;</button>
           </div>
@@ -138,17 +137,12 @@ function DailyModal({ tripId, existing, onClose }) {
             <input type="date" value={date} onChange={e => setDate(e.target.value)} required
               className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">Advance (Rs.)</label>
-              <input type="number" value={advance} onChange={e => setAdvance(e.target.value)} min="0" step="0.01"
-                className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none text-right tabular-nums" />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">Cash In (Rs.)</label>
-              <input type="number" value={handover} onChange={e => setHandover(e.target.value)} min="0" step="0.01" placeholder="0.00"
-                className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none text-right tabular-nums" />
-            </div>
+          <div>
+            <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">Cash In (Rs.)</label>
+            <input type="number" value={handover} onChange={e => setHandover(e.target.value)}
+              onFocus={e => e.target.select()}
+              min="0" step="0.01" placeholder="0.00"
+              className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none text-right tabular-nums" />
           </div>
           <div>
             <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">Notes</label>
