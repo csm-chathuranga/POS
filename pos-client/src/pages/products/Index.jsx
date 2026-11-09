@@ -25,9 +25,13 @@ function printBarcode(product, qty = 1, shopName = '') {
   const isEan8  = /^\d{8}$/.test(code);
   const fmt = isEan13 ? 'EAN13' : isEan8 ? 'EAN8' : 'CODE128';
 
-  // Pre-render barcode SVG so it works in Electron print without CDN or script execution
+  // Pre-render barcode SVG — fall back to CODE128 if EAN check digit is invalid
   const svgNode = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-  JsBarcode(svgNode, code, { format: fmt, width: 1.0, height: 16, displayValue: false, margin: 0 });
+  try {
+    JsBarcode(svgNode, code, { format: fmt, width: 1.0, height: 16, displayValue: false, margin: 0 });
+  } catch {
+    JsBarcode(svgNode, code, { format: 'CODE128', width: 1.0, height: 16, displayValue: false, margin: 0 });
+  }
   const svgHtml = svgNode.outerHTML;
 
   const html = `<!DOCTYPE html><html><head>
@@ -65,10 +69,41 @@ function printBarcode(product, qty = 1, shopName = '') {
       .catch(err => alert('Barcode print error: ' + err.message));
   }
 
-  // Browser fallback
+  // Browser fallback — repeat label qty times on one page
   const win = window.open('', '_blank', 'width=380,height=260');
   if (!win) return Promise.resolve();
-  win.document.write(html.replace('</head>', '<script>setTimeout(()=>window.print(),200)</script></head>'));
+  const repeatedBody = `<!DOCTYPE html><html><head>
+    <title>Barcode</title>
+    <style>
+      @page { size: 30mm 20mm; margin: 0; }
+      *{box-sizing:border-box;margin:0;padding:0}
+      .label{
+        width:30mm;height:20mm;overflow:hidden;
+        font-family:Arial,sans-serif;text-align:center;
+        padding:1mm;padding-top:2mm;
+        display:flex;flex-direction:column;align-items:center;justify-content:center;
+        page-break-after:always;
+      }
+      svg{display:block;width:22mm;height:auto}
+      p{font-size:4pt;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;width:26mm}
+      .shop{font-weight:bold;font-size:6pt;text-transform:uppercase;letter-spacing:0.03em}
+      .name{font-weight:bold;font-size:7pt}
+      .price{font-weight:bold;font-size:8pt;color:#000}
+      .orig{font-size:6pt;text-decoration:line-through;text-decoration-thickness:0.5px;font-weight:normal;color:#000}
+    </style>
+  </head><body>
+    ${Array(Math.max(1, qty)).fill(`
+      <div class="label">
+        ${shopName ? `<p class="shop">${shopName.replace(/</g,'&lt;')}</p>` : ''}
+        ${svgHtml}
+        <p class="name">${(product.name_si || product.name).replace(/</g,'&lt;')}</p>
+        ${product.our_price && Number(product.our_price) !== Number(product.selling_price || 0)
+          ? `<p class="orig">Rs. ${Number(product.selling_price||0).toFixed(2)}</p><p class="price">Rs. ${Number(product.our_price).toFixed(2)}</p>`
+          : `<p class="price">Rs. ${Number(product.selling_price||0).toFixed(2)}</p>`}
+      </div>`).join('')}
+  </body></html>`;
+  win.document.open();
+  win.document.write(repeatedBody.replace('</head>', '<script>setTimeout(()=>window.print(),300)</script></head>'));
   win.document.close();
   return Promise.resolve();
 }
@@ -201,13 +236,15 @@ export default function ProductsIndex() {
     let p = product;
     if (!p.barcode) {
       const generated = String(p.id).padStart(6, '0');
-      try { await updateProduct({ id: p.id, barcode: generated }).unwrap(); } catch {}
+      updateProduct({ id: p.id, barcode: generated }); // fire and forget — don't block printing
       p = { ...p, barcode: generated };
     }
 
     setPrintingIds(prev => new Set(prev).add(p.id));
     try {
       await printBarcode(p, qty, shopName);
+    } catch (err) {
+      alert('Barcode print failed: ' + err.message);
     } finally {
       setPrintingIds(prev => { const s = new Set(prev); s.delete(p.id); return s; });
     }
