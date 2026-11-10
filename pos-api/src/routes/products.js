@@ -160,6 +160,15 @@ router.get('/search', auth, async (req, res) => {
   res.json(products.map(productToItem));
 });
 
+// GET /api/products/low-stock-count
+router.get('/low-stock-count', auth, async (req, res) => {
+  const { Product } = req.models;
+  const count = await Product.count({
+    where: req.db.literal('`stock_qty` <= `alert_qty` AND `active` = 1'),
+  });
+  res.json({ count });
+});
+
 // GET /api/products
 router.get('/', auth, async (req, res) => {
   const { Product, ProductVariant, Category } = req.models;

@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import SearchableSelect from '../../components/SearchableSelect';
 import JsBarcode from 'jsbarcode';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import {
   useGetProductsQuery,
@@ -155,12 +155,15 @@ export default function ProductsIndex() {
     }
   }
 
+  const [searchParams] = useSearchParams();
+  const initLowStock = searchParams.get('low_stock') === 'true';
+
   const [search, setSearch]     = useState('');
   const [catId,  setCatId]      = useState('');
-  const [filter, setFilter]     = useState('all');
+  const [filter, setFilter]     = useState(initLowStock ? 'low_stock' : 'all');
   const [page,   setPage]       = useState(1);
   const [viewAll, setViewAll]   = useState(() => localStorage.getItem('products_viewAll') === 'true');
-  const [applied, setApplied]   = useState({ search: '', category_id: '', low_stock: false, promo: false });
+  const [applied, setApplied]   = useState({ search: '', category_id: '', low_stock: initLowStock, promo: false });
 
   const [offlineProducts,   setOfflineProducts]   = useState([]);
   const [offlineCategories, setOfflineCategories] = useState([]);

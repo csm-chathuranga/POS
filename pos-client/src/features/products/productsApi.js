@@ -91,6 +91,11 @@ export const productsApi = api.injectEndpoints({
         try { await queryFulfilled; refreshProductCache(); } catch {}
       },
     }),
+    getLowStockCount: build.query({
+      query: () => '/products/low-stock-count',
+      keepUnusedDataFor: 120,
+      providesTags: [{ type: 'Products', id: 'LOW_STOCK' }],
+    }),
   }),
 });
 
@@ -110,4 +115,5 @@ export const {
   useGetDiscountTiersQuery,
   useCreateDiscountTierMutation,
   useDeleteDiscountTierMutation,
+  useGetLowStockCountQuery,
 } = productsApi;

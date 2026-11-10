@@ -37,9 +37,9 @@ function timeStr(s) {
 function isoDate(d) { return d.toISOString().slice(0, 10); }
 
 // ─── Stat Card ────────────────────────────────────────────────────────────────
-function StatCard({ label, value, sub, icon, gradient, valueColor = 'text-white', trend, isDark }) {
+function StatCard({ label, value, sub, icon, gradient, valueColor = 'text-white', trend, isDark, onClick }) {
   return (
-    <div className={`h-full rounded-2xl p-3 sm:p-4 flex items-start gap-3 relative overflow-hidden shadow-lg ${gradient}`}>
+    <div onClick={onClick} className={`h-full rounded-2xl p-3 sm:p-4 flex items-start gap-3 relative overflow-hidden shadow-lg ${gradient}${onClick ? ' cursor-pointer hover:brightness-110 transition-all' : ''}`}>
       <div className="absolute -bottom-3 -right-3 w-16 h-16 rounded-full bg-white/10" />
       <div className="absolute -top-4 -left-4 w-14 h-14 rounded-full bg-white/10" />
       <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-white/20 flex items-center justify-center shrink-0 z-10">
@@ -463,7 +463,8 @@ export default function Dashboard() {
             value={data?.totalProducts ?? 0} sub="active products" isDark={isDark} />
           <StatCard label={t('dash.low_stock')} icon={icons.alert}
             gradient="bg-gradient-to-br from-rose-500 to-red-700"
-            value={data?.lowStockCount ?? 0} sub="needs attention" isDark={isDark} />
+            value={data?.lowStockCount ?? 0} sub="needs attention" isDark={isDark}
+            onClick={() => navigate('/products?low_stock=true')} />
         </div>
         <div className="md:col-span-3 h-full">
           <HourlyChart hourlySales={data?.hourlySales || []} dates={dates} isDark={isDark} />

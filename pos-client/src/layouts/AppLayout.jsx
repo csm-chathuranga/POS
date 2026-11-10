@@ -19,6 +19,7 @@ import DailyConnectionGate from '../components/DailyConnectionGate';
 import { api } from '../app/baseApi';
 import { getApiUrl } from '../config/runtimeConfig';
 import { useGetFeaturesQuery } from '../features/roles/rolesApi';
+import { useGetLowStockCountQuery } from '../features/products/productsApi';
 
 const settingsApi = api.injectEndpoints({
   endpoints: b => ({
@@ -138,6 +139,8 @@ export default function AppLayout() {
   const [notifOpen, setNotifOpen] = useState(false);
   const [offlineDrawerOpen, setOfflineDrawerOpen] = useState(false);
   const notifCount = useNotifBadge(token);
+  const { data: lowStockData } = useGetLowStockCountQuery(undefined, { skip: !token, pollingInterval: 300000 });
+  const lowStockCount = lowStockData?.count || 0;
 
   const [collapsed, setCollapsed] = useState(
     () => window.matchMedia('(max-width: 1349px)').matches || localStorage.getItem('sidebar_collapsed') === 'true'
@@ -765,6 +768,18 @@ export default function AppLayout() {
                   </span>
                 )}
               </button>
+              {lowStockCount > 0 && (
+                <button onClick={() => navigate('/products?low_stock=true')}
+                  title={`${lowStockCount} product${lowStockCount !== 1 ? 's' : ''} below alert level`}
+                  className="relative p-2 text-amber-500 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-[#252525] rounded-xl transition-colors">
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+                  </svg>
+                  <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-amber-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center leading-none">
+                    {lowStockCount > 9 ? '9+' : lowStockCount}
+                  </span>
+                </button>
+              )}
               <button onClick={() => setNotifOpen(o => !o)}
                 className="relative p-2 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-[#252525] rounded-xl transition-colors">
                 {Icons.bell}
