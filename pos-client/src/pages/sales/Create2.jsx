@@ -475,6 +475,18 @@ export default function SalesCreate() {
   const [batchPicker, setBatchPicker] = useState(null);
   const [batchIdx, setBatchIdx]       = useState(0);
   const [priceMode, setPriceMode]   = useState('retail');
+
+  // Re-price cart items when switching between retail and wholesale
+  function switchPriceMode(mode) {
+    setPriceMode(mode);
+    setCart(prev => prev.map(item => {
+      if (item.is_custom) return item;
+      const ws   = parseFloat(item.wholesale_price) || 0;
+      const base = parseFloat(item.selling_price) || 0;
+      const price = mode === 'wholesale' && ws > 0 ? ws : base;
+      return recalc({ ...item, unit_price: price, default_price: price });
+    }));
+  }
   const [billDiscount, setBillDisc] = useState('');
   const [discType, setDiscType]     = useState('amount');
   const [customItem, setCustom]     = useState(null);
@@ -1259,12 +1271,12 @@ export default function SalesCreate() {
                 )}
               </div>
               <div className="flex gap-1.5 shrink-0">
-                <button onClick={() => setPriceMode('retail')}
+                <button onClick={() => switchPriceMode('retail')}
                   className={`flex items-center gap-1.5 px-4 py-3 rounded-lg text-sm font-semibold transition-colors ${
                     priceMode === 'retail' ? 'bg-blue-600 text-white shadow-sm' : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-300'}`}>
                   {Icon.retail} {t('pos.retail_mode')}
                 </button>
-                <button onClick={() => setPriceMode('wholesale')}
+                <button onClick={() => switchPriceMode('wholesale')}
                   className={`flex items-center gap-1.5 px-4 py-3 rounded-lg text-sm font-semibold transition-colors ${
                     priceMode === 'wholesale' ? 'bg-blue-600 text-white shadow-sm' : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-300'}`}>
                   {Icon.tag} {t('pos.wholesale_mode')}
