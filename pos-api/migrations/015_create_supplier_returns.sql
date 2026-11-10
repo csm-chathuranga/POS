@@ -26,4 +26,4 @@ CREATE TABLE IF NOT EXISTS `supplier_return_items` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 INSERT IGNORE INTO `features` (`key`, `label`, `path`, `group`, `sort_order`, `icon`, `offline_ok`)
-VALUES ('supplier_returns', 'සැපයුම්කරු ආපසු', '/supplier-returns', 'main', 55, 'purchases', 0);
+VALUES ('supplier_returns', 'Supplier Returns', '/supplier-returns', 'main', 55, 'purchases', 0);
