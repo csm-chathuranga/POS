@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { useGetCustomersQuery, useGetAllCreditPaymentsQuery } from '../../features/customers/customersApi';
 import PastPaymentsModal from '../../components/PastPaymentsModal';
 
+const fmt = n => Number(n || 0).toLocaleString('en-LK', { minimumFractionDigits: 2 });
+
 export default function CreditIndex() {
   const navigate = useNavigate();
   const [search, setSearch]           = useState('');
