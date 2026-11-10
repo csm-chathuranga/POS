@@ -333,9 +333,10 @@ function DayEnd() {
 
       {isLoading ? <Spin /> : (
         <>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
             <SummaryCard label={t('rep.total_sales')}   value={summary.total_bills ?? 0} />
             <SummaryCard label={t('th.revenue')}         value={fmt(summary.total_revenue)} color="text-green-600" />
+            <SummaryCard label={t('th.cost')}            value={fmt(summary.total_cost)} color="text-red-500" />
             <SummaryCard label={t('lbl.discount')}       value={fmt(summary.total_discount)} color="text-orange-500" />
             <SummaryCard label={t('th.balance')}         value={fmt(summary.total_balance)} color={parseFloat(summary.total_balance) > 0 ? 'text-red-500' : 'text-slate-800'} />
           </div>

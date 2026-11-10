@@ -32,17 +32,20 @@ router.get('/day-end', auth, async (req, res) => {
   const db   = req.db;
   const date = req.query.date || new Date().toISOString().slice(0, 10);
 
-  const [sales, byPayment] = await Promise.all([
+  const [sales, byPayment, costRows] = await Promise.all([
     db.query(`SELECT s.*, u.name as user_name FROM sales s JOIN users u ON s.user_id = u.id WHERE DATE(s.created_at) = ? AND s.status != 'held' ORDER BY s.id`, { replacements: [date], type: db.QueryTypes.SELECT }),
     db.query(`SELECT p.method, SUM(p.amount) as total, COUNT(DISTINCT p.sale_id) as count FROM payments p JOIN sales s ON p.sale_id = s.id WHERE DATE(s.created_at) = ? AND s.status != 'held' GROUP BY p.method`, { replacements: [date], type: db.QueryTypes.SELECT }),
+    db.query(`SELECT SUM(IF(si.cost_price > 0, si.cost_price, si.unit_price) * si.qty) as total_cost FROM sale_items si JOIN sales s ON si.sale_id = s.id WHERE DATE(s.created_at) = ? AND s.status != 'held'`, { replacements: [date], type: db.QueryTypes.SELECT }),
   ]);
 
+  const total_cost = parseFloat(costRows[0]?.total_cost || 0);
   const summary = {
     total_bills:    sales.length,
     total_revenue:  sales.reduce((a, s) => a + parseFloat(s.total), 0),
     total_discount: sales.reduce((a, s) => a + parseFloat(s.discount), 0),
     total_paid:     sales.reduce((a, s) => a + parseFloat(s.paid), 0),
     total_balance:  sales.reduce((a, s) => a + parseFloat(s.balance), 0),
+    total_cost,
   };
   res.json({ sales, summary, byPayment, date });
 });
