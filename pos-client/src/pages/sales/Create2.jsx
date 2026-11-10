@@ -543,6 +543,8 @@ export default function SalesCreate() {
   const smsEnabled = allFeatures.some(f => f.key === 'sms');
   const [sendSms] = useSendSmsReceiptMutation();
   const [smsPending, setSmsPending] = useState(null); // { saleId, phone, message }
+  const [smsPhoneModal, setSmsPhoneModal] = useState(false);
+  const [smsManualPhone, setSmsManualPhone] = useState('');
   const [returnSaleData, setReturnSaleData] = useState(null);
   const [returnItemQtys, setReturnItemQtys] = useState({});
   const [returnLoading, setReturnLoading] = useState(false);
@@ -1019,11 +1021,14 @@ export default function SalesCreate() {
       setCart([]); setCustomer(null); setCustQuery(''); setBillDisc(''); setCashPaid('');
 
 
-      if (withSms && customer?.phone) {
+      const smsPhone = customer?.phone || smsManualPhone;
+      setSmsManualPhone('');
+      if (withSms && smsPhone) {
         const invoiceLink = window.location.origin + '/invoice/' + result.invoice_no;
         const shopName = settings?.shop_name || '';
-        const msg = `Dear ${customer.name},\nYour invoice ${result.invoice_no} total Rs.${Number(total).toFixed(2)}${shopName ? ' from ' + shopName : ''}.\nView: ${invoiceLink}`;
-        setSmsPending({ phone: customer.phone, message: msg, saleId: result.id, result, cartSnapshot, payments, subtotal, totalDisc, total, paid, customerName: customer?.name, autoPrint: false });
+        const recipientName = customer?.name || 'Customer';
+        const msg = `Dear ${recipientName},\nYour invoice ${result.invoice_no} total Rs.${Number(total).toFixed(2)}${shopName ? ' from ' + shopName : ''}.\nView: ${invoiceLink}`;
+        setSmsPending({ phone: smsPhone, message: msg, saleId: result.id, result, cartSnapshot, payments, subtotal, totalDisc, total, paid, customerName: customer?.name, autoPrint: false });
       } else if (!saveOnly) {
         if (redirectAndPrint && result?.id) {
           navigate('/sales/' + result.id, { state: { autoPrint: true } });
@@ -1509,8 +1514,8 @@ export default function SalesCreate() {
                 <button
                   disabled={cart.length === 0 || total === 0 || submitting}
                   onClick={() => {
-                    if (!customer) { setErr('Select a customer to send SMS'); return; }
-                    if (!customer.phone) { setErr('Customer has no phone number'); return; }
+                    if (!customer) { setSmsManualPhone(''); setSmsPhoneModal(true); return; }
+                    if (!customer.phone) { setSmsManualPhone(''); setSmsPhoneModal(true); return; }
                     handleCompleteSale(false, false, true);
                   }}
                   title="Complete sale & send SMS receipt"
@@ -1845,6 +1850,55 @@ export default function SalesCreate() {
                 </>
               )}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* SMS phone-entry modal — shown when no customer phone is available */}
+      {smsPhoneModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm">
+            <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2">
+              <span className="text-2xl">📱</span>
+              <div>
+                <h2 className="font-bold text-slate-800">Enter Phone Number</h2>
+                <p className="text-xs text-slate-400 mt-0.5">SMS receipt will be sent after completing the sale</p>
+              </div>
+            </div>
+            <form
+              onSubmit={e => {
+                e.preventDefault();
+                const phone = smsManualPhone.trim();
+                if (!phone) return;
+                setSmsPhoneModal(false);
+                handleCompleteSale(false, false, true);
+              }}
+              className="p-5 space-y-4"
+            >
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1">Phone Number</label>
+                <input
+                  autoFocus
+                  type="tel"
+                  value={smsManualPhone}
+                  onChange={e => setSmsManualPhone(e.target.value)}
+                  placeholder="07X XXX XXXX"
+                  className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-emerald-500 font-mono tracking-wide"
+                />
+              </div>
+              <div className="flex gap-2">
+                <button type="button"
+                  onClick={() => { setSmsPhoneModal(false); setSmsManualPhone(''); }}
+                  className="flex-1 py-2.5 text-sm font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors">
+                  Cancel
+                </button>
+                <button type="submit"
+                  disabled={!smsManualPhone.trim()}
+                  className="flex-1 py-2.5 text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors">
+                  Complete &amp; Send SMS
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

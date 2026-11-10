@@ -164,7 +164,10 @@ router.get('/search', auth, async (req, res) => {
 router.get('/low-stock-count', auth, async (req, res) => {
   const { Product } = req.models;
   const count = await Product.count({
-    where: req.db.literal('`stock_qty` <= `alert_qty` AND `active` = 1'),
+    where: {
+      active: true,
+      stock_qty: { [Op.lte]: req.db.literal('`alert_qty`') },
+    },
   });
   res.json({ count });
 });
