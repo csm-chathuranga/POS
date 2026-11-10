@@ -1939,7 +1939,13 @@ export default function SalesCreate() {
                 onClick={async () => {
                   const p = smsPending;
                   setSmsPending(null);
-                  try { await sendSms({ phone: p.phone, message: p.message }); } catch (_) {}
+                  try {
+                    console.log('[SMS] sending to', p.phone, 'msg:', p.message);
+                    const result = await sendSms({ phone: p.phone, message: p.message });
+                    console.log('[SMS] result:', result);
+                  } catch (e) {
+                    console.error('[SMS] error:', e);
+                  }
                   if (p.autoPrint) navigate('/sales/' + p.saleId, { state: { autoPrint: true } });
                   else setReceipt({ ...p.result, items: p.cartSnapshot, payments: p.payments, subtotal: p.subtotal, discount: p.totalDisc, total: p.total, paid: p.paid, customer_name: p.customerName });
                 }}
