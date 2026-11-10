@@ -270,24 +270,39 @@ router.get('/summary', async (req, res) => {
     if (new Date(y, m - 1, d).getDay() !== 0) workingDays++;
   }
 
-  // Group records: employee_id → Set<day>  (day in Sri Lanka time UTC+5:30)
+  // Group records: employee_id → Set<day> + compute total hours (first-in to last-out per day)
   const SLT_OFFSET = 5.5 * 60 * 60 * 1000;
   const byEmp = {};
   for (const r of records) {
     const eid = String(r.employee_id);
     const day = new Date(new Date(r.punch_time).getTime() + SLT_OFFSET).getUTCDate();
-    if (!byEmp[eid]) byEmp[eid] = new Set();
-    byEmp[eid].add(day);
+    if (!byEmp[eid]) byEmp[eid] = { days: new Set(), punches: {} };
+    byEmp[eid].days.add(day);
+    if (!byEmp[eid].punches[day]) byEmp[eid].punches[day] = [];
+    byEmp[eid].punches[day].push(r);
   }
 
   res.json(employees.map(e => {
-    const present = byEmp[String(e.id)]?.size || 0;
+    const empData = byEmp[String(e.id)];
+    const present = empData?.days.size || 0;
+    let total_hours = 0;
+    if (empData) {
+      for (const dayRecs of Object.values(empData.punches)) {
+        const ins  = dayRecs.filter(r => r.direction === 'in').sort((a, b) => new Date(a.punch_time) - new Date(b.punch_time));
+        const outs = dayRecs.filter(r => r.direction === 'out').sort((a, b) => new Date(a.punch_time) - new Date(b.punch_time));
+        if (ins.length && outs.length) {
+          const diff = (new Date(outs[outs.length - 1].punch_time) - new Date(ins[0].punch_time)) / 3600000;
+          if (diff > 0) total_hours += diff;
+        }
+      }
+    }
     return {
       employee_id:   e.id,
       employee_name: e.name,
       present_days:  present,
       working_days:  workingDays,
       absent_days:   Math.max(0, workingDays - present),
+      total_hours:   +total_hours.toFixed(2),
     };
   }));
 });

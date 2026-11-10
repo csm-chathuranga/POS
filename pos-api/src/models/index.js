@@ -285,7 +285,8 @@ function getModels(sequelize) {
     basic_salary:       { type: DataTypes.DECIMAL(10, 2), defaultValue: 0 },
     hired_date:         { type: DataTypes.DATEONLY,    allowNull: true },
     device_employee_id:  { type: DataTypes.STRING(50),  allowNull: true },
-    salary_calculation:  { type: DataTypes.ENUM('daily_rate', 'deduction', 'manual'), defaultValue: 'manual' },
+    salary_calculation:  { type: DataTypes.ENUM('daily_rate', 'deduction', 'manual', 'hourly_rate'), defaultValue: 'manual' },
+    hourly_rate:         { type: DataTypes.DECIMAL(10, 2), defaultValue: 150 },
     active:              { type: DataTypes.BOOLEAN,     defaultValue: true },
   }, { tableName: 'employees' });
 

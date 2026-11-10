@@ -246,13 +246,18 @@ function SalaryModal({ employee, onClose }) {
   const suggested = useMemo(() => {
     if (skipSummary || !attSummary) return null;
     const basic        = parseFloat(employee.basic_salary) || 0;
-    const { present_days, working_days, absent_days } = attSummary;
+    const { present_days, working_days, absent_days, total_hours } = attSummary;
+    if (method === 'hourly_rate') {
+      const rate = parseFloat(employee.hourly_rate) || 150;
+      const hrs  = total_hours || 0;
+      return { amount: +(rate * hrs).toFixed(2), total_hours: hrs, rate, present_days, working_days, absent_days };
+    }
     if (!working_days) return null;
     const dailyRate = basic / working_days;
     if (method === 'daily_rate') return { amount: +(dailyRate * present_days).toFixed(2), present_days, working_days, dailyRate, absent_days };
     if (method === 'deduction')  return { amount: +(basic - dailyRate * absent_days).toFixed(2), present_days, working_days, dailyRate, absent_days };
     return null;
-  }, [attSummary, method, employee.basic_salary, skipSummary]);
+  }, [attSummary, method, employee.basic_salary, employee.hourly_rate, skipSummary]);
 
   useEffect(() => {
     if (suggested) setForm(f => ({ ...f, amount: String(suggested.amount) }));
@@ -291,7 +296,12 @@ function SalaryModal({ employee, onClose }) {
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 flex-shrink-0">
           <div>
             <h2 className="text-lg font-bold text-slate-800">{employee.name}</h2>
-            <p className="text-sm text-slate-400 mt-0.5">{employee.position || 'No position'} &middot; Basic: <span className="font-semibold text-slate-600">Rs. {fmt(employee.basic_salary)}</span></p>
+            <p className="text-sm text-slate-400 mt-0.5">
+              {employee.position || 'No position'} &middot;{' '}
+              {employee.salary_calculation === 'hourly_rate'
+                ? <>Rate: <span className="font-semibold text-slate-600">Rs. {fmt(employee.hourly_rate)}/hr</span></>
+                : <>Basic: <span className="font-semibold text-slate-600">Rs. {fmt(employee.basic_salary)}</span></>}
+            </p>
           </div>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-600 text-2xl leading-none">&times;</button>
         </div>
@@ -310,28 +320,53 @@ function SalaryModal({ employee, onClose }) {
                   {suggested ? (
                     <>
                       <p className="font-bold text-blue-700 mb-2 uppercase tracking-wide text-xs">
-                        {method === 'daily_rate' ? 'Daily Rate' : 'Deduction'}
+                        {method === 'daily_rate' ? 'Daily Rate' : method === 'deduction' ? 'Deduction' : 'Hourly Rate'}
                       </p>
-                      <div className="grid grid-cols-3 gap-1.5 text-slate-700 mb-2">
-                        <div className="text-center bg-white rounded p-1.5 border border-blue-100">
-                          <p className="text-base font-bold text-green-600">{suggested.present_days}</p>
-                          <p className="text-slate-500 text-xs">Present</p>
-                        </div>
-                        <div className="text-center bg-white rounded p-1.5 border border-blue-100">
-                          <p className="text-base font-bold text-red-500">{suggested.absent_days}</p>
-                          <p className="text-slate-500 text-xs">Absent</p>
-                        </div>
-                        <div className="text-center bg-white rounded p-1.5 border border-blue-100">
-                          <p className="text-base font-bold text-slate-700">{suggested.working_days}</p>
-                          <p className="text-slate-500 text-xs">Working</p>
-                        </div>
-                      </div>
-                      <p className="text-slate-600 font-mono bg-white rounded p-1.5 border border-blue-100 text-xs leading-relaxed">
-                        {method === 'daily_rate'
-                          ? `${suggested.working_days} days ÷ basic × ${suggested.present_days} = `
-                          : `basic − (${suggested.absent_days} absent) = `}
-                        <span className="font-bold text-blue-700">Rs. {fmt(suggested.amount)}</span>
-                      </p>
+                      {method === 'hourly_rate' ? (
+                        <>
+                          <div className="grid grid-cols-3 gap-1.5 text-slate-700 mb-2">
+                            <div className="text-center bg-white rounded p-1.5 border border-blue-100">
+                              <p className="text-base font-bold text-blue-600">{suggested.total_hours}h</p>
+                              <p className="text-slate-500 text-xs">Total Hrs</p>
+                            </div>
+                            <div className="text-center bg-white rounded p-1.5 border border-blue-100">
+                              <p className="text-base font-bold text-green-600">{suggested.present_days}</p>
+                              <p className="text-slate-500 text-xs">Present</p>
+                            </div>
+                            <div className="text-center bg-white rounded p-1.5 border border-blue-100">
+                              <p className="text-base font-bold text-slate-700">{suggested.working_days}</p>
+                              <p className="text-slate-500 text-xs">Working</p>
+                            </div>
+                          </div>
+                          <p className="text-slate-600 font-mono bg-white rounded p-1.5 border border-blue-100 text-xs leading-relaxed">
+                            {`${suggested.total_hours}h × Rs. ${suggested.rate}/hr = `}
+                            <span className="font-bold text-blue-700">Rs. {fmt(suggested.amount)}</span>
+                          </p>
+                        </>
+                      ) : (
+                        <>
+                          <div className="grid grid-cols-3 gap-1.5 text-slate-700 mb-2">
+                            <div className="text-center bg-white rounded p-1.5 border border-blue-100">
+                              <p className="text-base font-bold text-green-600">{suggested.present_days}</p>
+                              <p className="text-slate-500 text-xs">Present</p>
+                            </div>
+                            <div className="text-center bg-white rounded p-1.5 border border-blue-100">
+                              <p className="text-base font-bold text-red-500">{suggested.absent_days}</p>
+                              <p className="text-slate-500 text-xs">Absent</p>
+                            </div>
+                            <div className="text-center bg-white rounded p-1.5 border border-blue-100">
+                              <p className="text-base font-bold text-slate-700">{suggested.working_days}</p>
+                              <p className="text-slate-500 text-xs">Working</p>
+                            </div>
+                          </div>
+                          <p className="text-slate-600 font-mono bg-white rounded p-1.5 border border-blue-100 text-xs leading-relaxed">
+                            {method === 'daily_rate'
+                              ? `${suggested.working_days} days ÷ basic × ${suggested.present_days} = `
+                              : `basic − (${suggested.absent_days} absent) = `}
+                            <span className="font-bold text-blue-700">Rs. {fmt(suggested.amount)}</span>
+                          </p>
+                        </>
+                      )}
                     </>
                   ) : (
                     <p className="text-amber-700 font-medium">No attendance for {form.period}.</p>
@@ -440,12 +475,13 @@ function SalaryModal({ employee, onClose }) {
 // ── Employee form modal ───────────────────────────────────────────────────────
 
 const CALC_METHODS = [
-  { value: 'manual',     label: 'Manual — manager enters amount each time' },
-  { value: 'daily_rate', label: 'Daily Rate — basic ÷ working days × present days' },
-  { value: 'deduction',  label: 'Deduction — basic − (absent days × daily rate)' },
+  { value: 'manual',      label: 'Manual — manager enters amount each time' },
+  { value: 'daily_rate',  label: 'Daily Rate — basic ÷ working days × present days' },
+  { value: 'deduction',   label: 'Deduction — basic − (absent days × daily rate)' },
+  { value: 'hourly_rate', label: 'Hourly Rate — total hours × hourly rate (Rs./hr)' },
 ];
 
-const emptyEmp = { name: '', position: '', phone: '', address: '', basic_salary: '', hired_date: '', device_employee_id: '', salary_calculation: 'manual' };
+const emptyEmp = { name: '', position: '', phone: '', address: '', basic_salary: '', hired_date: '', device_employee_id: '', salary_calculation: 'manual', hourly_rate: '150' };
 
 function EmployeeModal({ initial, onClose, onSaved }) {
   const [createEmployee] = useCreateEmployeeMutation();
@@ -460,6 +496,7 @@ function EmployeeModal({ initial, onClose, onSaved }) {
     hired_date:         initial.hired_date || '',
     device_employee_id: initial.device_employee_id || '',
     salary_calculation: initial.salary_calculation || 'manual',
+    hourly_rate:        initial.hourly_rate || '150',
   } : emptyEmp);
   const [err, setErr]       = useState('');
   const [saving, setSaving] = useState(false);
@@ -523,6 +560,14 @@ function EmployeeModal({ initial, onClose, onSaved }) {
             ))}
           </select>
         </div>
+        {form.salary_calculation === 'hourly_rate' && (
+          <div>
+            <label className="block text-xs font-semibold text-slate-600 mb-1">Hourly Rate (Rs./hr)</label>
+            <input type="number" min="0" step="0.01" value={form.hourly_rate}
+              onChange={e => setForm(f => ({ ...f, hourly_rate: e.target.value }))}
+              className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
+          </div>
+        )}
         {err && <p className="text-xs text-red-600">{err}</p>}
         <div className="flex gap-2 pt-1">
           <button type="button" onClick={onClose}

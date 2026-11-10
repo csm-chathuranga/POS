@@ -2,7 +2,9 @@ async function ensureAttendanceTables(sequelize) {
   // Add device_employee_id and salary_calculation to employees (idempotent)
   for (const sql of [
     `ALTER TABLE \`employees\` ADD COLUMN \`device_employee_id\` VARCHAR(50) NULL AFTER \`hired_date\``,
-    `ALTER TABLE \`employees\` ADD COLUMN \`salary_calculation\` ENUM('daily_rate','deduction','manual') NOT NULL DEFAULT 'manual' AFTER \`device_employee_id\``,
+    `ALTER TABLE \`employees\` ADD COLUMN \`salary_calculation\` ENUM('daily_rate','deduction','manual','hourly_rate') NOT NULL DEFAULT 'manual' AFTER \`device_employee_id\``,
+    `ALTER TABLE \`employees\` MODIFY COLUMN \`salary_calculation\` ENUM('daily_rate','deduction','manual','hourly_rate') NOT NULL DEFAULT 'manual'`,
+    `ALTER TABLE \`employees\` ADD COLUMN \`hourly_rate\` DECIMAL(10,2) NOT NULL DEFAULT 150.00 AFTER \`salary_calculation\``,
   ]) {
     try { await sequelize.query(sql); }
     catch (e) { if (!e.message.includes('Duplicate column name') && !e.message.includes('already exists')) throw e; }
