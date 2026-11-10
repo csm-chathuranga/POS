@@ -45,6 +45,10 @@ export const customersApi = api.injectEndpoints({
         { type: 'Customers', id: `CREDIT-${id}` },
       ],
     }),
+    getAllCreditPayments: build.query({
+      query: params => ({ url: '/customers/payments', params }),
+      providesTags: [{ type: 'CreditPayments', id: 'LIST' }],
+    }),
   }),
 });
 
@@ -57,4 +61,5 @@ export const {
   useGetCreditHistoryQuery,
   useQuickAddCustomerMutation,
   useAdjustCreditMutation,
+  useGetAllCreditPaymentsQuery,
 } = customersApi;

@@ -35,7 +35,7 @@ export const suppliersApi = api.injectEndpoints({
       ],
     }),
     getAllSupplierPayments: build.query({
-      query: () => '/suppliers/payments',
+      query: params => ({ url: '/suppliers/payments', params }),
       providesTags: [{ type: 'SupplierPayments', id: 'LIST' }],
     }),
   }),

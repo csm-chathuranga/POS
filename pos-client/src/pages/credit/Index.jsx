@@ -1,14 +1,14 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useGetCustomersQuery } from '../../features/customers/customersApi';
-
-const fmt = n => Number(n || 0).toLocaleString('en-LK', { minimumFractionDigits: 2 });
+import { useGetCustomersQuery, useGetAllCreditPaymentsQuery } from '../../features/customers/customersApi';
+import PastPaymentsModal from '../../components/PastPaymentsModal';
 
 export default function CreditIndex() {
   const navigate = useNavigate();
-  const [search, setSearch] = useState('');
-  const [applied, setApplied] = useState('');
-  const [page, setPage] = useState(1);
+  const [search, setSearch]           = useState('');
+  const [applied, setApplied]         = useState('');
+  const [page, setPage]               = useState(1);
+  const [showPastPayments, setShowPastPayments] = useState(false);
 
   const { data, isLoading } = useGetCustomersQuery({ search: applied, page });
 
@@ -18,7 +18,16 @@ export default function CreditIndex() {
   return (
     <div className="p-3 sm:p-6 space-y-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold text-slate-800">Credit</h1>
+        <h1 className="text-xl font-bold text-slate-800">Credit Book</h1>
+        <button
+          onClick={() => setShowPastPayments(true)}
+          className="inline-flex items-center gap-2 px-4 py-2 bg-slate-700 text-white text-sm font-semibold rounded-lg hover:bg-slate-800 transition-colors"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 1 1-18 0 9 9 0 0 1 18 0z"/>
+          </svg>
+          Past Payments
+        </button>
       </div>
 
       {/* Summary */}
@@ -49,7 +58,7 @@ export default function CreditIndex() {
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="bg-slate-200 border-b border-slate-300 text-xs text-slate-600 uppercase tracking-wider">
+              <thead style={{ background: '#1e3a5f' }} className="text-white text-xs uppercase tracking-wider">
                 <tr>
                   <th className="px-4 py-3 text-left font-semibold">Customer</th>
                   <th className="px-4 py-3 text-left font-semibold">Phone</th>
@@ -92,6 +101,17 @@ export default function CreditIndex() {
           </div>
         )}
       </div>
+
+      {showPastPayments && (
+        <PastPaymentsModal
+          title="Past Credit Payments"
+          subtitle="All recorded customer credit settlements"
+          nameLabel="Customer"
+          amountColor="text-blue-600"
+          useQuery={useGetAllCreditPaymentsQuery}
+          onClose={() => setShowPastPayments(false)}
+        />
+      )}
     </div>
   );
 }

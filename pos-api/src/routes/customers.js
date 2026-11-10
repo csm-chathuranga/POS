@@ -61,6 +61,57 @@ router.delete('/:id', auth, async (req, res) => {
   res.json({ message: 'Deleted' });
 });
 
+router.get('/payments', auth, async (req, res) => {
+  const { CreditPayment, Customer, User } = req.models;
+  const page  = Math.max(1, parseInt(req.query.page  || '1'));
+  const limit = Math.min(100, parseInt(req.query.limit || '25'));
+  const search = req.query.search || '';
+
+  const where = {};
+  if (search) {
+    // Filter by joined customer name — use a subquery via include + separate
+    const matchingCustomers = await Customer.findAll({
+      attributes: ['id'],
+      where: { [require('sequelize').Op.or]: [
+        { name:  { [require('sequelize').Op.like]: `%${search}%` } },
+        { phone: { [require('sequelize').Op.like]: `%${search}%` } },
+      ]},
+      raw: true,
+    });
+    where.customer_id = matchingCustomers.map(c => c.id);
+    if (where.customer_id.length === 0) {
+      return res.json({ data: [], total: 0, page, last_page: 1 });
+    }
+  }
+
+  const { count, rows } = await CreditPayment.findAndCountAll({
+    where,
+    include: [
+      { model: Customer, as: 'customer', attributes: ['id', 'name', 'phone'] },
+      { model: User,     as: 'user',     attributes: ['name'] },
+    ],
+    order: [['created_at', 'DESC']],
+    limit,
+    offset: (page - 1) * limit,
+  });
+
+  res.json({
+    data: rows.map(p => ({
+      id: p.id,
+      invoice_no: p.invoice_no,
+      amount: p.amount,
+      note: p.note,
+      created_at: p.created_at,
+      customer_name: p.customer?.name || '—',
+      customer_phone: p.customer?.phone || '',
+      recorded_by: p.user?.name || '—',
+    })),
+    total: count,
+    page,
+    last_page: Math.ceil(count / limit),
+  });
+});
+
 router.get('/:id/credit-history', auth, async (req, res) => {
   const { Customer, CreditPayment, User, Sale, Payment } = req.models;
   const customer = await Customer.findByPk(req.params.id);

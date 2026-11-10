@@ -36,24 +36,53 @@ router.post('/', auth, role('admin', 'manager'), async (req, res) => {
 
 router.get('/payments', auth, async (req, res) => {
   const { SupplierPayment, Supplier, User } = req.models;
-  const payments = await SupplierPayment.findAll({
+  const { Op } = require('sequelize');
+  const page   = Math.max(1, parseInt(req.query.page  || '1'));
+  const limit  = Math.min(100, parseInt(req.query.limit || '25'));
+  const search = req.query.search || '';
+
+  const where = {};
+  if (search) {
+    const matching = await Supplier.findAll({
+      attributes: ['id'],
+      where: { [Op.or]: [
+        { name:  { [Op.like]: `%${search}%` } },
+        { phone: { [Op.like]: `%${search}%` } },
+      ]},
+      raw: true,
+    });
+    where.supplier_id = matching.map(s => s.id);
+    if (where.supplier_id.length === 0) {
+      return res.json({ data: [], total: 0, page, last_page: 1 });
+    }
+  }
+
+  const { count, rows } = await SupplierPayment.findAndCountAll({
+    where,
     include: [
       { model: Supplier, as: 'supplier', attributes: ['id', 'name', 'phone'] },
       { model: User,     as: 'user',     attributes: ['name'] },
     ],
     order: [['created_at', 'DESC']],
-    limit: 500,
+    limit,
+    offset: (page - 1) * limit,
   });
-  res.json(payments.map(p => ({
-    id: p.id,
-    ref_no: p.ref_no,
-    amount: p.amount,
-    note: p.note,
-    created_at: p.created_at,
-    supplier_name: p.supplier?.name || '—',
-    supplier_phone: p.supplier?.phone || '',
-    recorded_by: p.user?.name || '—',
-  })));
+
+  res.json({
+    data: rows.map(p => ({
+      id: p.id,
+      ref_no: p.ref_no,
+      amount: p.amount,
+      note: p.note,
+      created_at: p.created_at,
+      supplier_name: p.supplier?.name || '—',
+      supplier_phone: p.supplier?.phone || '',
+      recorded_by: p.user?.name || '—',
+    })),
+    total: count,
+    page,
+    last_page: Math.ceil(count / limit),
+  });
 });
 
 router.get('/:id', auth, async (req, res) => {
