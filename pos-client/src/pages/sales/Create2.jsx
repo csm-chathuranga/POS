@@ -1514,6 +1514,13 @@ export default function SalesCreate() {
                 <button
                   disabled={cart.length === 0 || total === 0 || submitting}
                   onClick={() => {
+                    if (payMethod === 'cash' && cashNum < total) {
+                      setErr('Cash paid is less than total');
+                      cashInputRef.current?.focus();
+                      setShakeInput(true);
+                      setTimeout(() => setShakeInput(false), 500);
+                      return;
+                    }
                     if (!customer) { setSmsManualPhone(''); setSmsPhoneModal(true); return; }
                     if (!customer.phone) { setSmsManualPhone(''); setSmsPhoneModal(true); return; }
                     handleCompleteSale(false, false, true);
