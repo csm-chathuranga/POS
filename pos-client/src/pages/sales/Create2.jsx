@@ -606,7 +606,8 @@ export default function SalesCreate() {
     return base.filter(p =>
       p.name.toLowerCase().includes(q) ||
       (p.name_si && p.name_si.includes(q)) ||
-      (p.barcode && p.barcode.toLowerCase().includes(q))
+      (p.barcode && p.barcode.toLowerCase().includes(q)) ||
+      (p.sku && p.sku.toLowerCase().includes(q))
     ).slice(0, 20);
   }, [query, products, selectedCategory]);
 
@@ -1588,7 +1589,7 @@ export default function SalesCreate() {
           if (p.active === false) return false;
           if (drawerCategory.id !== null && String(p.category_id) !== String(drawerCategory.id)) return false;
           if (!q) return true;
-          return p.name.toLowerCase().includes(q) || (p.name_si && p.name_si.includes(q)) || (p.barcode && p.barcode.toLowerCase().includes(q));
+          return p.name.toLowerCase().includes(q) || (p.name_si && p.name_si.includes(q)) || (p.barcode && p.barcode.toLowerCase().includes(q)) || (p.sku && p.sku.toLowerCase().includes(q));
         });
         return (
           <>
