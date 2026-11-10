@@ -83,7 +83,18 @@ router.post('/send', async (req, res) => {
 // ── Send receipt for a specific sale ─────────────────────────────────────────
 
 router.post('/send-receipt', async (req, res) => {
-  const { sale_id, phone: overridePhone } = req.body;
+  const { sale_id, phone: overridePhone, message: directMessage } = req.body;
+
+  // Direct send: phone + message provided without a sale
+  if (!sale_id && overridePhone && directMessage) {
+    const cfg = await req.models.SmsConfig.findOne();
+    if (!cfg || !cfg.user_id) return res.status(400).json({ error: 'SMS not configured' });
+    const { ok, error } = await sendSms(cfg, overridePhone, directMessage);
+    try { await req.models.SmsLog.create({ sale_id: null, phone: overridePhone, message: directMessage, status: ok ? 'sent' : 'failed', error: error || null }); } catch {}
+    if (!ok) return res.status(502).json({ error: error || 'SMS send failed' });
+    return res.json({ ok: true });
+  }
+
   if (!sale_id) return res.status(422).json({ error: 'sale_id is required' });
 
   const { Sale, Customer, SmsConfig, SmsLog, Setting } = req.models;
