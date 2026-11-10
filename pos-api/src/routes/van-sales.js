@@ -322,9 +322,6 @@ router.delete('/:id', role('admin'), async (req, res) => {
   if (!trip) return res.status(404).json({ error: 'Trip not found' });
   if (trip.status === 'closed') return res.status(400).json({ error: 'Cannot delete a closed trip' });
 
-  const dailyCount = await VanDailyRecord.count({ where: { trip_id: trip.id } });
-  if (dailyCount > 0) return res.status(400).json({ error: 'Cannot delete a trip with daily records' });
-
   // Restore stock for all loaded items before deleting
   const loads = await VanLoad.findAll({ where: { trip_id: trip.id } });
   for (const load of loads) {
@@ -336,6 +333,7 @@ router.delete('/:id', role('admin'), async (req, res) => {
   for (const l of loads) await VanLoadItem.destroy({ where: { load_id: l.id } });
   await VanLoad.destroy({ where: { trip_id: trip.id } });
   await VanUnloadItem.destroy({ where: { trip_id: trip.id } });
+  await VanDailyRecord.destroy({ where: { trip_id: trip.id } });
   await trip.destroy();
   res.json({ ok: true });
 });
