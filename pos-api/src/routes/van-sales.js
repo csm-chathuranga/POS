@@ -325,7 +325,14 @@ router.delete('/:id', role('admin'), async (req, res) => {
   const dailyCount = await VanDailyRecord.count({ where: { trip_id: trip.id } });
   if (dailyCount > 0) return res.status(400).json({ error: 'Cannot delete a trip with daily records' });
 
-  const loads = await VanLoad.findAll({ where: { trip_id: trip.id }, raw: true });
+  // Restore stock for all loaded items before deleting
+  const loads = await VanLoad.findAll({ where: { trip_id: trip.id } });
+  for (const load of loads) {
+    const items = await VanLoadItem.findAll({ where: { load_id: load.id }, raw: true });
+    const restoreItems = items.map(i => ({ variant_name: i.variant_name, qty_returned: i.quantity }));
+    await returnStock(req.models, restoreItems, req.user?.id, `VAN-DELETE-${trip.id}`);
+  }
+
   for (const l of loads) await VanLoadItem.destroy({ where: { load_id: l.id } });
   await VanLoad.destroy({ where: { trip_id: trip.id } });
   await VanUnloadItem.destroy({ where: { trip_id: trip.id } });

@@ -5,6 +5,7 @@ import {
   useAddSaleToSheetMutation,
   useRemoveSaleFromSheetMutation,
   useDeliverSheetMutation,
+  useDeleteLoadingSheetMutation,
 } from '../../features/loading-sheets/loadingSheetsApi';
 
 const API_BASE = typeof window !== 'undefined' ? (window.__RUNTIME_CONFIG__?.API_URL || 'http://localhost:8000') : 'http://localhost:8000';
@@ -90,9 +91,11 @@ export default function LoadingSheetShow() {
   const [addSale, { isLoading: adding }] = useAddSaleToSheetMutation();
   const [removeSale] = useRemoveSaleFromSheetMutation();
   const [deliverSheet, { isLoading: delivering }] = useDeliverSheetMutation();
+  const [deleteSheet, { isLoading: deleting }] = useDeleteLoadingSheetMutation();
   const [invoice, setInvoice] = useState('');
   const [addErr, setAddErr] = useState('');
   const [confirmDeliver, setConfirmDeliver] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const [expanded, setExpanded] = useState({});
   const invoiceRef = useRef(null);
 
@@ -118,6 +121,15 @@ export default function LoadingSheetShow() {
       setConfirmDeliver(false);
     } catch (ex) {
       alert(ex?.data?.error || 'Failed to mark as delivered');
+    }
+  }
+
+  async function handleDelete() {
+    try {
+      await deleteSheet(id).unwrap();
+      navigate('/loading-sheets');
+    } catch (ex) {
+      alert(ex?.data?.error || 'Failed to delete sheet');
     }
   }
 
@@ -157,10 +169,19 @@ export default function LoadingSheetShow() {
             Print
           </button>
           {!isDelivered && (
-            <button onClick={() => setConfirmDeliver(true)}
-              className="px-4 py-2 bg-green-600 text-white text-sm font-semibold rounded-lg hover:bg-green-700 transition-colors">
-              ✓ Mark as Delivered
-            </button>
+            <>
+              <button onClick={() => setConfirmDelete(true)}
+                className="inline-flex items-center gap-1.5 px-3 py-2 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 text-sm font-semibold rounded-lg transition-colors">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0 1 16.138 21H7.862a2 2 0 0 1-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v3M4 7h16" />
+                </svg>
+                Delete Sheet
+              </button>
+              <button onClick={() => setConfirmDeliver(true)}
+                className="px-4 py-2 bg-green-600 text-white text-sm font-semibold rounded-lg hover:bg-green-700 transition-colors">
+                ✓ Mark as Delivered
+              </button>
+            </>
           )}
         </div>
       </div>
@@ -306,6 +327,33 @@ export default function LoadingSheetShow() {
           )}
         </table>
       </div>
+
+      {/* Delete confirmation modal */}
+      {confirmDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 text-center space-y-4">
+            <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto">
+              <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0 1 16.138 21H7.862a2 2 0 0 1-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v3M4 7h16" />
+              </svg>
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-slate-800">Delete Loading Sheet?</h3>
+              <p className="text-sm text-slate-500 mt-1">
+                Sheet <strong>{sheet.sheet_no}</strong> and its <strong>{items.length}</strong> linked sale{items.length !== 1 ? 's' : ''} will be removed from this sheet. The sales themselves will not be deleted. This cannot be undone.
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <button onClick={() => setConfirmDelete(false)}
+                className="flex-1 py-2 border border-slate-200 text-slate-600 text-sm font-medium rounded-xl hover:bg-slate-50">Cancel</button>
+              <button onClick={handleDelete} disabled={deleting}
+                className="flex-1 py-2 bg-red-600 text-white text-sm font-semibold rounded-xl hover:bg-red-700 disabled:opacity-60">
+                {deleting ? 'Deleting…' : 'Delete Sheet'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Deliver confirmation modal */}
       {confirmDeliver && (

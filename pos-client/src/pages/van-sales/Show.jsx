@@ -1,9 +1,11 @@
 import { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useParams, useNavigate } from 'react-router-dom';
+import { printVanTripSummary } from '../../lib/buildReceiptHtml';
 import {
   useGetVanTripQuery, useGetSettlementQuery,
   useAddDailyRecordMutation, useAddRefillMutation, useUnloadTripMutation, useReopenTripMutation,
+  useDeleteVanTripMutation,
 } from '../../features/van-sales/vanSalesApi';
 import { useGetProductsQuery } from '../../features/products/productsApi';
 
@@ -426,7 +428,7 @@ function StockTab({ trip }) {
             {(trip.loads || []).map(load => (
               <div key={load.id} className="border border-slate-100 rounded-xl p-4">
                 <div className="flex items-center gap-2 mb-2.5">
-                  <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${load.type === 'initial' ? 'bg-blue-100 text-blue-700' : 'bg-amber-100 text-amber-700'}`}>
+                  <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${load.type === 'initial' ? 'bg-blue-600 text-white' : 'bg-amber-500 text-white'}`}>
                     {load.type === 'initial' ? 'Initial Load' : 'Refill'}
                   </span>
                   <span className="text-sm text-slate-500">{fmtD(load.date)}</span>
@@ -521,7 +523,7 @@ function DailyTab({ trip, onAdd, onEdit }) {
 
       {trip.status === 'active' && (
         <button onClick={onAdd}
-          className="flex items-center gap-2 px-4 py-2.5 border-2 border-dashed border-slate-200 text-sm font-semibold text-slate-500 rounded-xl hover:border-blue-300 hover:text-blue-600 transition-colors w-full justify-center">
+          className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl transition-colors w-full justify-center shadow-sm">
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4"/></svg>
           Add Daily Record
         </button>
@@ -555,7 +557,7 @@ function SettlementTab({ tripId }) {
         </div>
         <div className={`rounded-xl p-4 border ${balanceOwed ? 'bg-red-50 border-red-100' : 'bg-emerald-50 border-emerald-100'}`}>
           <div className={`text-xs font-semibold uppercase tracking-wide mb-1 ${balanceOwed ? 'text-red-400' : 'text-emerald-500'}`}>
-            {balanceOwed ? 'Driver Owes' : 'Owed to Driver'}
+            {balanceOwed ? 'Variance' : 'Owed to Driver'}
           </div>
           <div className={`text-lg font-bold tabular-nums ${balanceOwed ? 'text-red-700' : 'text-emerald-700'}`}>
             Rs. {fmt(Math.abs(s.balance))}
@@ -602,6 +604,166 @@ function SettlementTab({ tripId }) {
   );
 }
 
+// ── Trip Summary Modal ─────────────────────────────────────────────────────────
+
+const API_BASE_VS = typeof window !== 'undefined' ? (window.__RUNTIME_CONFIG__?.API_URL || 'http://localhost:8000') : 'http://localhost:8000';
+
+function TripSummaryModal({ trip, onClose }) {
+  const { data: s, isLoading } = useGetSettlementQuery(trip.id);
+  const [info, setInfo]        = useState(null);
+  const [printing, setPrinting] = useState(false);
+  const dailyRecords = trip.daily_records || [];
+  const totalCash    = dailyRecords.reduce((sum, r) => sum + Number(r.cash_handover), 0);
+  const balanceOwed  = (s?.balance ?? 0) >= 0;
+
+  useEffect(() => {
+    fetch(`${API_BASE_VS}/api/settings/public`)
+      .then(r => r.json()).then(setInfo).catch(() => {});
+  }, []);
+
+  async function handlePrint() {
+    if (!s || printing) return;
+    setPrinting(true);
+    await printVanTripSummary(trip, s, info);
+    setPrinting(false);
+  }
+
+  return createPortal(
+    <>
+      {/* ── Screen modal ── */}
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 print:hidden">
+        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden">
+          <div className="bg-gradient-to-r from-slate-800 to-slate-700 px-6 py-5 shrink-0 flex items-center justify-between">
+            <div>
+              <h2 className="font-bold text-white text-lg">Trip Summary</h2>
+              <p className="text-slate-300 text-xs mt-0.5">
+                {trip.driver_name} · {trip.vehicle_no || '—'} · {fmtD(trip.start_date)}{trip.end_date ? ` – ${fmtD(trip.end_date)}` : ''}
+              </p>
+            </div>
+            <button onClick={onClose} className="text-white/70 hover:text-white text-2xl font-bold w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white/10">&times;</button>
+          </div>
+
+          <div className="overflow-y-auto flex-1 p-6 space-y-5">
+            {isLoading ? (
+              <div className="text-center py-10 text-slate-400 text-sm">Loading…</div>
+            ) : s ? (
+              <>
+                {/* Financial cards */}
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="bg-blue-600 text-white rounded-xl p-4 text-center">
+                    <div className="text-xs font-semibold text-blue-200 uppercase tracking-wide mb-1">Gross Sales</div>
+                    <div className="text-lg font-bold tabular-nums">Rs. {fmt(s.gross_sales)}</div>
+                  </div>
+                  <div className="bg-green-50 border border-green-100 rounded-xl p-4 text-center">
+                    <div className="text-xs font-semibold text-green-500 uppercase tracking-wide mb-1">Cash Collected</div>
+                    <div className="text-lg font-bold text-green-700 tabular-nums">Rs. {fmt(s.total_cash)}</div>
+                  </div>
+                  <div className={`rounded-xl p-4 border text-center ${balanceOwed ? 'bg-red-50 border-red-100' : 'bg-emerald-50 border-emerald-100'}`}>
+                    <div className={`text-xs font-semibold uppercase tracking-wide mb-1 ${balanceOwed ? 'text-red-400' : 'text-emerald-500'}`}>
+                      {balanceOwed ? 'Variance' : 'Owed to Driver'}
+                    </div>
+                    <div className={`text-lg font-bold tabular-nums ${balanceOwed ? 'text-red-700' : 'text-emerald-700'}`}>
+                      Rs. {fmt(Math.abs(s.balance))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Stock table */}
+                <div>
+                  <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">Stock Summary</h3>
+                  <div className="overflow-x-auto rounded-xl overflow-hidden border border-slate-200">
+                    <table className="w-full text-sm tabular-nums">
+                      <thead>
+                        <tr className="bg-slate-800 text-xs font-semibold text-slate-300 uppercase tracking-wide">
+                          <th className="text-left px-4 py-3">Variant</th>
+                          <th className="text-right px-4 py-3">Loaded</th>
+                          <th className="text-right px-4 py-3">Returned</th>
+                          <th className="text-right px-4 py-3 text-red-400">Damaged</th>
+                          <th className="text-right px-4 py-3">Sold</th>
+                          <th className="text-right px-4 py-3">Unit Price</th>
+                          <th className="text-right px-4 py-3 text-blue-400">Value</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 bg-white">
+                        {s.variants.map(v => (
+                          <tr key={v.name}>
+                            <td className="px-4 py-3 font-semibold text-slate-800">{v.name}</td>
+                            <td className="px-4 py-3 text-right text-slate-500">{v.loaded}</td>
+                            <td className="px-4 py-3 text-right text-slate-400">{v.returned}</td>
+                            <td className="px-4 py-3 text-right text-red-500">{v.damaged || '—'}</td>
+                            <td className="px-4 py-3 text-right font-bold text-blue-600">{v.sold}</td>
+                            <td className="px-4 py-3 text-right text-slate-500">{fmt(v.unit_price)}</td>
+                            <td className="px-4 py-3 text-right font-bold text-slate-800">{fmt(v.sales_value)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                      <tfoot>
+                        <tr className="bg-slate-100 font-bold text-slate-700 border-t-2 border-slate-200">
+                          <td className="px-4 py-3" colSpan={6}>Total</td>
+                          <td className="px-4 py-3 text-right text-blue-700">{fmt(s.gross_sales)}</td>
+                        </tr>
+                      </tfoot>
+                    </table>
+                  </div>
+                </div>
+
+                {/* Daily records */}
+                {dailyRecords.length > 0 && (
+                  <div>
+                    <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">Daily Cash Collections</h3>
+                    <div className="overflow-hidden rounded-xl border border-slate-200">
+                      <table className="w-full text-sm tabular-nums">
+                        <thead>
+                          <tr className="bg-slate-800 text-xs font-semibold text-slate-300 uppercase tracking-wide">
+                            <th className="text-left px-4 py-3">Date</th>
+                            <th className="text-right px-4 py-3">Cash In</th>
+                            <th className="text-left px-4 py-3">Notes</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100 bg-white">
+                          {dailyRecords.map(r => (
+                            <tr key={r.id}>
+                              <td className="px-4 py-3 font-medium text-slate-700">{fmtD(r.date)}</td>
+                              <td className="px-4 py-3 text-right text-green-600 font-semibold">Rs. {fmt(r.cash_handover)}</td>
+                              <td className="px-4 py-3 text-slate-400 text-xs">{r.notes || '—'}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                        <tfoot>
+                          <tr className="bg-slate-100 font-bold text-slate-700 border-t-2 border-slate-200">
+                            <td className="px-4 py-3">Total</td>
+                            <td className="px-4 py-3 text-right text-green-700">Rs. {fmt(totalCash)}</td>
+                            <td></td>
+                          </tr>
+                        </tfoot>
+                      </table>
+                    </div>
+                  </div>
+                )}
+              </>
+            ) : null}
+          </div>
+
+          <div className="px-6 py-4 border-t border-slate-100 flex gap-2 shrink-0">
+            <button onClick={onClose}
+              className="flex-1 px-4 py-2.5 text-sm font-semibold text-slate-600 border border-slate-200 rounded-xl hover:bg-slate-50">
+              Close
+            </button>
+            <button onClick={handlePrint} disabled={printing || !s}
+              className="flex-1 px-4 py-2.5 bg-slate-800 text-white text-sm font-semibold rounded-xl hover:bg-slate-900 disabled:opacity-60 flex items-center justify-center gap-2">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4H7v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/>
+              </svg>
+              {printing ? 'Printing…' : 'Print Summary'}
+            </button>
+          </div>
+        </div>
+      </div>
+    </>,
+    document.body
+  );
+}
+
 // ── Main ───────────────────────────────────────────────────────────────────────
 
 const TABS = [
@@ -630,7 +792,10 @@ export default function VanSalesShow() {
   const [refillModal, setRefillModal] = useState(false);
   const [unloadModal, setUnloadModal] = useState(false);
   const [reopen, { isLoading: reopening }] = useReopenTripMutation();
+  const [deleteTrip, { isLoading: deleting }] = useDeleteVanTripMutation();
   const [reopenConfirm, setReopenConfirm] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState(false);
+  const [summaryModal, setSummaryModal] = useState(false);
 
   if (isLoading) return (
     <div className="flex h-screen items-center justify-center bg-slate-50">
@@ -663,11 +828,11 @@ export default function VanSalesShow() {
         {/* Back + branding */}
         <div className="px-4 pt-4 pb-4 border-b border-slate-100">
           <button onClick={() => navigate('/van-sales')}
-            className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-blue-600 font-semibold uppercase tracking-wide mb-4 transition-colors">
-            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
+            className="flex items-center gap-2 px-4 py-2.5 mb-4 bg-slate-200 hover:bg-slate-300 text-slate-700 text-sm font-bold rounded-xl transition-colors w-full">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7"/>
             </svg>
-            All Trips
+            Back
           </button>
 
           {/* Driver card */}
@@ -690,25 +855,19 @@ export default function VanSalesShow() {
         </div>
 
         {/* Quick stats */}
-        <div className="px-4 py-3 border-b border-slate-100">
-          <div className="grid grid-cols-3 gap-2">
-            <div className="text-center">
-              <div className="text-base font-bold text-slate-700 tabular-nums">{totalDays}</div>
-              <div className="text-xs text-slate-400">Days</div>
-            </div>
-            <div className="text-center">
-              <div className="text-xs font-bold text-amber-600 tabular-nums leading-tight">{Number(totalAdvances / 1000).toFixed(1)}k</div>
-              <div className="text-xs text-slate-400">Advance</div>
-            </div>
-            <div className="text-center">
-              <div className="text-xs font-bold text-green-600 tabular-nums leading-tight">{Number(totalCash / 1000).toFixed(1)}k</div>
-              <div className="text-xs text-slate-400">Cash In</div>
-            </div>
+        <div className="px-4 py-3 border-b border-slate-100 grid grid-cols-2 gap-3">
+          <div>
+            <div className="text-xs text-slate-400 mb-0.5">Days</div>
+            <div className="text-xl font-bold text-slate-700 tabular-nums">{totalDays}</div>
+          </div>
+          <div>
+            <div className="text-xs text-slate-400 mb-0.5">Cash In</div>
+            <div className="text-base font-bold text-green-600 tabular-nums">LKR {fmt(totalCash)}</div>
           </div>
         </div>
 
         {/* Tab nav */}
-        <nav className="flex-1 p-3 space-y-0.5">
+        <nav className="flex-1 p-3 space-y-1.5">
           <p className="text-xs font-bold text-slate-400 uppercase tracking-wider px-3 py-1.5">View</p>
           {TABS.map(t => {
             const locked = t.key === 'settlement' && !(!isActive);
@@ -716,14 +875,14 @@ export default function VanSalesShow() {
               <button key={t.key}
                 onClick={() => !locked && setTab(t.key)}
                 disabled={locked}
-                className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${
                   tab === t.key
-                    ? 'bg-blue-50 text-blue-700 shadow-sm'
+                    ? 'bg-slate-800 text-white shadow-md'
                     : locked
-                      ? 'text-slate-300 cursor-not-allowed'
-                      : 'text-slate-600 hover:bg-slate-50 hover:text-slate-800'
+                      ? 'text-slate-300 cursor-not-allowed bg-slate-50'
+                      : 'text-slate-600 bg-slate-100 hover:bg-slate-200 hover:text-slate-900'
                 }`}>
-                <span className={tab === t.key ? 'text-blue-600' : 'text-slate-400'}>{t.icon}</span>
+                <span className={tab === t.key ? 'text-white' : locked ? 'text-slate-300' : 'text-slate-500'}>{t.icon}</span>
                 <span>{t.label}</span>
                 {locked && (
                   <span className="ml-auto">
@@ -754,25 +913,37 @@ export default function VanSalesShow() {
 
           {isActive ? (
             <div className="flex items-center gap-2 shrink-0">
+              <button onClick={() => setDeleteConfirm(true)}
+                className="flex items-center gap-2 px-4 py-2.5 bg-white border border-red-200 text-red-500 text-sm font-semibold rounded-xl hover:bg-red-50 transition-all shadow-sm">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                Delete
+              </button>
               <button onClick={() => setRefillModal(true)}
-                className="flex items-center gap-1.5 px-3 py-2 bg-amber-500 text-white text-xs font-semibold rounded-xl hover:bg-amber-600 transition-all shadow-sm">
-                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                className="flex items-center gap-2 px-4 py-2.5 bg-amber-500 text-white text-sm font-semibold rounded-xl hover:bg-amber-600 transition-all shadow-sm">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
                 Refill
               </button>
               <button onClick={() => setUnloadModal(true)}
-                className="flex items-center gap-1.5 px-3 py-2 bg-red-500 text-white text-xs font-semibold rounded-xl hover:bg-red-600 transition-all shadow-sm">
-                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                className="flex items-center gap-2 px-4 py-2.5 bg-red-500 text-white text-sm font-semibold rounded-xl hover:bg-red-600 transition-all shadow-sm">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                 Unload
               </button>
               <button onClick={() => setDailyModal(true)}
-                className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white text-xs font-semibold rounded-xl hover:bg-blue-700 shadow-sm transition-all">
-                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4"/></svg>
+                className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white text-sm font-semibold rounded-xl hover:bg-blue-700 shadow-sm transition-all">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4"/></svg>
                 Daily Record
               </button>
             </div>
           ) : (
             <div className="flex items-center gap-2 shrink-0">
-              <span className="text-xs font-semibold bg-slate-100 text-slate-500 px-3 py-1.5 rounded-full">Trip Closed</span>
+              <span className="text-xs font-semibold bg-red-100 text-red-600 px-3 py-1.5 rounded-full">Trip Closed</span>
+              <button onClick={() => setSummaryModal(true)}
+                className="flex items-center gap-2 px-4 py-2.5 bg-slate-800 hover:bg-slate-900 text-white text-sm font-semibold rounded-xl transition-all shadow-sm">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4H7v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/>
+                </svg>
+                Print Summary
+              </button>
               <button
                 onClick={() => setReopenConfirm(true)}
                 disabled={reopening}
@@ -794,7 +965,43 @@ export default function VanSalesShow() {
       {dailyModal  && <DailyModal tripId={id} onClose={() => setDailyModal(false)} />}
       {editRecord  && <DailyModal tripId={id} existing={editRecord} onClose={() => setEditRecord(null)} />}
       {refillModal && <RefillModal tripId={id} existingItems={existingItems} onClose={() => setRefillModal(false)} />}
-      {unloadModal && <UnloadModal trip={trip} onClose={() => setUnloadModal(false)} onDone={() => { setUnloadModal(false); setTab('settlement'); }} />}
+      {unloadModal && <UnloadModal trip={trip} onClose={() => setUnloadModal(false)} onDone={() => { setUnloadModal(false); setTab('settlement'); setSummaryModal(true); }} />}
+      {summaryModal && <TripSummaryModal trip={trip} onClose={() => setSummaryModal(false)} />}
+
+      {deleteConfirm && createPortal(
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm mx-4 overflow-hidden">
+            <div className="bg-red-600 px-6 py-4">
+              <h2 className="font-bold text-white text-lg">Delete Trip?</h2>
+              <p className="text-red-100 text-xs mt-0.5">This action cannot be undone</p>
+            </div>
+            <div className="px-6 py-5 space-y-3">
+              <p className="text-sm text-slate-600">
+                Trip for <strong>{trip.driver_name}</strong>
+                {trip.vehicle_no && <> ({trip.vehicle_no})</>} will be permanently deleted along with all load records, daily records, and stock movements.
+              </p>
+              <div className="flex gap-2 pt-1">
+                <button onClick={() => setDeleteConfirm(false)}
+                  className="flex-1 px-4 py-2.5 text-sm font-semibold text-slate-600 border border-slate-200 rounded-xl hover:bg-slate-50">
+                  Cancel
+                </button>
+                <button
+                  disabled={deleting}
+                  onClick={async () => {
+                    try {
+                      await deleteTrip(id).unwrap();
+                      navigate('/van-sales');
+                    } catch (e) { alert(e?.data?.error || 'Failed to delete trip'); }
+                  }}
+                  className="flex-1 px-4 py-2.5 bg-red-600 text-white text-sm font-semibold rounded-xl hover:bg-red-700 disabled:opacity-60">
+                  {deleting ? 'Deleting…' : 'Yes, Delete'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
 
       {reopenConfirm && createPortal(
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">

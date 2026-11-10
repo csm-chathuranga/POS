@@ -141,6 +141,175 @@ export function buildReceiptHtml(sale, shopInfo, userName) {
 </html>`;
 }
 
+export function buildVanTripReceiptHtml(trip, settlement, shopInfo) {
+  const paperSize = shopInfo?.paper_size || '80mm';
+  const is80      = paperSize !== 'A4';
+  const currency  = shopInfo?.currency || 'Rs.';
+  const fmtD      = d => d ? new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
+
+  const dailyRecords = trip.daily_records || [];
+  const totalCash    = dailyRecords.reduce((s, r) => s + Number(r.cash_handover), 0);
+  const balanceOwed  = (settlement.balance ?? 0) >= 0;
+
+  const variantRows = (settlement.variants || []).map(v => `
+    <tr class="item-main-row">
+      <td class="item-name">${v.name}</td>
+      <td class="num">${fmt(v.unit_price)}</td>
+      <td class="num bold">${fmt(v.sales_value)}</td>
+    </tr>
+    <tr class="item-sub-row">
+      <td class="item-sub" colspan="3">Ld:${v.loaded} &nbsp; Ret:${v.returned} &nbsp; Sold:${v.sold}</td>
+    </tr>
+  `).join('');
+
+  const dailyRows = dailyRecords.map(r => `
+    <tr>
+      <td>${fmtD(r.date)}</td>
+      <td class="num">${currency} ${fmt(r.cash_handover)}</td>
+      <td class="note">${r.notes || ''}</td>
+    </tr>
+  `).join('');
+
+  const w = is80 ? '72mm' : '210mm';
+  const fs = is80 ? '12px' : '14px';
+  const fsLg = is80 ? '14px' : '18px';
+
+  return `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Van Trip Summary</title>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    html, body {
+      font-family: 'Courier New', Courier, monospace;
+      font-size: ${fs};
+      font-weight: 900;
+      width: ${w};
+      max-width: ${w};
+      color: #000;
+      word-break: break-word;
+    }
+    body { padding: ${is80 ? '5mm 4mm' : '15mm 20mm'}; }
+    .center { text-align: center; }
+    .logo { width: ${is80 ? '70px' : '90px'}; height: ${is80 ? '70px' : '90px'}; object-fit: contain; margin: 0 auto 6px; display: block; border-radius: 50%; }
+    .shop-name { font-size: ${is80 ? '15px' : '20px'}; font-weight: 900; text-align: center; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 3px; }
+    .shop-meta { font-size: ${is80 ? '11px' : '13px'}; font-weight: 900; text-align: center; line-height: 1.6; }
+    hr { border: none; border-top: 2px solid #000; margin: 7px 0; }
+    hr.dashed { border-top: 1px dashed #000; }
+    .title { font-size: ${fsLg}; font-weight: 900; text-align: center; text-transform: uppercase; letter-spacing: 0.08em; margin: 6px 0; }
+    .row { display: flex; justify-content: space-between; gap: 4px; padding: 2px 0; font-size: ${fs}; }
+    .row .lbl { font-weight: 900; flex-shrink: 0; }
+    .row .val { font-weight: 900; text-align: right; }
+    .section-title { font-size: ${fs}; font-weight: 900; text-transform: uppercase; letter-spacing: 0.06em; margin: 6px 0 3px; }
+    table { width: 100%; border-collapse: collapse; font-size: ${is80 ? '10px' : '12px'}; font-weight: 900; }
+    thead tr { border-top: 2px solid #000; border-bottom: 2px solid #000; }
+    thead th { padding: 3px 2px; text-align: right; font-weight: 900; white-space: nowrap; }
+    thead th.desc { text-align: left; }
+    td.item-name { font-size: ${is80 ? '12px' : '14px'}; font-weight: 900; padding-top: 5px; word-break: break-word; }
+    tr.item-main-row td { padding-top: 5px; }
+    td.item-sub { font-size: ${is80 ? '9px' : '11px'}; font-weight: 900; color: #333; padding: 1px 0 5px; border-bottom: 1px dotted #999; }
+    tfoot tr { border-top: 2px solid #000; }
+    tfoot td { padding: 4px 2px; font-weight: 900; }
+    td.name { text-align: left; word-break: break-word; }
+    td.num { text-align: right; white-space: nowrap; }
+    td.note { text-align: right; font-weight: 600; font-size: ${is80 ? '9px' : '11px'}; }
+    td.bold { font-weight: 900; }
+    .total-box { display: flex; justify-content: space-between; font-size: ${fsLg}; font-weight: 900; padding: 5px 0; border-top: 2px solid #000; border-bottom: 2px solid #000; margin: 5px 0; }
+    .balance-box { display: flex; justify-content: space-between; font-size: ${fsLg}; font-weight: 900; padding: 5px 0; border: 2px solid #000; border-radius: 4px; padding: 4px 6px; margin: 5px 0; }
+    .footer { text-align: center; margin-top: 10px; font-size: ${is80 ? '11px' : '13px'}; font-weight: 900; line-height: 1.8; }
+    @media print {
+      html, body { overflow: visible !important; height: auto !important; }
+      @page { margin: 0; size: ${is80 ? '72mm auto' : 'A4'}; }
+      body { padding: ${is80 ? '3mm 4mm' : '10mm'}; width: ${w} !important; }
+    }
+  </style>
+</head>
+<body>
+  ${shopInfo?.shop_logo ? `<img class="logo" src="${shopInfo.shop_logo}" alt="logo">` : ''}
+  <div class="shop-name">${shopInfo?.shop_name || 'Van Sales'}</div>
+  <div class="shop-meta">
+    ${shopInfo?.address ? shopInfo.address + '<br>' : ''}
+    ${shopInfo?.phone ? 'Tel: ' + shopInfo.phone : ''}
+  </div>
+  <hr>
+  <div class="title">Van Trip Summary</div>
+  <hr>
+
+  <div class="row"><span class="lbl">Driver</span><span class="val">${trip.driver_name || '—'}</span></div>
+  ${trip.vehicle_no ? `<div class="row"><span class="lbl">Vehicle</span><span class="val">${trip.vehicle_no}</span></div>` : ''}
+  ${trip.route      ? `<div class="row"><span class="lbl">Route</span><span class="val">${trip.route}</span></div>` : ''}
+  <div class="row"><span class="lbl">Start</span><span class="val">${fmtD(trip.start_date)}</span></div>
+  ${trip.end_date   ? `<div class="row"><span class="lbl">End</span><span class="val">${fmtD(trip.end_date)}</span></div>` : ''}
+  <div class="row"><span class="lbl">Printed</span><span class="val">${new Date().toLocaleString('en-LK')}</span></div>
+
+  <hr class="dashed">
+  <div class="section-title">Stock Summary</div>
+  <table>
+    <thead>
+      <tr>
+        <th class="desc">Description</th>
+        <th>Unit Price</th><th>Total</th>
+      </tr>
+    </thead>
+    <tbody>${variantRows}</tbody>
+    <tfoot>
+      <tr>
+        <td class="bold">TOTAL</td>
+        <td></td>
+        <td class="num bold">${currency} ${fmt(settlement.gross_sales)}</td>
+      </tr>
+    </tfoot>
+  </table>
+
+  ${dailyRecords.length > 0 ? `
+  <hr class="dashed">
+  <div class="section-title">Daily Cash Collections</div>
+  <table>
+    <thead><tr><th class="name">Date</th><th>Cash In</th><th>Notes</th></tr></thead>
+    <tbody>${dailyRows}</tbody>
+    <tfoot>
+      <tr>
+        <td class="bold">Total</td>
+        <td class="num bold">${currency} ${fmt(totalCash)}</td>
+        <td></td>
+      </tr>
+    </tfoot>
+  </table>` : ''}
+
+  <hr class="dashed">
+  <div class="section-title">Financial Summary</div>
+  <div class="row"><span class="lbl">Gross Sales</span><span class="val">${currency} ${fmt(settlement.gross_sales)}</span></div>
+  <div class="row"><span class="lbl">Cash Collected</span><span class="val">${currency} ${fmt(settlement.total_cash)}</span></div>
+  <div class="balance-box">
+    <span>${balanceOwed ? 'Variance' : 'Owed to Driver'}</span>
+    <span>${currency} ${fmt(Math.abs(settlement.balance))}</span>
+  </div>
+
+  <hr>
+  <div class="footer">${shopInfo?.receipt_footer || 'Thank you!'}<br>Powered by lumac.lk</div>
+</body>
+</html>`;
+}
+
+export async function printVanTripSummary(trip, settlement, shopInfo) {
+  const html = buildVanTripReceiptHtml(trip, settlement, shopInfo);
+  const paperSize = shopInfo?.paper_size || '80mm';
+  const minDelay = new Promise(r => setTimeout(r, 1200));
+  try {
+    if (window.electronAPI?.printReceiptHtml) {
+      const [r] = await Promise.all([window.electronAPI.printReceiptHtml(html, { paperSize }), minDelay]);
+      if (r && !r.success) alert('Print failed: ' + (r.error || 'unknown error'));
+    } else {
+      const win = window.open('', '_blank', 'width=420,height=700,scrollbars=yes');
+      if (win) { win.document.write(html); win.document.close(); win.onload = () => win.print(); }
+      await minDelay;
+    }
+  } catch (err) {
+    alert('Print error: ' + err.message);
+  }
+}
+
 export async function printReceipt(sale, shopInfo, userName) {
   const html = buildReceiptHtml(sale, shopInfo, userName);
   const paperSize = shopInfo?.paper_size || '80mm';
