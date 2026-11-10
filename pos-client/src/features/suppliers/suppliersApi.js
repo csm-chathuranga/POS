@@ -31,7 +31,12 @@ export const suppliersApi = api.injectEndpoints({
         { type: 'SupplierCredit', id },
         { type: 'Suppliers', id: 'LIST' },
         { type: 'Purchases', id: 'LIST' },
+        { type: 'SupplierPayments', id: 'LIST' },
       ],
+    }),
+    getAllSupplierPayments: build.query({
+      query: () => '/suppliers/payments',
+      providesTags: [{ type: 'SupplierPayments', id: 'LIST' }],
     }),
   }),
 });
@@ -43,4 +48,5 @@ export const {
   useDeleteSupplierMutation,
   useGetSupplierCreditHistoryQuery,
   useSettleSupplierCreditMutation,
+  useGetAllSupplierPaymentsQuery,
 } = suppliersApi;

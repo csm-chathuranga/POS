@@ -34,6 +34,28 @@ router.post('/', auth, role('admin', 'manager'), async (req, res) => {
   res.status(201).json(await Supplier.create(req.body));
 });
 
+router.get('/payments', auth, async (req, res) => {
+  const { SupplierPayment, Supplier, User } = req.models;
+  const payments = await SupplierPayment.findAll({
+    include: [
+      { model: Supplier, as: 'supplier', attributes: ['id', 'name', 'phone'] },
+      { model: User,     as: 'user',     attributes: ['name'] },
+    ],
+    order: [['created_at', 'DESC']],
+    limit: 500,
+  });
+  res.json(payments.map(p => ({
+    id: p.id,
+    ref_no: p.ref_no,
+    amount: p.amount,
+    note: p.note,
+    created_at: p.created_at,
+    supplier_name: p.supplier?.name || '—',
+    supplier_phone: p.supplier?.phone || '',
+    recorded_by: p.user?.name || '—',
+  })));
+});
+
 router.get('/:id', auth, async (req, res) => {
   const { Supplier } = req.models;
   const s = await Supplier.findByPk(req.params.id);
