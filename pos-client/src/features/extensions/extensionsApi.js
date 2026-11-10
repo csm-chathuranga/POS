@@ -7,7 +7,7 @@ export const extensionsApi = api.injectEndpoints({
       keepUnusedDataFor: 300,
     }),
     sendSmsReceipt: build.mutation({
-      query: body => ({ url: '/extensions/sms/send', method: 'POST', body }),
+      query: body => ({ url: '/sms/send', method: 'POST', body }),
     }),
   }),
   overrideExisting: false,

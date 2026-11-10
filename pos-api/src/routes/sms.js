@@ -65,6 +65,21 @@ router.post('/test', role('admin', 'manager'), async (req, res) => {
   res.json({ ok: true, message });
 });
 
+// ── Direct send (phone + message already composed on client) ─────────────────
+
+router.post('/send', async (req, res) => {
+  const { phone, message } = req.body;
+  if (!phone || !message) return res.status(422).json({ error: 'phone and message are required' });
+
+  const cfg = await req.models.SmsConfig.findOne();
+  if (!cfg || !cfg.user_id) return res.status(400).json({ error: 'SMS not configured' });
+
+  const { ok, error } = await sendSms(cfg, phone, message);
+  try { await req.models.SmsLog.create({ sale_id: null, phone, message, status: ok ? 'sent' : 'failed', error: error || null }); } catch {}
+  if (!ok) return res.status(502).json({ error: error || 'SMS send failed' });
+  res.json({ ok: true });
+});
+
 // ── Send receipt for a specific sale ─────────────────────────────────────────
 
 router.post('/send-receipt', async (req, res) => {
