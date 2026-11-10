@@ -777,9 +777,9 @@ function VansSection() {
         <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
           <table className="w-full text-sm">
             <thead>
-              <tr className="bg-slate-50 border-b border-slate-200">
-                <th className="text-left px-4 py-3 font-semibold text-slate-600 text-xs uppercase tracking-wide">Van Name</th>
-                <th className="text-left px-4 py-3 font-semibold text-slate-600 text-xs uppercase tracking-wide">Vehicle No</th>
+              <tr style={{ background: '#1e3a5f' }}>
+                <th className="text-left px-4 py-3 font-semibold text-white text-xs uppercase tracking-wide">Van Name</th>
+                <th className="text-left px-4 py-3 font-semibold text-white text-xs uppercase tracking-wide">Vehicle No</th>
                 <th className="px-4 py-3"></th>
               </tr>
             </thead>
@@ -791,11 +791,11 @@ function VansSection() {
                   <td className="px-4 py-3">
                     <div className="flex items-center justify-end gap-2">
                       <button onClick={() => setModal({ mode: 'edit', van })}
-                        className="px-3 py-1.5 text-xs font-semibold text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-colors">
+                        className="px-3 py-1.5 text-xs font-semibold bg-blue-600 text-white hover:bg-blue-700 rounded-lg transition-colors">
                         Edit
                       </button>
                       <button onClick={() => handleDelete(van)}
-                        className="px-3 py-1.5 text-xs font-semibold text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors">
+                        className="px-3 py-1.5 text-xs font-semibold bg-red-500 text-white hover:bg-red-600 rounded-lg transition-colors">
                         Remove
                       </button>
                     </div>

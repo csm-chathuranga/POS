@@ -298,7 +298,7 @@ function SalesToday() {
           <TableWrap title={`${t('nav.sales')} (${sales.length})`}>
             <table className="w-full text-sm">
               <thead className="bg-slate-50 text-xs text-slate-500 uppercase tracking-wider">
-                <tr><Th>{t('th.invoice')}</Th><Th>{t('th.cashier')}</Th><Th right>{t('th.total')}</Th><Th right>{t('th.paid')}</Th><Th right>{t('th.balance')}</Th></tr>
+                <tr><Th>{t('th.invoice')}</Th><Th>{t('th.cashier')}</Th><Th right>{t('th.total')}</Th><Th right>{t('th.cost')}</Th><Th right>{t('th.paid')}</Th><Th right>{t('th.balance')}</Th></tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
                 {sales.map(s => (
@@ -306,11 +306,12 @@ function SalesToday() {
                     <td className="px-4 py-2.5 font-mono text-blue-600">{s.invoice_no}</td>
                     <td className="px-4 py-2.5 text-slate-500">{s.user_name}</td>
                     <td className="px-4 py-2.5 text-right">{fmt(s.total)}</td>
+                    <td className="px-4 py-2.5 text-right text-red-500">{fmt(s.cost)}</td>
                     <td className="px-4 py-2.5 text-right">{fmt(s.paid)}</td>
                     <td className="px-4 py-2.5 text-right text-red-500">{parseFloat(s.balance) > 0 ? fmt(s.balance) : '—'}</td>
                   </tr>
                 ))}
-                {!sales.length && <tr><td colSpan={5} className="px-4 py-8 text-center text-slate-400">{t('rep.no_sales')}</td></tr>}
+                {!sales.length && <tr><td colSpan={6} className="px-4 py-8 text-center text-slate-400">{t('rep.no_sales')}</td></tr>}
               </tbody>
             </table>
           </TableWrap>
@@ -362,7 +363,7 @@ function DayEnd() {
           <TableWrap title={`${t('nav.sales')} (${sales.length})`}>
             <table className="w-full text-sm">
               <thead className="bg-slate-50 text-xs text-slate-500 uppercase tracking-wider">
-                <tr><Th>{t('th.invoice')}</Th><Th>{t('th.cashier')}</Th><Th right>{t('th.total')}</Th><Th right>{t('th.paid')}</Th><Th right>{t('th.balance')}</Th></tr>
+                <tr><Th>{t('th.invoice')}</Th><Th>{t('th.cashier')}</Th><Th right>{t('th.total')}</Th><Th right>{t('th.cost')}</Th><Th right>{t('th.paid')}</Th><Th right>{t('th.balance')}</Th></tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
                 {sales.map(s => (
@@ -370,11 +371,12 @@ function DayEnd() {
                     <td className="px-4 py-2.5 font-mono text-blue-600">{s.invoice_no}</td>
                     <td className="px-4 py-2.5 text-slate-500">{s.user_name}</td>
                     <td className="px-4 py-2.5 text-right">{fmt(s.total)}</td>
+                    <td className="px-4 py-2.5 text-right text-red-500">{fmt(s.cost)}</td>
                     <td className="px-4 py-2.5 text-right">{fmt(s.paid)}</td>
                     <td className="px-4 py-2.5 text-right text-red-500">{parseFloat(s.balance) > 0 ? fmt(s.balance) : '—'}</td>
                   </tr>
                 ))}
-                {!sales.length && <tr><td colSpan={5} className="px-4 py-8 text-center text-slate-400">{t('rep.no_sales')}</td></tr>}
+                {!sales.length && <tr><td colSpan={6} className="px-4 py-8 text-center text-slate-400">{t('rep.no_sales')}</td></tr>}
               </tbody>
             </table>
           </TableWrap>

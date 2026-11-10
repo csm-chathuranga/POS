@@ -32,13 +32,17 @@ router.get('/day-end', auth, async (req, res) => {
   const db   = req.db;
   const date = req.query.date || new Date().toISOString().slice(0, 10);
 
-  const [sales, byPayment, costRows] = await Promise.all([
+  const [sales, byPayment, costRows, saleCosts] = await Promise.all([
     db.query(`SELECT s.*, u.name as user_name FROM sales s JOIN users u ON s.user_id = u.id WHERE DATE(s.created_at) = ? AND s.status != 'held' ORDER BY s.id`, { replacements: [date], type: db.QueryTypes.SELECT }),
     db.query(`SELECT p.method, SUM(p.amount) as total, COUNT(DISTINCT p.sale_id) as count FROM payments p JOIN sales s ON p.sale_id = s.id WHERE DATE(s.created_at) = ? AND s.status != 'held' GROUP BY p.method`, { replacements: [date], type: db.QueryTypes.SELECT }),
     db.query(`SELECT SUM(IF(si.cost_price > 0, si.cost_price, si.unit_price) * si.qty) as total_cost FROM sale_items si JOIN sales s ON si.sale_id = s.id WHERE DATE(s.created_at) = ? AND s.status != 'held'`, { replacements: [date], type: db.QueryTypes.SELECT }),
+    db.query(`SELECT si.sale_id, SUM(IF(si.cost_price > 0, si.cost_price, si.unit_price) * si.qty) as cost FROM sale_items si JOIN sales s ON si.sale_id = s.id WHERE DATE(s.created_at) = ? AND s.status != 'held' GROUP BY si.sale_id`, { replacements: [date], type: db.QueryTypes.SELECT }),
   ]);
 
   const total_cost = parseFloat(costRows[0]?.total_cost || 0);
+  const costBySale = {};
+  for (const r of saleCosts) costBySale[r.sale_id] = parseFloat(r.cost || 0);
+  const salesWithCost = sales.map(s => ({ ...s, cost: costBySale[s.id] || 0 }));
   const summary = {
     total_bills:    sales.length,
     total_revenue:  sales.reduce((a, s) => a + parseFloat(s.total), 0),
@@ -47,7 +51,7 @@ router.get('/day-end', auth, async (req, res) => {
     total_balance:  sales.reduce((a, s) => a + parseFloat(s.balance), 0),
     total_cost,
   };
-  res.json({ sales, summary, byPayment, date });
+  res.json({ sales: salesWithCost, summary, byPayment, date });
 });
 
 // GET /api/reports/monthly?month=2026-07
