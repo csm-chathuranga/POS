@@ -17,6 +17,7 @@ function productToItem(p) {
     name:            p.name,
     name_si:         p.name_si,
     barcode:         p.barcode,
+    sku:             p.sku,
     image:           p.image,
     category_id:     p.category_id ? String(p.category_id) : null,
     selling_price:   parseFloat(p.selling_price),
