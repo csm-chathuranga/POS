@@ -151,6 +151,7 @@ router.get('/search', auth, async (req, res) => {
         { name:     { [Op.like]: `%${q}%` } },
         { name_si:  { [Op.like]: `%${q}%` } },
         { barcode:  { [Op.like]: `%${q}%` } },
+        { sku:      { [Op.like]: `%${q}%` } },
       ],
     },
     include: [{ model: ProductVariant, as: 'variants' }],
@@ -182,6 +183,7 @@ router.get('/', auth, async (req, res) => {
       { name:    { [Op.like]: `%${s}%` } },
       { name_si: { [Op.like]: `%${s}%` } },
       { barcode: { [Op.like]: `%${s}%` } },
+      { sku:     { [Op.like]: `%${s}%` } },
     ];
   }
   if (req.query.category_id) where.category_id = req.query.category_id;
