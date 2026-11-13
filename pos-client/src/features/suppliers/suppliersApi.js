@@ -38,6 +38,18 @@ export const suppliersApi = api.injectEndpoints({
       query: params => ({ url: '/suppliers/payments', params }),
       providesTags: [{ type: 'SupplierPayments', id: 'LIST' }],
     }),
+    deleteSupplierPayment: build.mutation({
+      query: ({ supplierId, paymentId }) => ({
+        url: `/suppliers/${supplierId}/payments/${paymentId}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: (r, e, { supplierId }) => [
+        { type: 'SupplierCredit', id: supplierId },
+        { type: 'Suppliers', id: 'LIST' },
+        { type: 'Purchases', id: 'LIST' },
+        { type: 'SupplierPayments', id: 'LIST' },
+      ],
+    }),
   }),
 });
 
@@ -49,4 +61,5 @@ export const {
   useGetSupplierCreditHistoryQuery,
   useSettleSupplierCreditMutation,
   useGetAllSupplierPaymentsQuery,
+  useDeleteSupplierPaymentMutation,
 } = suppliersApi;

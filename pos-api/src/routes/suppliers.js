@@ -155,6 +155,61 @@ router.get('/:id/credit-history', auth, async (req, res) => {
   });
 });
 
+router.delete('/:id/payments/:paymentId', auth, role('admin', 'manager'), async (req, res) => {
+  const { Supplier, SupplierPayment, Purchase } = req.models;
+
+  const supplier = await Supplier.findByPk(req.params.id);
+  if (!supplier) return res.status(404).json({ error: 'Supplier not found' });
+
+  const payment = await SupplierPayment.findOne({
+    where: { id: req.params.paymentId, supplier_id: req.params.id },
+  });
+  if (!payment) return res.status(404).json({ error: 'Payment not found' });
+
+  await payment.destroy();
+
+  // Reset all GRNs for this supplier to unpaid, then re-apply remaining payments FIFO
+  const allGRNs = await Purchase.findAll({
+    where: { supplier_id: supplier.id },
+    order: [['id', 'ASC']],
+  });
+
+  for (const grn of allGRNs) {
+    await grn.update({ paid: 0, status: 'pending' });
+  }
+
+  const remainingPayments = await SupplierPayment.findAll({
+    where: { supplier_id: supplier.id },
+    order: [['created_at', 'ASC']],
+  });
+
+  for (const pmt of remainingPayments) {
+    let remaining = parseFloat(pmt.amount);
+    for (const grn of allGRNs) {
+      if (remaining <= 0) break;
+      await grn.reload();
+      const unpaid = parseFloat(grn.total) - parseFloat(grn.paid);
+      if (unpaid <= 0) continue;
+      const applying = Math.min(remaining, unpaid);
+      const newPaid  = parseFloat(grn.paid) + applying;
+      const newStatus = newPaid >= parseFloat(grn.total) - 0.005 ? 'received' : 'partial';
+      await grn.update({ paid: newPaid, status: newStatus });
+      remaining -= applying;
+    }
+  }
+
+  const freshGRNs = await Purchase.findAll({ where: { supplier_id: supplier.id } });
+  const outstanding = freshGRNs.reduce((sum, g) => {
+    if (g.status === 'pending' || g.status === 'partial') {
+      return sum + Math.max(0, parseFloat(g.total) - parseFloat(g.paid));
+    }
+    return sum;
+  }, 0);
+
+  await supplier.update({ payable_balance: outstanding });
+  res.json({ message: 'Payment deleted', payable_balance: outstanding });
+});
+
 router.post('/:id/settle-credit', auth, role('admin', 'manager'), async (req, res) => {
   const { Supplier, SupplierPayment, Purchase } = req.models;
   const supplier = await Supplier.findByPk(req.params.id);

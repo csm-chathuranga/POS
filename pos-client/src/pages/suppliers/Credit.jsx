@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useGetSupplierCreditHistoryQuery, useSettleSupplierCreditMutation } from '../../features/suppliers/suppliersApi';
+import { useGetSupplierCreditHistoryQuery, useSettleSupplierCreditMutation, useDeleteSupplierPaymentMutation } from '../../features/suppliers/suppliersApi';
 import { getApiUrl } from '../../config/runtimeConfig';
 
 const API = getApiUrl();
@@ -75,6 +75,8 @@ export default function SupplierCredit() {
   const navigate = useNavigate();
   const { data, isLoading, refetch } = useGetSupplierCreditHistoryQuery(id);
   const [settle, { isLoading: settling }] = useSettleSupplierCreditMutation();
+  const [deletePayment, { isLoading: deleting }] = useDeleteSupplierPaymentMutation();
+  const [confirmDelete, setConfirmDelete] = useState(null);
 
   const [modal, setModal] = useState(false);
   const [amount, setAmount] = useState('');
@@ -216,6 +218,7 @@ export default function SupplierCredit() {
                   <th className="px-5 py-3 text-right font-semibold">Amount Paid</th>
                   <th className="px-5 py-3 text-left font-semibold">Note</th>
                   <th className="px-5 py-3 text-left font-semibold">Recorded By</th>
+                  <th className="px-5 py-3"></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
@@ -226,6 +229,12 @@ export default function SupplierCredit() {
                     <td className="px-5 py-3.5 text-right font-bold text-green-600">Rs. {fmt(p.amount)}</td>
                     <td className="px-5 py-3.5 text-slate-400 text-xs">{p.note || '—'}</td>
                     <td className="px-5 py-3.5 text-slate-500 text-xs">{p.recorded_by}</td>
+                    <td className="px-5 py-3.5 text-right">
+                      <button onClick={() => setConfirmDelete(p)}
+                        className="inline-flex items-center px-2.5 py-1 rounded-lg border border-red-200 bg-red-50 text-xs font-medium text-red-600 hover:bg-red-100 transition-colors">
+                        Delete
+                      </button>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -282,6 +291,45 @@ export default function SupplierCredit() {
               </tbody>
             </table>
           )}
+        </div>
+      )}
+
+      {/* Confirm Delete Payment Modal */}
+      {confirmDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center shrink-0">
+                <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+                </svg>
+              </div>
+              <div>
+                <h3 className="font-bold text-slate-800 text-sm">Delete Payment?</h3>
+                <p className="text-xs text-slate-400 mt-0.5">This will reverse the payment allocation on all GRNs.</p>
+              </div>
+            </div>
+            <div className="bg-slate-50 rounded-xl px-4 py-3 text-sm space-y-1">
+              <div className="flex justify-between"><span className="text-slate-500">Ref</span><span className="font-mono text-xs text-slate-700">{confirmDelete.ref_no || '—'}</span></div>
+              <div className="flex justify-between"><span className="text-slate-500">Amount</span><span className="font-bold text-red-600">Rs. {fmt(confirmDelete.amount)}</span></div>
+              <div className="flex justify-between"><span className="text-slate-500">Date</span><span className="text-slate-600">{fmtDate(confirmDelete.created_at)}</span></div>
+            </div>
+            <div className="flex gap-2">
+              <button onClick={() => setConfirmDelete(null)} disabled={deleting}
+                className="flex-1 py-2.5 rounded-xl border border-slate-200 text-sm font-semibold text-slate-600 hover:bg-slate-50 transition-colors">
+                Cancel
+              </button>
+              <button disabled={deleting} onClick={async () => {
+                try {
+                  await deletePayment({ supplierId: id, paymentId: confirmDelete.id }).unwrap();
+                  setConfirmDelete(null);
+                } catch { alert('Failed to delete payment'); }
+              }}
+                className="flex-1 py-2.5 rounded-xl bg-red-500 text-white text-sm font-bold disabled:opacity-60 hover:bg-red-600 transition-colors">
+                {deleting ? 'Deleting…' : 'Yes, Delete'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
