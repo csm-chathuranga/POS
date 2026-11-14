@@ -11,7 +11,7 @@ router.get('/', auth, async (req, res) => {
     where[Op.or] = [{ name: { [Op.like]: `%${s}%` } }, { phone: { [Op.like]: `%${s}%` } }];
   }
   const page  = parseInt(req.query.page || '1');
-  const limit = 20;
+  const limit = Math.min(1000, parseInt(req.query.limit || '20'));
   const { count, rows } = await Customer.findAndCountAll({ where, order: [['name', 'ASC']], limit, offset: (page - 1) * limit });
   res.json({ data: rows, total: count, page, last_page: Math.ceil(count / limit) });
 });
