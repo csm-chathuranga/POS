@@ -172,6 +172,8 @@ export default function ProductsIndex() {
 
   const [offlineProducts,   setOfflineProducts]   = useState([]);
   const [offlineCategories, setOfflineCategories] = useState([]);
+  const [sortBy,  setSortBy]  = useState('');
+  const [sortDir, setSortDir] = useState('asc');
 
   useEffect(() => {
     if (!isOnline) {
@@ -228,9 +230,6 @@ export default function ProductsIndex() {
     return result;
   }, [viewAll, isOnline, serverRows, applied]);
   const rows = baseRows;
-
-  const [sortBy,  setSortBy]  = useState('');
-  const [sortDir, setSortDir] = useState('asc');
 
   function toggleSort(col) {
     if (sortBy === col) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
