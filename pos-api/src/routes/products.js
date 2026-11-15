@@ -196,6 +196,10 @@ router.get('/', auth, async (req, res) => {
     ];
   }
 
+  const SORTABLE = { name: 'name', stock: 'stock_qty', selling: 'selling_price', our: 'our_price' };
+  const sortCol = SORTABLE[req.query.sort_by] || 'id';
+  const sortDir = req.query.sort_dir === 'desc' ? 'DESC' : 'ASC';
+
   const page  = parseInt(req.query.page || '1');
   const limit = parseInt(req.query.limit || '20');
   const { count, rows } = await Product.findAndCountAll({
@@ -204,7 +208,7 @@ router.get('/', auth, async (req, res) => {
       { model: Category,        as: 'category' },
       { model: ProductVariant,  as: 'variants' },
     ],
-    order: [['id', 'ASC']],
+    order: [[sortCol, sortDir], ['id', 'ASC']],
     limit,
     offset: (page - 1) * limit,
   });

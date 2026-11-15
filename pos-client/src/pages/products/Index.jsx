@@ -125,6 +125,11 @@ const fmtStock = (qty, unit) => {
   return (Number.isInteger(n) ? n : n.toFixed(2)) + ' ' + (unit || 'pcs');
 };
 
+function SortIcon({ col, sortBy, sortDir }) {
+  if (sortBy !== col) return <span className="text-slate-300 text-[10px]">⇅</span>;
+  return <span className="text-blue-600 text-[10px]">{sortDir === 'asc' ? '▲' : '▼'}</span>;
+}
+
 export default function ProductsIndex() {
   const { t } = useLocale();
   const { isOnline } = useConnectivity();
@@ -175,15 +180,17 @@ export default function ProductsIndex() {
     }
   }, [isOnline]);
 
+  const sortParams = sortBy ? { sort_by: sortBy, sort_dir: sortDir } : {};
   const { data, isLoading, isFetching } = useGetProductsQuery(
     viewAll
-      ? { page: 1, limit: 9999, active: '1' }
+      ? { page: 1, limit: 9999, active: '1', ...sortParams }
       : {
           active: '1',
           ...(applied.search      ? { search:      applied.search }      : {}),
           ...(applied.category_id ? { category_id: applied.category_id } : {}),
           ...(applied.low_stock   ? { low_stock:   'true' }              : {}),
           ...(applied.promo       ? { promo:       'true' }              : {}),
+          ...sortParams,
           page,
         },
     { skip: !isOnline }
@@ -221,6 +228,15 @@ export default function ProductsIndex() {
     return result;
   }, [viewAll, isOnline, serverRows, applied]);
   const rows = baseRows;
+
+  const [sortBy,  setSortBy]  = useState('');
+  const [sortDir, setSortDir] = useState('asc');
+
+  function toggleSort(col) {
+    if (sortBy === col) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+    else { setSortBy(col); setSortDir('asc'); }
+    setPage(1);
+  }
 
   const [printModal,   setPrintModal]   = useState(null);  // { product }
   const [printQty,     setPrintQty]     = useState(1);
@@ -331,7 +347,7 @@ export default function ProductsIndex() {
             className="w-full pl-9 pr-4 py-2 rounded-lg border border-slate-200 text-sm outline-none focus:ring-2 focus:ring-blue-500 bg-white"
           />
           {search.length === 1 && (
-            <p className="absolute left-0 top-full mt-1 text-[11px] text-slate-400 pl-1">Type 1 more character…</p>
+            <p className="absolute left-0 top-full mt-1 text-[11px] text-white bg-slate-700 rounded px-2 py-0.5 z-50 whitespace-nowrap shadow">Type 1 more character…</p>
           )}
         </div>
 
@@ -547,12 +563,32 @@ export default function ProductsIndex() {
               <thead className="bg-slate-200 border-b border-slate-300">
                 <tr>
                   <th className="px-4 py-3 w-10"></th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">{t('th.product')}</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                    <button onClick={() => toggleSort('name')} className="flex items-center gap-1 hover:text-blue-600 transition-colors">
+                      {t('th.product')}
+                      <SortIcon col="name" sortBy={sortBy} sortDir={sortDir} />
+                    </button>
+                  </th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">{t('prod.barcode')}</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">{t('prod.category')}</th>
-                  <th className="px-4 py-3 text-right text-xs font-semibold text-slate-600 uppercase tracking-wider">{t('prod.sell_price')}</th>
-                  <th className="px-4 py-3 text-right text-xs font-semibold text-slate-600 uppercase tracking-wider">{t('lbl.our_price')}</th>
-                  <th className="px-4 py-3 text-right text-xs font-semibold text-slate-600 uppercase tracking-wider">{t('prod.stock')}</th>
+                  <th className="px-4 py-3 text-right text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                    <button onClick={() => toggleSort('selling')} className="flex items-center justify-end gap-1 w-full hover:text-blue-600 transition-colors">
+                      {t('prod.sell_price')}
+                      <SortIcon col="selling" sortBy={sortBy} sortDir={sortDir} />
+                    </button>
+                  </th>
+                  <th className="px-4 py-3 text-right text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                    <button onClick={() => toggleSort('our')} className="flex items-center justify-end gap-1 w-full hover:text-blue-600 transition-colors">
+                      {t('lbl.our_price')}
+                      <SortIcon col="our" sortBy={sortBy} sortDir={sortDir} />
+                    </button>
+                  </th>
+                  <th className="px-4 py-3 text-right text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                    <button onClick={() => toggleSort('stock')} className="flex items-center justify-end gap-1 w-full hover:text-blue-600 transition-colors">
+                      {t('prod.stock')}
+                      <SortIcon col="stock" sortBy={sortBy} sortDir={sortDir} />
+                    </button>
+                  </th>
                   <th className="px-4 py-3 text-center text-xs font-semibold text-slate-600 uppercase tracking-wider">{t('th.status')}</th>
                   <th className="px-4 py-3 text-right text-xs font-semibold text-slate-600 uppercase tracking-wider">{t('th.actions')}</th>
                 </tr>
@@ -629,7 +665,7 @@ export default function ProductsIndex() {
                   );
                 })}
                 {rows.length === 0 && (
-                  <tr><td colSpan={8} className="px-4 py-10 text-center text-slate-400">{t('prod.no_products')}</td></tr>
+                  <tr><td colSpan={9} className="px-4 py-10 text-center text-slate-400">{t('prod.no_products')}</td></tr>
                 )}
               </tbody>
             </table>
