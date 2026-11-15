@@ -916,7 +916,6 @@ export default function Reports() {
 
   const TABS = [
     { id: 'today',    label: t('rep.today') },
-    { id: 'dayend',   label: t('rep.day_end') },
     { id: 'monthly',  label: t('rep.monthly') },
     { id: 'revenue',  label: t('rep.revenue') },
     { id: 'profit',   label: t('rep.profit') },
