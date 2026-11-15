@@ -1512,7 +1512,7 @@ export default function SalesCreate() {
                       }`} />
                     {customer && <button onClick={() => { setCustomer(null); setCustQuery(''); }} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 text-lg">&times;</button>}
                     {showCustDrop && filteredCusts.length > 0 && (
-                      <div className="absolute bottom-full left-0 right-0 z-40 bg-white rounded-xl shadow-xl border border-slate-200 max-h-36 overflow-y-auto mb-1">
+                      <div className="absolute bottom-full left-0 right-0 z-40 bg-white rounded-xl shadow-xl border border-slate-200 max-h-56 overflow-y-auto mb-1">
                         {filteredCusts.map(c => (
                           <button key={c.id} onPointerDown={() => { setCustomer(c); setCustQuery(c.name); setShowCust(false); setCustErr(''); }}
                             style={{ touchAction: 'manipulation' }}
