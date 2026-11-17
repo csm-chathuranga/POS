@@ -235,8 +235,12 @@ router.post('/update-sinhala-names', auth, role('admin', 'manager'), async (req,
     toUpdate.push({ id, name_si: row.name_si });
   }
 
-  if (toUpdate.length) {
-    await Product.bulkCreate(toUpdate, { updateOnDuplicate: ['name_si'] });
+  const BATCH = 500;
+  for (let i = 0; i < toUpdate.length; i += BATCH) {
+    const batch = toUpdate.slice(i, i + BATCH);
+    const ids   = batch.map(r => r.id).join(',');
+    const cases = batch.map(r => `WHEN ${r.id} THEN ${req.db.escape(r.name_si)}`).join(' ');
+    await req.db.query(`UPDATE products SET name_si = CASE id ${cases} END WHERE id IN (${ids})`);
   }
 
   cache.del(`${req.tenant}_products_all`);
