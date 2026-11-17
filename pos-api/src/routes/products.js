@@ -216,23 +216,31 @@ router.get('/', auth, async (req, res) => {
   res.json({ data: rows, total: count, page, last_page: Math.ceil(count / limit) });
 });
 
-// POST /api/products/update-sinhala-names — update name_si by barcode or id
+// POST /api/products/update-sinhala-names — update name_si by barcode or name
 router.post('/update-sinhala-names', auth, role('admin', 'manager'), async (req, res) => {
   const { Product } = req.models;
   const rows = Array.isArray(req.body) ? req.body : (req.body.products || []);
-  let updated = 0, skipped = 0;
+
+  // Single fetch to build lookup maps — avoids N individual queries
+  const existing = await Product.findAll({ attributes: ['id', 'barcode', 'name'] });
+  const byBarcode = new Map(existing.filter(p => p.barcode).map(p => [p.barcode, p.id]));
+  const byName    = new Map(existing.map(p => [p.name, p.id]));
+
+  const toUpdate = [];
+  let skipped = 0;
   for (const row of rows) {
     if (!row.name_si) { skipped++; continue; }
-    try {
-      const where = row.barcode ? { barcode: row.barcode } : row.name ? { name: row.name } : null;
-      if (!where) { skipped++; continue; }
-      const [count] = await Product.update({ name_si: row.name_si }, { where });
-      if (count > 0) updated++;
-      else skipped++;
-    } catch { skipped++; }
+    const id = row.barcode ? byBarcode.get(row.barcode) : (row.name ? byName.get(row.name) : null);
+    if (!id) { skipped++; continue; }
+    toUpdate.push({ id, name_si: row.name_si });
   }
+
+  if (toUpdate.length) {
+    await Product.bulkCreate(toUpdate, { updateOnDuplicate: ['name_si'] });
+  }
+
   cache.del(`${req.tenant}_products_all`);
-  res.json({ updated, skipped });
+  res.json({ updated: toUpdate.length, skipped });
 });
 
 // POST /api/products/import — batch CSV import
