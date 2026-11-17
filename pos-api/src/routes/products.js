@@ -216,6 +216,25 @@ router.get('/', auth, async (req, res) => {
   res.json({ data: rows, total: count, page, last_page: Math.ceil(count / limit) });
 });
 
+// POST /api/products/update-sinhala-names — update name_si by barcode or id
+router.post('/update-sinhala-names', auth, role('admin', 'manager'), async (req, res) => {
+  const { Product } = req.models;
+  const rows = Array.isArray(req.body) ? req.body : (req.body.products || []);
+  let updated = 0, skipped = 0;
+  for (const row of rows) {
+    if (!row.name_si) { skipped++; continue; }
+    try {
+      const where = row.barcode ? { barcode: row.barcode } : row.name ? { name: row.name } : null;
+      if (!where) { skipped++; continue; }
+      const [count] = await Product.update({ name_si: row.name_si }, { where });
+      if (count > 0) updated++;
+      else skipped++;
+    } catch { skipped++; }
+  }
+  cache.del(`${req.tenant}_products_all`);
+  res.json({ updated, skipped });
+});
+
 // POST /api/products/import — batch CSV import
 router.post('/import', auth, role('admin', 'manager'), async (req, res) => {
   const { Product } = req.models;

@@ -53,6 +53,13 @@ export const productsApi = api.injectEndpoints({
         try { await queryFulfilled; refreshProductCache(); } catch {}
       },
     }),
+    updateSinhalaNames: build.mutation({
+      query: body => ({ url: '/products/update-sinhala-names', method: 'POST', body }),
+      invalidatesTags: [{ type: 'Products', id: 'LIST' }],
+      onQueryStarted: async (_, { queryFulfilled }) => {
+        try { await queryFulfilled; refreshProductCache(); } catch {}
+      },
+    }),
     truncateProducts: build.mutation({
       query: () => ({ url: '/products/truncate', method: 'POST', body: { confirm: 'TRUNCATE_PRODUCTS' } }),
       invalidatesTags: [{ type: 'Products', id: 'LIST' }],
@@ -101,6 +108,7 @@ export const productsApi = api.injectEndpoints({
 
 export const {
   useGetProductsQuery,
+  useUpdateSinhalaNamesMutation,
   useGetProductQuery,
   useCreateProductMutation,
   useUpdateProductMutation,
